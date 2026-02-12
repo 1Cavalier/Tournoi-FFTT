@@ -8,8 +8,7 @@ public class MainApp extends Application {
     @Override
     public void start(Stage stage) {
         var navigator = new Navigator(stage);
-        navigator.showTableauSelection();
-
+        navigator.showHome(); // ✅ accueil d’abord
         stage.setTitle("Tournoi FFTT - V1");
         stage.show();
     }
