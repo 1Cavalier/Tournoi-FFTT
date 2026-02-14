@@ -21,12 +21,13 @@ public class HomeView extends VBox {
         var orgaBtn = new Button("👤 Connexion Organisme");
         orgaBtn.setPrefHeight(42);
         orgaBtn.setMaxWidth(Double.MAX_VALUE);
-        orgaBtn.setOnAction(e -> nav.showLoginOrganisme());
+        orgaBtn.setOnAction(e -> nav.showOrganizerLogin());
 
         var playerBtn = new Button("🧑‍🏓 Connexion Joueur");
         playerBtn.setPrefHeight(42);
         playerBtn.setMaxWidth(Double.MAX_VALUE);
-        playerBtn.setOnAction(e -> nav.showLoginJoueur());
+        playerBtn.setOnAction(e -> {
+            /* plus tard */});
 
         getChildren().addAll(title, subtitle, orgaBtn, playerBtn);
     }
