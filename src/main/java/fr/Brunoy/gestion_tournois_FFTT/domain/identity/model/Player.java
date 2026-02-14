@@ -17,7 +17,7 @@ public class Player {
     private final String licenseNumber; // unique FFTT
     private final String firstName;
     private final String lastName;
-    private final Gender gender; 
+    private final Gender gender;
     private final String nationality;
 
     private final Club club;
@@ -72,7 +72,7 @@ public class Player {
         this.licenseNumber = licenseNumber.trim();
         this.firstName = firstName.trim();
         this.lastName = lastName.trim();
-        this.gender = gender; 
+        this.gender = gender;
         this.nationality = nationality.trim().toUpperCase();
         this.club = club;
         this.ageCategory = ageCategory;
@@ -101,11 +101,11 @@ public class Player {
 
     public Gender getGender() {
         return gender;
-    } 
+    }
 
     public boolean isFemale() {
         return gender == Gender.FEMALE;
-    } 
+    }
 
     public String getNationality() {
         return nationality;

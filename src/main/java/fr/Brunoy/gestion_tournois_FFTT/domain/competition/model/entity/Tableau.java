@@ -38,7 +38,7 @@ public final class Tableau {
             TableauPointsRuleType pointsRuleType,
             Integer minPoints,
             Integer maxPoints,
-            int maxPlayers, // ✅ nouveau
+            int maxPlayers,
             RegistrationFee fee,
             LocalTime checkInEnd,
             LocalTime startTime,
@@ -176,7 +176,7 @@ public final class Tableau {
 
     public int maxPlayers() {
         return maxPlayers;
-    } // ✅ nouveau
+    }
 
     public RegistrationFee fee() {
         return fee;

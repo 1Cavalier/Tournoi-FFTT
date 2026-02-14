@@ -19,10 +19,12 @@ public class OrganizerAuthService {
         if (clubName == null || clubName.isBlank()) {
             throw new IllegalArgumentException("Nom du club obligatoire.");
         }
+
         String normalizedEmail = normalizeEmail(email);
         if (normalizedEmail.isBlank() || !normalizedEmail.contains("@")) {
             throw new IllegalArgumentException("Email invalide.");
         }
+
         if (!PasswordPolicy.isValid(password)) {
             throw new IllegalArgumentException(PasswordPolicy.rulesText());
         }
@@ -35,19 +37,23 @@ public class OrganizerAuthService {
 
         String hash = HashUtils.sha256(password);
         OrganizerAccount created = OrganizerAccount.createNew(clubName.trim(), normalizedEmail, hash);
+
         all.add(created);
         store.saveAll(all);
+
         return created;
     }
 
     public OrganizerAccount login(String email, String password) {
         String normalizedEmail = normalizeEmail(email);
-        if (normalizedEmail.isBlank())
+        if (normalizedEmail.isBlank()) {
             throw new IllegalArgumentException("Email obligatoire.");
+        }
 
         String hash = HashUtils.sha256(password == null ? "" : password);
 
         List<OrganizerAccount> all = store.loadAll();
+
         OrganizerAccount acc = all.stream()
                 .filter(a -> a.getEmail().equalsIgnoreCase(normalizedEmail))
                 .findFirst()
@@ -56,6 +62,7 @@ public class OrganizerAuthService {
         if (!acc.getPasswordHash().equals(hash)) {
             throw new IllegalArgumentException("Email ou mot de passe incorrect.");
         }
+
         return acc;
     }
 

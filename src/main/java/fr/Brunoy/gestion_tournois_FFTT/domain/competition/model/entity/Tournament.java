@@ -21,10 +21,8 @@ public final class Tournament {
     private final Set<LocalDate> days;
     private final List<Tableau> tableaux;
 
-    // ✅ politique d'inscription du tournoi
     private final TournamentRegistrationPolicy registrationPolicy;
 
-    // ✅ Stockage in-memory des inscriptions par code tableau
     private final Map<String, List<Registration>> registrationsByTableauCode = new HashMap<>();
 
     public Tournament(
