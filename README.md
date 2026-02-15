@@ -183,3 +183,13 @@ Prérequis :
 
 Commande :
 
+mvn clean javafx:run
+
+
+La base de données locale sera créée automatiquement si elle n’existe pas.
+
+---
+
+## Auteur
+
+Projet personnel visant à développer un logiciel complet de gestion de tournois FFTT avec une architecture robuste et évolutive.

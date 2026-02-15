@@ -34,9 +34,17 @@ public final class TestFixtures {
         return new Departement("91", "Essonne", idf());
     }
 
-    public static Club clubBrunoy() {
-        // ⚠️ adapte si ton constructeur Club est différent
-        return new Club("08911132", "Brunoy CTT", essonne91(), "Brunoy", "Gymnase Dupont");
+    private static Club clubBrunoy() {
+        return new Club(
+                "08911132",
+                "Brunoy CTT",
+                essonne91(),
+                "Brunoy",
+                "157 route de Brie",
+                null, // address2 optionnel
+                null, // latitude optionnelle
+                null // longitude optionnelle
+        );
     }
 
     public static Player playerMale(int p1, int p2) {

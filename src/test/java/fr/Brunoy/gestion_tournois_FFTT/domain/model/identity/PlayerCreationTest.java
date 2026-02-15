@@ -22,7 +22,16 @@ class PlayerCreationTest {
     }
 
     private Club clubBrunoy() {
-        return new Club("08911132", "Brunoy CTT", departementEssonne(), "Brunoy", "157 route de Brie");
+        return new Club(
+                "08911132",
+                "Brunoy CTT",
+                departementEssonne(),
+                "Brunoy",
+                "157 route de Brie",
+                null, // address2 optionnel
+                null, // latitude optionnelle
+                null // longitude optionnelle
+        );
     }
 
     private Player joueurValide() {

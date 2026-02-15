@@ -1,9 +1,9 @@
 package fr.Brunoy.gestion_tournois_FFTT.domain.organization.model;
 
-import java.util.Objects;
-
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
+
+import java.util.Objects;
 
 public class Club {
 
@@ -12,14 +12,24 @@ public class Club {
     private final Departement departement;
 
     private final String city; // ex: "Brunoy"
-    private final String address; // ex: "Gymnase Dupont" (optionnel)
+
+    // Ancien champ "address" remplacé par address1/address2
+    private final String address1; // ex: "Gymnase Dupont" / "12 rue ..."
+    private final String address2; // ex: "Bâtiment B, entrée arrière" (optionnel)
+
+    // Optionnel
+    private final Double latitude; // ex: 48.695
+    private final Double longitude; // ex: 2.492
 
     public Club(
             String number,
             String name,
             Departement departement,
             String city,
-            String address) {
+            String address1,
+            String address2,
+            Double latitude,
+            Double longitude) {
         if (number == null || number.isBlank())
             throw new BusinessException(ErrorCode.CLUB_NUMBER_REQUIRED);
 
@@ -32,11 +42,39 @@ public class Club {
         if (city == null || city.isBlank())
             throw new BusinessException(ErrorCode.CLUB_CITY_REQUIRED);
 
+        // lat/lon : soit les deux null, soit les deux renseignés
+        boolean hasLat = latitude != null;
+        boolean hasLon = longitude != null;
+        if (hasLat ^ hasLon) {
+            // si tu veux un ErrorCode dédié plus tard, on pourra l’ajouter
+            throw new IllegalArgumentException(
+                    "Latitude et longitude doivent être renseignées ensemble (ou toutes les deux null).");
+        }
+
+        // bornes classiques
+        if (latitude != null && (latitude < -90.0 || latitude > 90.0))
+            throw new IllegalArgumentException("Latitude invalide (doit être entre -90 et 90).");
+
+        if (longitude != null && (longitude < -180.0 || longitude > 180.0))
+            throw new IllegalArgumentException("Longitude invalide (doit être entre -180 et 180).");
+
         this.number = number.trim();
         this.name = name.trim();
         this.departement = departement;
         this.city = city.trim();
-        this.address = (address == null || address.isBlank()) ? null : address.trim();
+
+        this.address1 = normalizeOptional(address1);
+        this.address2 = normalizeOptional(address2);
+
+        this.latitude = latitude;
+        this.longitude = longitude;
+    }
+
+    private String normalizeOptional(String s) {
+        if (s == null)
+            return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
     }
 
     public String getNumber() {
@@ -55,8 +93,20 @@ public class Club {
         return city;
     }
 
-    public String getAddress() {
-        return address;
+    public String getAddress1() {
+        return address1;
+    }
+
+    public String getAddress2() {
+        return address2;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
     }
 
     @Override

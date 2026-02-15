@@ -2,6 +2,7 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app;
 
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.db.DbMigrations;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.db.SqliteDb;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteClubProfileRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteOrganizerAccountRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteTableauRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteTournamentRepository;
@@ -10,6 +11,7 @@ import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.HomeView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.OrganizerLoginView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.OrganizerRegisterView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.OrganizerDashboardView;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.OrganizerProfileDialog;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
@@ -24,6 +26,7 @@ public class Navigator {
     private final SqliteDb db;
     private final SqliteTournamentRepository tournamentRepo;
     private final SqliteTableauRepository tableauRepo;
+    private final SqliteClubProfileRepository clubProfileRepo;
 
     // --- services ---
     private final OrganizerAuthService organizerAuth;
@@ -34,11 +37,11 @@ public class Navigator {
     public Navigator(Stage stage) {
         this.stage = stage;
 
-        // 1) DB local file
+        // DB file local
         Path dbFile = Path.of("data", "app.db");
         this.db = new SqliteDb(dbFile);
 
-        // 2) Apply schema (idempotent)
+        // Apply schema (idempotent)
         try (Connection c = db.openConnection()) {
             DbMigrations.applySchema(c);
         } catch (Exception e) {
@@ -46,16 +49,17 @@ public class Navigator {
             throw new RuntimeException("DB init failed", e);
         }
 
-        // 3) Repositories
+        // Repositories
         var organizerRepo = new SqliteOrganizerAccountRepository(db);
         this.tournamentRepo = new SqliteTournamentRepository(db);
         this.tableauRepo = new SqliteTableauRepository(db);
+        this.clubProfileRepo = new SqliteClubProfileRepository(db);
 
-        // 5) Services
+        // Services
         this.organizerAuth = new OrganizerAuthService(organizerRepo);
     }
 
-    // ---------------- Services / Repos accessors ----------------
+    // ---------------- Accessors ----------------
 
     public OrganizerAuthService organizerAuth() {
         return organizerAuth;
@@ -67,6 +71,10 @@ public class Navigator {
 
     public SqliteTableauRepository tableauRepo() {
         return tableauRepo;
+    }
+
+    public SqliteClubProfileRepository clubProfileRepo() {
+        return clubProfileRepo;
     }
 
     // ---------------- Session ----------------
@@ -89,6 +97,7 @@ public class Navigator {
     public void showHome() {
         stage.setScene(new Scene(new HomeView(this), 900, 600));
         stage.setTitle("Tournoi FFTT — Accueil");
+        stage.show();
     }
 
     public void showOrganizerLogin() {
@@ -104,5 +113,13 @@ public class Navigator {
     public void showOrganizerDashboard() {
         stage.setScene(new Scene(new OrganizerDashboardView(this), 1200, 700));
         stage.setTitle("Tournoi FFTT — Dashboard Organisme");
+    }
+
+    public void showOrganizerProfileDialog() {
+        OrganizerProfileDialog dialog = new OrganizerProfileDialog(this);
+        dialog.showAndWait();
+
+        // Rafraîchir le dashboard pour refléter les changements
+        showOrganizerDashboard();
     }
 }
