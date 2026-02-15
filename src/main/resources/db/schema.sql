@@ -9,4 +9,38 @@ CREATE TABLE IF NOT EXISTS organizer_account (
   updated_at    TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS tournament (
+  id            TEXT PRIMARY KEY,
+  organizer_id  TEXT NOT NULL,
+  name          TEXT NOT NULL,
+  level         TEXT NOT NULL,
+  phase         INTEGER NOT NULL,
+  start_date    TEXT,
+  end_date      TEXT,
+  status        TEXT NOT NULL CHECK (status IN ('DRAFT','OPEN','RUNNING','FINISHED')),
+  created_at    TEXT NOT NULL,
+  updated_at    TEXT NOT NULL,
+  FOREIGN KEY (organizer_id) REFERENCES organizer_account(id)
+);
+
+CREATE TABLE IF NOT EXISTS app_state (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  current_tournament_id TEXT NULL,
+  FOREIGN KEY (current_tournament_id) REFERENCES tournament(id)
+);
+
+INSERT OR IGNORE INTO app_state(id, current_tournament_id) VALUES (1, NULL);
+
+CREATE TABLE IF NOT EXISTS tableau (
+  id           TEXT PRIMARY KEY,
+  tournament_id TEXT NOT NULL,
+  code         TEXT NOT NULL,
+  label        TEXT NOT NULL,
+  price_cents  INTEGER NOT NULL,
+  capacity     INTEGER NOT NULL,
+  created_at   TEXT NOT NULL,
+  updated_at   TEXT NOT NULL,
+  FOREIGN KEY (tournament_id) REFERENCES tournament(id),
+  UNIQUE (tournament_id, code)
+);
 
