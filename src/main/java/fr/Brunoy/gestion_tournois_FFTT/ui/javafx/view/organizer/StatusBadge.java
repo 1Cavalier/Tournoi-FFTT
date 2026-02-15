@@ -1,4 +1,4 @@
-package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.dashboard;
+package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer;
 
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;

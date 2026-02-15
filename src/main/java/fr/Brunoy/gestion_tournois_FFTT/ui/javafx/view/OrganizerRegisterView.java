@@ -1,7 +1,7 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view;
 
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.Navigator;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.PasswordPolicy;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.security.PasswordPolicy;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;

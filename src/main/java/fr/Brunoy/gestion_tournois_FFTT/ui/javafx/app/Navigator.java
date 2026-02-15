@@ -2,7 +2,6 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app;
 
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.db.DbMigrations;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.db.SqliteDb;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.migration.OrganizerJsonToSqliteMigration;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteOrganizerAccountRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteTableauRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteTournamentRepository;
@@ -10,7 +9,7 @@ import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.HomeView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.OrganizerLoginView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.OrganizerRegisterView;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.dashboard.OrganizerDashboardView;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.OrganizerDashboardView;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
@@ -51,14 +50,6 @@ public class Navigator {
         var organizerRepo = new SqliteOrganizerAccountRepository(db);
         this.tournamentRepo = new SqliteTournamentRepository(db);
         this.tableauRepo = new SqliteTableauRepository(db);
-
-        // 4) One-time migration JSON -> SQLite (only if organizer table empty)
-        try {
-            OrganizerJsonToSqliteMigration.importIfNeeded(organizerRepo, Path.of("data", "organizers.json"));
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw e;
-        }
 
         // 5) Services
         this.organizerAuth = new OrganizerAuthService(organizerRepo);

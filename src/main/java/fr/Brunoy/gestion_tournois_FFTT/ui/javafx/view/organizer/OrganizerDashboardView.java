@@ -1,9 +1,9 @@
-package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.dashboard;
+package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer;
 
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.Navigator;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TableauRow;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TournamentRow;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.TableauRow;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.TournamentRow;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;

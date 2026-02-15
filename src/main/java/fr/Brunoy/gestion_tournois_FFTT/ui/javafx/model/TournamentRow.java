@@ -1,4 +1,4 @@
-package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo;
+package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model;
 
 public record TournamentRow(
         String id,

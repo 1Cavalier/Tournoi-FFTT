@@ -1,4 +1,4 @@
-package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.dashboard;
+package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer;
 
 public enum TournamentStatus {
     DRAFT("Brouillon", "#6c757d"),

@@ -1,4 +1,4 @@
-package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra;
+package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.security;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

@@ -1,6 +1,7 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo;
 
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.db.SqliteDb;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.TournamentRow;
 
 import java.sql.Connection;
 import java.util.Optional;

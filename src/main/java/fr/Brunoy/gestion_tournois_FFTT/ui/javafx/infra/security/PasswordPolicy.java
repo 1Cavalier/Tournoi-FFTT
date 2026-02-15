@@ -1,4 +1,4 @@
-package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra;
+package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.security;
 
 public final class PasswordPolicy {
     private PasswordPolicy() {

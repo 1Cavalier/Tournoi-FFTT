@@ -1,8 +1,8 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app;
 
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.HashUtils;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.PasswordPolicy;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.OrganizerAccountRepository;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.security.HashUtils;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.security.PasswordPolicy;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
 
 public class OrganizerAuthService {
