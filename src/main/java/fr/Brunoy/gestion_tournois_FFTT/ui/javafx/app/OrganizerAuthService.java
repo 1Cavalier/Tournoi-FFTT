@@ -1,67 +1,50 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app;
 
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.HashUtils;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.OrganizerAccountStore;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.PasswordPolicy;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.OrganizerAccountRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
-
-import java.util.List;
 
 public class OrganizerAuthService {
 
-    private final OrganizerAccountStore store;
+    private final OrganizerAccountRepository repo;
 
-    public OrganizerAuthService(OrganizerAccountStore store) {
-        this.store = store;
+    public OrganizerAuthService(OrganizerAccountRepository repo) {
+        this.repo = repo;
     }
 
     public OrganizerAccount register(String clubName, String email, String password) {
-        if (clubName == null || clubName.isBlank()) {
+        if (clubName == null || clubName.isBlank())
             throw new IllegalArgumentException("Nom du club obligatoire.");
-        }
 
         String normalizedEmail = normalizeEmail(email);
-        if (normalizedEmail.isBlank() || !normalizedEmail.contains("@")) {
+        if (normalizedEmail.isBlank() || !normalizedEmail.contains("@"))
             throw new IllegalArgumentException("Email invalide.");
-        }
 
-        if (!PasswordPolicy.isValid(password)) {
+        if (!PasswordPolicy.isValid(password))
             throw new IllegalArgumentException(PasswordPolicy.rulesText());
-        }
 
-        List<OrganizerAccount> all = store.loadAll();
-        boolean exists = all.stream().anyMatch(a -> a.getEmail().equalsIgnoreCase(normalizedEmail));
-        if (exists) {
+        if (repo.findByEmail(normalizedEmail).isPresent())
             throw new IllegalArgumentException("Un compte existe déjà avec cet email.");
-        }
 
         String hash = HashUtils.sha256(password);
         OrganizerAccount created = OrganizerAccount.createNew(clubName.trim(), normalizedEmail, hash);
-
-        all.add(created);
-        store.saveAll(all);
-
+        repo.insert(created);
         return created;
     }
 
     public OrganizerAccount login(String email, String password) {
         String normalizedEmail = normalizeEmail(email);
-        if (normalizedEmail.isBlank()) {
+        if (normalizedEmail.isBlank())
             throw new IllegalArgumentException("Email obligatoire.");
-        }
 
         String hash = HashUtils.sha256(password == null ? "" : password);
 
-        List<OrganizerAccount> all = store.loadAll();
-
-        OrganizerAccount acc = all.stream()
-                .filter(a -> a.getEmail().equalsIgnoreCase(normalizedEmail))
-                .findFirst()
+        OrganizerAccount acc = repo.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Email ou mot de passe incorrect."));
 
-        if (!acc.getPasswordHash().equals(hash)) {
+        if (!acc.getPasswordHash().equals(hash))
             throw new IllegalArgumentException("Email ou mot de passe incorrect.");
-        }
 
         return acc;
     }

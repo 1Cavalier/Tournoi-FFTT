@@ -1,6 +1,9 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app;
 
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.OrganizerAccountStore;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.db.DbMigrations;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.db.SqliteDb;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.migration.OrganizerJsonToSqliteMigration;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteOrganizerAccountRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.HomeView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.OrganizerLoginView;
@@ -10,28 +13,47 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 import java.nio.file.Path;
+import java.sql.Connection;
 
 public class Navigator {
 
     private final Stage stage;
 
-    private final OrganizerAuthService organizerAuth = new OrganizerAuthService(
-            new OrganizerAccountStore(Path.of("data", "organizers.json")));
+    private final SqliteDb db;
+    private final OrganizerAuthService organizerAuth;
 
     private OrganizerAccount currentOrganizer;
 
+    
+
     public Navigator(Stage stage) {
         this.stage = stage;
+
+        // DB file local
+        Path dbFile = Path.of("data", "app.db");
+        this.db = new SqliteDb(dbFile);
+
+        // migrations
+        try (Connection c = db.openConnection()) {
+            DbMigrations.applySchema(c);
+        } catch (Exception e) {
+            throw new RuntimeException("DB init failed", e);
+        }
+
+        // repos + migration JSON -> SQLite (une seule fois)
+        var organizerRepo = new SqliteOrganizerAccountRepository(db);
+        OrganizerJsonToSqliteMigration.importIfNeeded(organizerRepo, Path.of("data", "organizers.json"));
+
+        // services
+        this.organizerAuth = new OrganizerAuthService(organizerRepo);
     }
 
-    // --- Services accessibles aux Views ---
     public OrganizerAuthService organizerAuth() {
         return organizerAuth;
     }
 
-    // --- Session organisme ---
-    public void setCurrentOrganizer(OrganizerAccount currentOrganizer) {
-        this.currentOrganizer = currentOrganizer;
+    public void setCurrentOrganizer(OrganizerAccount acc) {
+        this.currentOrganizer = acc;
     }
 
     public OrganizerAccount getCurrentOrganizer() {
@@ -43,7 +65,6 @@ public class Navigator {
         showHome();
     }
 
-    // --- Navigation ---
     public void showHome() {
         stage.setScene(new Scene(new HomeView(this), 900, 600));
     }

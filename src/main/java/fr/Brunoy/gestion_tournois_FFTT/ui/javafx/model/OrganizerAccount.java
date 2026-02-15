@@ -1,11 +1,14 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.UUID;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class OrganizerAccount {
+
     private final String id;
     private final String clubName;
     private final String email;

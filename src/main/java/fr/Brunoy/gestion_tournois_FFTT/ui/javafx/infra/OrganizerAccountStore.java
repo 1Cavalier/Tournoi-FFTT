@@ -1,6 +1,7 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
 
@@ -11,41 +12,47 @@ import java.util.List;
 
 public class OrganizerAccountStore {
 
-    private final Path file;
+    private final Path filePath;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public OrganizerAccountStore(Path file) {
-        this.file = file;
+    public OrganizerAccountStore(Path filePath) {
+        this.filePath = filePath;
     }
 
     public List<OrganizerAccount> loadAll() {
         try {
             ensureParentDir();
-            if (!Files.exists(file))
+            if (!Files.exists(filePath))
                 return new ArrayList<>();
-            byte[] json = Files.readAllBytes(file);
+
+            byte[] json = Files.readAllBytes(filePath);
             if (json.length == 0)
                 return new ArrayList<>();
-            return mapper.readValue(json, new TypeReference<List<OrganizerAccount>>() {
-            });
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot read " + file, e);
-        }
-    }
 
-    public void saveAll(List<OrganizerAccount> accounts) {
-        try {
-            ensureParentDir();
-            byte[] json = mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(accounts);
-            Files.write(file, json, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            JsonNode root = mapper.readTree(json);
+
+            // Ancien format: [ {...}, {...} ]
+            if (root.isArray()) {
+                return mapper.convertValue(root, new TypeReference<List<OrganizerAccount>>() {
+                });
+            }
+
+            // Nouveau format "pro": { schemaVersion, hashAlgorithm, accounts: [ ... ] }
+            if (root.isObject() && root.has("accounts") && root.get("accounts").isArray()) {
+                return mapper.convertValue(root.get("accounts"), new TypeReference<List<OrganizerAccount>>() {
+                });
+            }
+
+            throw new IllegalStateException("Format organizers.json inconnu. Attendu: [..] ou {\"accounts\":[..]}");
         } catch (IOException e) {
-            throw new RuntimeException("Cannot write " + file, e);
+            throw new RuntimeException("Cannot read " + filePath, e);
         }
     }
 
     private void ensureParentDir() throws IOException {
-        Path parent = file.getParent();
-        if (parent != null && !Files.exists(parent))
+        Path parent = filePath.getParent();
+        if (parent != null && !Files.exists(parent)) {
             Files.createDirectories(parent);
+        }
     }
 }
