@@ -12,6 +12,8 @@ import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.OrganizerLoginView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.OrganizerRegisterView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.OrganizerDashboardView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.OrganizerProfileDialog;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.CreateTournamentDialog;
+
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
@@ -122,4 +124,11 @@ public class Navigator {
         // Rafraîchir le dashboard pour refléter les changements
         showOrganizerDashboard();
     }
+
+    public void showCreateTournamentDialog() {
+        CreateTournamentDialog dialog = new CreateTournamentDialog(this);
+        dialog.showAndWait();
+        showOrganizerDashboard(); // refresh après création
+    }
+
 }

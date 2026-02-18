@@ -3,18 +3,16 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.Navigator;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.ClubProfileRow;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.TableauRow;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.TournamentRow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.shape.Circle;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.*;
 
-import java.util.List;
 import java.util.Optional;
 
 public class OrganizerDashboardView extends BorderPane {
@@ -22,39 +20,12 @@ public class OrganizerDashboardView extends BorderPane {
     public OrganizerDashboardView(Navigator nav) {
 
         OrganizerAccount organizer = nav.getCurrentOrganizer();
+
+        // Sidebar : tu gardes ta version actuelle (parfaite)
         setLeft(createSidebar(nav, organizer));
 
-        VBox main = new VBox(18);
-        main.setPadding(new Insets(20));
-
-        Optional<String> currentId = nav.tournamentRepo().findCurrentTournamentId();
-
-        if (currentId.isEmpty()) {
-            main.getChildren().addAll(
-                    createNoTournamentHeader(),
-                    createCreateTournamentButton(nav));
-        } else {
-
-            TournamentRow t = nav.tournamentRepo()
-                    .findById(currentId.get())
-                    .orElse(null);
-
-            if (t == null) {
-                main.getChildren().addAll(
-                        createNoTournamentHeader(),
-                        createCreateTournamentButton(nav));
-            } else {
-
-                List<TableauRow> tableaux = nav.tableauRepo().listByTournamentId(t.id());
-
-                main.getChildren().addAll(
-                        createTournamentHeader(t),
-                        createDashboardPanels(t, tableaux),
-                        createCreateTournamentButton(nav));
-            }
-        }
-
-        setCenter(main);
+        // Centre : nouveau layout simple
+        setCenter(createMainContent(nav));
     }
 
     // ================= SIDEBAR =================
@@ -72,6 +43,11 @@ public class OrganizerDashboardView extends BorderPane {
         String clubName = organizer != null ? organizer.getClubName() : "(non connecté)";
         String email = organizer != null ? organizer.getEmail() : "";
 
+        // Charger le profil UNE SEULE FOIS
+        Optional<ClubProfileRow> pOpt = (organizer == null)
+                ? Optional.empty()
+                : nav.clubProfileRepo().findByOrganizerId(organizer.getId());
+
         // ================= LOGO =================
 
         StackPane logoContainer = new StackPane();
@@ -85,15 +61,12 @@ public class OrganizerDashboardView extends BorderPane {
                     -fx-border-width:2;
                 """);
 
-        Optional<ClubProfileRow> pOpt = organizer == null
-                ? Optional.empty()
-                : nav.clubProfileRepo().findByOrganizerId(organizer.getId());
+        // si logo en DB -> afficher image, sinon placeholder
+        String logoPath = pOpt.map(ClubProfileRow::logoPath).orElse(null);
 
-        if (pOpt.isPresent() && pOpt.get().logoPath() != null && !pOpt.get().logoPath().isBlank()) {
-
+        if (logoPath != null && !logoPath.isBlank()) {
             try {
-
-                ImageView imageView = new ImageView(new Image("file:" + pOpt.get().logoPath(), 140, 140, true, true));
+                ImageView imageView = new ImageView(new Image("file:" + logoPath, 140, 140, true, true));
                 imageView.setFitWidth(140);
                 imageView.setFitHeight(140);
 
@@ -102,13 +75,12 @@ public class OrganizerDashboardView extends BorderPane {
                 imageView.setClip(clip);
 
                 logoContainer.getChildren().add(imageView);
-
             } catch (Exception e) {
-                logoContainer.getChildren().add(new Label("LOGO"));
+                Label placeholder = new Label("LOGO");
+                placeholder.setStyle("-fx-font-weight:bold; -fx-opacity:0.6;");
+                logoContainer.getChildren().add(placeholder);
             }
-
         } else {
-
             Label placeholder = new Label("LOGO");
             placeholder.setStyle("-fx-font-weight:bold; -fx-opacity:0.6;");
             logoContainer.getChildren().add(placeholder);
@@ -122,12 +94,10 @@ public class OrganizerDashboardView extends BorderPane {
         // ================= IDENTITE =================
 
         Label nameLabel = new Label(clubName);
-        nameLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
         nameLabel.setMaxWidth(Double.MAX_VALUE);
         nameLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-alignment:center;");
 
         Label emailLabel = new Label(email);
-        emailLabel.setStyle("-fx-opacity: 0.85;");
         emailLabel.setMaxWidth(Double.MAX_VALUE);
         emailLabel.setStyle("-fx-opacity:0.85; -fx-alignment:center;");
 
@@ -146,23 +116,35 @@ public class OrganizerDashboardView extends BorderPane {
         VBox details = new VBox(4);
         details.setPadding(new Insets(8, 0, 0, 0));
 
-        if (organizer != null) {
-    
-            if (pOpt.isPresent()) {
+        if (organizer != null && pOpt.isPresent()) {
 
-                ClubProfileRow p = pOpt.get();
+            ClubProfileRow p = pOpt.get();
 
-                details.getChildren().addAll(
-                        new Label("N° club : " + nvl(p.clubNumber())),
-                        new Label("Nom club : " + nvl(p.clubName())),
-                        new Label("Département : " + nvl(p.departementCode())),
-                        new Label("Ville : " + nvl(p.city())),
-                        new Label("Adresse 1 : " + nvl(p.address1())),
-                        new Label("Adresse 2 : " + nvl(p.address2())),
-                        new Label("Latitude : " + (p.latitude() == null ? "null" : p.latitude())),
-                        new Label("Longitude : " + (p.longitude() == null ? "null" : p.longitude())),
-                        new Label("Responsable : " + fullNameOrNull(p.contactFirstName(), p.contactLastName())));
-            }
+            details.getChildren().addAll(
+                    new Label("N° club : " + nvl(p.clubNumber())),
+                    new Label("Nom club : " + nvl(p.clubName())),
+                    new Label("Département : " + nvl(p.departementCode())),
+                    new Label("Ville : " + nvl(p.city())),
+                    new Label("Adresse 1 : " + nvl(p.address1())),
+                    new Label("Adresse 2 : " + nvl(p.address2())),
+                    new Label("Latitude : " + (p.latitude() == null ? "null" : p.latitude())),
+                    new Label("Longitude : " + (p.longitude() == null ? "null" : p.longitude())),
+                    new Label("Responsable : " + fullNameOrNull(p.contactFirstName(), p.contactLastName())));
+
+        } else if (organizer != null) {
+            // connecté mais pas de profil encore
+            details.getChildren().addAll(
+                    new Label("N° club : null"),
+                    new Label("Nom club : null"),
+                    new Label("Département : null"),
+                    new Label("Ville : null"),
+                    new Label("Adresse 1 : null"),
+                    new Label("Adresse 2 : null"),
+                    new Label("Latitude : null"),
+                    new Label("Longitude : null"),
+                    new Label("Responsable : null"));
+        } else {
+            details.getChildren().add(new Label("Profil : null"));
         }
 
         // ================= MENU =================
@@ -210,168 +192,48 @@ public class OrganizerDashboardView extends BorderPane {
 
     // ================= HEADER =================
 
-    private VBox createNoTournamentHeader() {
+    private VBox createMainContent(Navigator nav) {
 
-        VBox card = new VBox(8);
-        card.setPadding(new Insets(12));
-        card.setStyle("-fx-border-color:black; -fx-border-radius:6; -fx-background-color:white;");
+        VBox root = new VBox(18);
+        root.setPadding(new Insets(20));
 
-        Label title = new Label("Tournoi en cours :");
-        title.setStyle("-fx-font-size: 15px; -fx-font-weight: bold;");
+        VBox publishedBlock = createBlock("Tournoi Publié :", "Rien pour le moment");
+        VBox draftBlock = createBlock("Tournoi Brouillon :", "Rien pour le moment");
 
-        Label statusText = new Label("Aucun tournoi en cours n'a été trouvé");
-        statusText.setStyle("-fx-opacity: 0.85;");
+        Button createBtn = new Button("Crée un Tournoi");
+        createBtn.setMaxWidth(Double.MAX_VALUE);
+        createBtn.setOnAction(e -> nav.showCreateTournamentDialog());
 
-        card.getChildren().addAll(title, statusText);
-        return card;
+        VBox buttonRow = new VBox(createBtn);
+        buttonRow.setAlignment(Pos.CENTER);
+        buttonRow.setPadding(new Insets(8, 0, 0, 0));
+
+        root.getChildren().addAll(publishedBlock, draftBlock, buttonRow);
+        return root;
     }
 
-    private VBox createTournamentHeader(TournamentRow t) {
+    private VBox createBlock(String titleText, String centerText) {
 
-        VBox card = new VBox(8);
-        card.setPadding(new Insets(12));
-        card.setStyle("-fx-border-color:black; -fx-border-radius:6; -fx-background-color:white;");
+        VBox block = new VBox(10);
+        block.setPadding(new Insets(14));
+        block.setStyle("-fx-border-color:black; -fx-border-width:3; -fx-background-color:white;");
 
-        HBox top = new HBox(10);
-
-        Label title = new Label("Tournoi en cours : " + t.name());
-        title.setStyle("-fx-font-size: 15px; -fx-font-weight: bold;");
-
-        StatusBadge badge = new StatusBadge(toStatusEnum(t.status()));
-
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
-        top.getChildren().addAll(title, spacer, badge);
-
-        String dateTxt = ((t.startDate() != null ? t.startDate() : "?") + " → "
-                + (t.endDate() != null ? t.endDate() : "?"));
-
-        Label small = new Label("Dates : " + dateTxt);
-        small.setStyle("-fx-opacity: 0.85;");
-
-        card.getChildren().addAll(top, small);
-        return card;
-    }
-
-    // ================= PANELS =================
-
-    private HBox createDashboardPanels(TournamentRow t, List<TableauRow> tableaux) {
-
-        HBox row = new HBox(18);
-
-        VBox left = createTournamentInfoCard(t);
-        VBox center = createTableauxCard(t, tableaux);
-        VBox right = createActionsCard(t);
-
-        left.setPrefWidth(320);
-        center.setPrefWidth(360);
-        right.setPrefWidth(320);
-
-        HBox.setHgrow(left, Priority.ALWAYS);
-        HBox.setHgrow(center, Priority.ALWAYS);
-        HBox.setHgrow(right, Priority.ALWAYS);
-
-        row.getChildren().addAll(left, center, right);
-        return row;
-    }
-
-    private VBox createTournamentInfoCard(TournamentRow t) {
-
-        VBox card = new VBox(8);
-        card.setPadding(new Insets(12));
-        card.setStyle("-fx-border-color:black; -fx-border-radius:6; -fx-background-color:white;");
-
-        HBox header = new HBox(10);
-
-        Label title = new Label("Tournoi :");
+        Label title = new Label(titleText);
         title.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
 
-        StatusBadge badge = new StatusBadge(toStatusEnum(t.status()));
-        header.getChildren().addAll(title, badge);
+        Region space = new Region();
+        space.setMinHeight(60);
 
-        VBox content = new VBox(4);
-        content.getChildren().addAll(
-                new Label("Nom : " + t.name()),
-                new Label("Niveau : " + t.level()),
-                new Label("Phase : " + t.phase()),
-                new Label("Début : " + (t.startDate() == null ? "-" : t.startDate())),
-                new Label("Fin : " + (t.endDate() == null ? "-" : t.endDate())));
+        Label center = new Label(centerText);
+        center.setStyle("-fx-font-size: 14px; -fx-text-fill:#d07a4a; -fx-font-weight:bold;");
+        center.setMaxWidth(Double.MAX_VALUE);
+        center.setAlignment(Pos.CENTER);
 
-        card.getChildren().addAll(header, new Separator(), content);
-        return card;
-    }
+        VBox content = new VBox(10, space, center);
+        content.setAlignment(Pos.CENTER);
+        content.setMinHeight(130);
 
-    private VBox createTableauxCard(TournamentRow t, List<TableauRow> tableaux) {
-
-        VBox card = new VBox(10);
-        card.setPadding(new Insets(12));
-        card.setStyle("-fx-border-color:black; -fx-border-radius:6; -fx-background-color:white;");
-
-        Label title = new Label("Les Tableaux");
-        title.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
-
-        VBox list = new VBox(6);
-        list.setPadding(new Insets(10));
-        list.setStyle("-fx-border-color:#999; -fx-border-style: dashed;");
-
-        if (tableaux.isEmpty()) {
-            list.getChildren().add(new Label("Aucun tableau"));
-        } else {
-            for (TableauRow tb : tableaux) {
-                String txt = tb.code() + " — " + tb.label() + " — "
-                        + (tb.priceCents() / 100.0) + "€ — cap " + tb.capacity();
-                list.getChildren().add(new Label(txt));
-            }
-        }
-
-        Button editTableaux = new Button("Modifier les tableaux");
-        editTableaux.setDisable(toStatusEnum(t.status()) != TournamentStatus.DRAFT);
-
-        card.getChildren().addAll(title, list, editTableaux);
-        return card;
-    }
-
-    private VBox createActionsCard(TournamentRow t) {
-
-        VBox card = new VBox(12);
-        card.setPadding(new Insets(12));
-        card.setStyle("-fx-border-color:black; -fx-border-radius:6; -fx-background-color:white;");
-
-        Label title = new Label("Fonctions");
-        title.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
-
-        TournamentStatus st = toStatusEnum(t.status());
-
-        Button editTournament = new Button("Modifier le tournoi");
-        Button listPlayers = new Button("Liste des joueurs");
-        Button launch = new Button("Lancer le tournoi");
-        Button delete = new Button("Supprimer le tournoi");
-
-        editTournament.setDisable(st != TournamentStatus.DRAFT);
-        listPlayers.setDisable(st == TournamentStatus.DRAFT);
-        launch.setDisable(st != TournamentStatus.OPEN);
-        delete.setDisable(st == TournamentStatus.RUNNING);
-
-        card.getChildren().addAll(title, new Separator(), editTournament, listPlayers, launch, delete);
-        return card;
-    }
-
-    private Button createCreateTournamentButton(Navigator nav) {
-
-        Button btn = new Button("Créer un nouveau Tournoi");
-        btn.setPrefHeight(40);
-        btn.setPrefWidth(260);
-        return btn;
-    }
-
-    private TournamentStatus toStatusEnum(String dbValue) {
-        if (dbValue == null)
-            return TournamentStatus.DRAFT;
-        try {
-            return TournamentStatus.valueOf(dbValue.trim().toUpperCase());
-        } catch (Exception e) {
-            return TournamentStatus.DRAFT;
-        }
+        block.getChildren().addAll(title, content);
+        return block;
     }
 }

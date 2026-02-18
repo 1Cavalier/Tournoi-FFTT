@@ -26,18 +26,21 @@ CREATE TABLE IF NOT EXISTS club_profile (
   FOREIGN KEY (organizer_id) REFERENCES organizer_account(id)
 );
 
-
 CREATE TABLE IF NOT EXISTS tournament (
-  id            TEXT PRIMARY KEY,
-  organizer_id  TEXT NOT NULL,
-  name          TEXT NOT NULL,
-  level         TEXT NOT NULL,
-  phase         INTEGER NOT NULL,
-  start_date    TEXT,
-  end_date      TEXT,
-  status        TEXT NOT NULL CHECK (status IN ('DRAFT','OPEN','RUNNING','FINISHED')),
-  created_at    TEXT NOT NULL,
-  updated_at    TEXT NOT NULL,
+  id TEXT PRIMARY KEY,
+  organizer_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  level TEXT NOT NULL,
+  phase INTEGER,
+  start_date TEXT,
+  end_date TEXT,
+  status TEXT NOT NULL,
+  max_tableaux_per_day INTEGER NOT NULL DEFAULT 2,
+  max_total_tableaux   INTEGER NOT NULL DEFAULT 4,
+  female_extra_rule    TEXT    NOT NULL DEFAULT 'NONE',
+  female_extra_code    TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
   FOREIGN KEY (organizer_id) REFERENCES organizer_account(id)
 );
 
