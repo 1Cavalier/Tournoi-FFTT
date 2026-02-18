@@ -1,5 +1,6 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer;
 
+import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.entity.Tableau;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.TournamentLevel;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.FemaleExtraRuleType;
 import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.enums.RankingPhase;
@@ -73,50 +74,91 @@ public class CreateTournamentDialog extends Stage {
         infoBtn.setMinSize(24, 24);
         infoBtn.setMaxSize(24, 24);
         infoBtn.setStyle("""
-                    -fx-background-radius: 50;
-                    -fx-font-weight: bold;
-                    -fx-padding: 0;
+                -fx-background-radius: 50;
+                -fx-font-weight: bold;
+                -fx-padding: 0;
                 """);
 
         Tooltip tip = new Tooltip("""
-                NONE : pas d'extra
+                NONE : pas d’extra
 
-                ANY_TABLEAU : +1 tableau autorisé sur n'importe quel tableau (1 seul par jour)
+                ANY_TABLEAU : +1 tableau autorisé sur n’importe quel tableau (1 seul par jour)
 
                 SPECIFIC_TABLEAU_CODE : +1 tableau autorisé uniquement si la joueuse choisit un tableau précis (code)
                 """);
         tip.setWrapText(true);
-        tip.setMaxWidth(340);
+        tip.setMaxWidth(360);
         Tooltip.install(infoBtn, tip);
 
-        // ================== Tableaux (V1 en mémoire) ==================
+        // ================== Tableaux (métier en mémoire) ==================
 
-        ObservableList<String> tableaux = FXCollections.observableArrayList();
-        ListView<String> tableauxList = new ListView<>(tableaux);
-        tableauxList.setPrefHeight(160);
+        ObservableList<Tableau> tableaux = FXCollections.observableArrayList();
+        ListView<Tableau> tableauxList = new ListView<>(tableaux);
+        tableauxList.setPrefHeight(220);
+
+        // affichage lisible (sinon toString() par défaut)
+        tableauxList.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(Tableau item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    double prepaid = item.fee().prepaid() / 100.0;
+                    double onSite = item.fee().onSite() / 100.0;
+                    setText(item.code() + " — " + item.designation()
+                            + " — " + item.date()
+                            + " — cap " + item.maxPlayers()
+                            + " — " + prepaid + "€ (online) / " + onSite + "€ (sur place)");
+                }
+            }
+        });
 
         Button addTableauBtn = new Button("Créer un tableau");
         addTableauBtn.setMaxWidth(Double.MAX_VALUE);
 
-        addTableauBtn.setOnAction(e -> {
-            // V1 simple : on demande un "code" et un "libellé"
-            TextInputDialog dialog = new TextInputDialog();
-            dialog.setTitle("Créer un tableau");
-            dialog.setHeaderText("Créer un tableau (V1)");
-            dialog.setContentText("Format : CODE - Libellé (ex: A - Tableau A)");
+        Button removeTableauBtn = new Button("Supprimer le tableau sélectionné");
+        removeTableauBtn.setMaxWidth(Double.MAX_VALUE);
+        removeTableauBtn.disableProperty().bind(
+                tableauxList.getSelectionModel().selectedItemProperty().isNull());
 
-            dialog.showAndWait().ifPresent(txt -> {
-                String t = txt.trim();
-                if (!t.isBlank())
-                    tableaux.add(t);
+        addTableauBtn.setOnAction(e -> {
+            // popup complète qui crée un Tableau domaine
+            CreateTableauDialog dlg = new CreateTableauDialog(startDate.getValue(), endDate.getValue());
+            dlg.showAndWait().ifPresent(tb -> {
+
+                // 1) code unique
+                boolean dup = tableaux.stream().anyMatch(x -> x.code().equalsIgnoreCase(tb.code()));
+                if (dup) {
+                    showAlert("Code déjà utilisé", "Un tableau avec ce code existe déjà.");
+                    return;
+                }
+
+                // 2) si dates tournoi saisies, imposer que la date du tableau est dedans
+                LocalDate sd = startDate.getValue();
+                LocalDate ed = endDate.getValue();
+                if (sd != null && ed != null) {
+                    if (tb.date().isBefore(sd) || tb.date().isAfter(ed)) {
+                        showAlert("Date invalide",
+                                "La date du tableau doit être comprise entre la date début et la date fin du tournoi.");
+                        return;
+                    }
+                }
+
+                tableaux.add(tb);
             });
+        });
+
+        removeTableauBtn.setOnAction(e -> {
+            Tableau sel = tableauxList.getSelectionModel().getSelectedItem();
+            if (sel != null)
+                tableaux.remove(sel);
         });
 
         VBox tableauxBox = new VBox(10);
         Label tableauxTitle = new Label("Les Tableaux");
         tableauxTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
-
-        tableauxBox.getChildren().addAll(tableauxTitle, tableauxList, addTableauBtn);
+        tableauxBox.getChildren().addAll(tableauxTitle, tableauxList, addTableauBtn, removeTableauBtn);
 
         // ================== Erreurs + boutons ==================
 
@@ -150,7 +192,6 @@ public class CreateTournamentDialog extends Stage {
                 if (ed.isBefore(sd))
                     throw new IllegalArgumentException("La date de fin doit être >= date début.");
 
-                // Validations policy
                 int mpd = maxPerDay.getValue();
                 if (mpd <= 0)
                     throw new IllegalArgumentException("Max tableaux / jour invalide.");
@@ -163,12 +204,11 @@ public class CreateTournamentDialog extends Stage {
                         throw new IllegalArgumentException("Code tableau obligatoire si règle SPECIFIC_TABLEAU_CODE.");
                 }
 
-                // Tableaux : pas obligatoire dans ta demande, donc on autorise vide.
-                // Plus tard : on vérifiera que les tableaux sont cohérents avec dates du
-                // tournoi.
+                // (optionnel) imposer au moins 1 tableau
+                // if (tableaux.isEmpty()) throw new IllegalArgumentException("Ajoute au moins 1
+                // tableau.");
 
-                // DB : création tournoi DRAFT (tu as déjà cette méthode, à adapter si tu
-                // changes la signature)
+                // Création tournoi DRAFT en DB (comme tu avais)
                 nav.tournamentRepo().createDraftTournament(
                         org.getId(),
                         name.getText().trim(),
@@ -180,7 +220,11 @@ public class CreateTournamentDialog extends Stage {
                         rule.name(),
                         code);
 
+                // IMPORTANT : on ne persiste pas encore les tableaux ici (étape suivante)
+                // -> on le fera ensuite via repository tableau (insert + mapping)
+
                 close();
+
             } catch (Exception ex) {
                 error.setText(ex.getMessage() == null ? "Erreur" : ex.getMessage());
             }
@@ -220,7 +264,6 @@ public class CreateTournamentDialog extends Stage {
         form.add(label("Max tableaux / jour"), 0, r);
         form.add(maxPerDay, 1, r++);
 
-        // Ligne règle féminine + info
         HBox femaleRow = new HBox(8, femaleRule, infoBtn);
         femaleRow.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(femaleRule, Priority.ALWAYS);
@@ -233,8 +276,10 @@ public class CreateTournamentDialog extends Stage {
 
         ColumnConstraints c1 = new ColumnConstraints();
         c1.setMinWidth(170);
+
         ColumnConstraints c2 = new ColumnConstraints();
         c2.setHgrow(Priority.ALWAYS);
+
         form.getColumnConstraints().addAll(c1, c2);
 
         VBox center = new VBox(16, form, tableauxBox);
@@ -244,12 +289,20 @@ public class CreateTournamentDialog extends Stage {
         root.setCenter(center);
         root.setBottom(bottom);
 
-        setScene(new Scene(root, 760, 640));
+        setScene(new Scene(root, 900, 760));
     }
 
     private static Label label(String txt) {
         Label l = new Label(txt);
         l.setMinWidth(170);
         return l;
+    }
+
+    private void showAlert(String title, String msg) {
+        Alert a = new Alert(Alert.AlertType.WARNING);
+        a.setTitle(title);
+        a.setHeaderText(null);
+        a.setContentText(msg);
+        a.showAndWait();
     }
 }
