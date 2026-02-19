@@ -7,16 +7,19 @@ import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.PrizeDistr
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.PrizeTier;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.RegistrationFee;
 import javafx.geometry.Insets;
-import javafx.scene.Node;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 
 public final class CreateTableauDialog extends Dialog<Tableau> {
+
+    private static final int PRIZE_ROWS = 5;
 
     public CreateTableauDialog(LocalDate tournamentStart, LocalDate tournamentEnd) {
 
@@ -26,13 +29,33 @@ public final class CreateTableauDialog extends Dialog<Tableau> {
         ButtonType createBtn = new ButtonType("Créer", ButtonBar.ButtonData.OK_DONE);
         getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, createBtn);
 
-        // ----------------- Champs -----------------
+        // ================== Champs ==================
 
         TextField code = new TextField();
         code.setPromptText("A");
 
         TextField designation = new TextField();
-        designation.setPromptText("Tableau A - Classique");
+        designation.setPromptText("Désignation (auto, modifiable)");
+
+        // Auto designation (désactivée si l'utilisateur modifie manuellement)
+        final boolean[] updatingDesignation = { false };
+        final boolean[] autoDesignation = { true };
+
+        designation.textProperty().addListener((obs, oldV, newV) -> {
+            if (updatingDesignation[0])
+                return;
+            autoDesignation[0] = false;
+        });
+
+        Button autoBtn = new Button("Auto");
+        autoBtn.setFocusTraversable(false);
+        autoBtn.setOnAction(e -> {
+            autoDesignation[0] = true;
+            refreshDesignation(code, designation, null, null, null, updatingDesignation, autoDesignation);
+        });
+
+        HBox designationRow = new HBox(8, designation, autoBtn);
+        HBox.setHgrow(designation, Priority.ALWAYS);
 
         DatePicker date = new DatePicker();
         if (tournamentStart != null)
@@ -57,9 +80,20 @@ public final class CreateTableauDialog extends Dialog<Tableau> {
             boolean maxEnabled = newV == TableauPointsRuleType.MAX_ONLY || newV == TableauPointsRuleType.RANGE_MIN_MAX;
             minPoints.setDisable(!minEnabled);
             maxPoints.setDisable(!maxEnabled);
+
+            refreshDesignation(code, designation, pointsRule, minPoints, maxPoints, updatingDesignation,
+                    autoDesignation);
         });
         minPoints.setDisable(true);
         maxPoints.setDisable(true);
+
+        // listeners pour auto designation
+        code.textProperty().addListener((obs, o, n) -> refreshDesignation(code, designation, pointsRule, minPoints,
+                maxPoints, updatingDesignation, autoDesignation));
+        minPoints.valueProperty().addListener((obs, o, n) -> refreshDesignation(code, designation, pointsRule,
+                minPoints, maxPoints, updatingDesignation, autoDesignation));
+        maxPoints.valueProperty().addListener((obs, o, n) -> refreshDesignation(code, designation, pointsRule,
+                minPoints, maxPoints, updatingDesignation, autoDesignation));
 
         Spinner<Integer> maxPlayers = new Spinner<>(2, 512, 64);
         maxPlayers.setEditable(true);
@@ -84,31 +118,54 @@ public final class CreateTableauDialog extends Dialog<Tableau> {
         HBox checkInBox = new HBox(8, new Label("H"), checkH, new Label("M"), checkM);
         HBox startBox = new HBox(8, new Label("H"), startH, new Label("M"), startM);
 
-        // ----------------- Primes (V1 simple) -----------------
+        // ================== Primes (5 lignes fixes) ==================
+
         CheckBox prizesEnabled = new CheckBox("Activer les primes");
         prizesEnabled.setSelected(false);
 
-        Spinner<Integer> prizeFrom = new Spinner<>(1, 512, 1);
-        Spinner<Integer> prizeTo = new Spinner<>(1, 512, 1);
-        prizeFrom.setEditable(true);
-        prizeTo.setEditable(true);
+        VBox prizeRowsBox = new VBox(8);
 
-        TextField prizeAmountEuro = new TextField();
-        prizeAmountEuro.setPromptText("0.00");
+        List<Spinner<Integer>> fromSpinners = new ArrayList<>();
+        List<Spinner<Integer>> toSpinners = new ArrayList<>();
+        List<TextField> amountFields = new ArrayList<>();
 
-        HBox prizeRow = new HBox(10,
-                new Label("Rang de"), prizeFrom,
-                new Label("à"), prizeTo,
-                new Label("Montant (€)"), prizeAmountEuro);
-        prizeRow.setAlignment(Pos.CENTER_LEFT);
+        for (int i = 0; i < PRIZE_ROWS; i++) {
 
-        // désactivation tant que checkbox off
-        prizeRow.disableProperty().bind(prizesEnabled.selectedProperty().not());
+            Spinner<Integer> from = new Spinner<>(1, 512, 1);
+            Spinner<Integer> to = new Spinner<>(1, 512, 1);
+            from.setEditable(true);
+            to.setEditable(true);
 
-        VBox prizesBox = new VBox(8, prizesEnabled, prizeRow);
+            TextField amountEuro = new TextField();
+            amountEuro.setPromptText("0.00");
+            amountEuro.setPrefColumnCount(8);
+
+            HBox row = new HBox(10,
+                    new Label("Rang de"), from,
+                    new Label("à"), to,
+                    new Label("Montant (€)"), amountEuro);
+            row.setAlignment(Pos.CENTER_LEFT);
+
+            // ligne grisée si primes non activées
+            row.disableProperty().bind(prizesEnabled.selectedProperty().not());
+
+            prizeRowsBox.getChildren().add(row);
+
+            fromSpinners.add(from);
+            toSpinners.add(to);
+            amountFields.add(amountEuro);
+        }
+
+        Label primesHint = new Label("Renseignez seulement les lignes nécessaires (max " + PRIZE_ROWS + ").");
+        primesHint.setStyle("-fx-opacity:0.75;");
+
+        VBox prizesBox = new VBox(8, prizesEnabled, primesHint, prizeRowsBox);
         prizesBox.setPadding(new Insets(6, 0, 0, 0));
 
-        // ----------------- Layout -----------------
+        // 1er auto remplissage
+        refreshDesignation(code, designation, pointsRule, minPoints, maxPoints, updatingDesignation, autoDesignation);
+
+        // ================== Layout ==================
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -118,8 +175,10 @@ public final class CreateTableauDialog extends Dialog<Tableau> {
         int r = 0;
         grid.add(lbl("Code"), 0, r);
         grid.add(code, 1, r++);
+
         grid.add(lbl("Désignation"), 0, r);
-        grid.add(designation, 1, r++);
+        grid.add(designationRow, 1, r++);
+
         grid.add(lbl("Date"), 0, r);
         grid.add(date, 1, r++);
 
@@ -127,10 +186,13 @@ public final class CreateTableauDialog extends Dialog<Tableau> {
 
         grid.add(lbl("Règle sexe"), 0, r);
         grid.add(genderPolicy, 1, r++);
+
         grid.add(lbl("Règle points"), 0, r);
         grid.add(pointsRule, 1, r++);
+
         grid.add(lbl("Points min"), 0, r);
         grid.add(minPoints, 1, r++);
+
         grid.add(lbl("Points max"), 0, r);
         grid.add(maxPoints, 1, r++);
 
@@ -138,8 +200,10 @@ public final class CreateTableauDialog extends Dialog<Tableau> {
 
         grid.add(lbl("Capacité (max joueurs)"), 0, r);
         grid.add(maxPlayers, 1, r++);
+
         grid.add(lbl("Prix prépayé (€)"), 0, r);
         grid.add(prepaidEuro, 1, r++);
+
         grid.add(lbl("Prix sur place (€)"), 0, r);
         grid.add(onSiteEuro, 1, r++);
 
@@ -147,10 +211,12 @@ public final class CreateTableauDialog extends Dialog<Tableau> {
 
         grid.add(lbl("Fin pointage"), 0, r);
         grid.add(checkInBox, 1, r++);
+
         grid.add(lbl("Début tableau"), 0, r);
         grid.add(startBox, 1, r++);
 
         grid.add(new Separator(), 0, r++, 2, 1);
+
         grid.add(lbl("Primes"), 0, r);
         grid.add(prizesBox, 1, r++);
 
@@ -162,14 +228,15 @@ public final class CreateTableauDialog extends Dialog<Tableau> {
 
         getDialogPane().setContent(grid);
 
-        // ----------------- Bouton OK / validation -----------------
+        // ================== Bouton OK / validation ==================
 
         Node okButton = getDialogPane().lookupButton(createBtn);
         okButton.disableProperty().bind(
                 code.textProperty().isEmpty()
-                        .or(designation.textProperty().isEmpty()));
+                        .or(designation.textProperty().isEmpty())
+                        .or(date.valueProperty().isNull()));
 
-        // ----------------- Result -----------------
+        // ================== Result ==================
 
         setResultConverter(bt -> {
             if (bt != createBtn)
@@ -214,8 +281,9 @@ public final class CreateTableauDialog extends Dialog<Tableau> {
 
                 Integer prepaidCents = parseEuroToCents(prepaidEuro.getText());
                 Integer onSiteCents = parseEuroToCents(onSiteEuro.getText());
-                if (prepaidCents == null || onSiteCents == null)
+                if (prepaidCents == null || onSiteCents == null) {
                     throw new IllegalArgumentException("Prix invalides (ex: 6.00).");
+                }
 
                 RegistrationFee fee = new RegistrationFee(prepaidCents, onSiteCents);
 
@@ -225,19 +293,36 @@ public final class CreateTableauDialog extends Dialog<Tableau> {
                 // --- Primes ---
                 PrizeDistribution prizes;
                 if (!prizesEnabled.isSelected()) {
-                    // distribution "neutre" valide (aucun gain réel)
-                    prizes = new PrizeDistribution(List.of(new PrizeTier(1, 1, 0)));
+                    prizes = new PrizeDistribution(List.of(new PrizeTier(1, 1, 0))); // neutre
                 } else {
-                    int from = prizeFrom.getValue();
-                    int to = prizeTo.getValue();
-                    if (to < from)
-                        throw new IllegalArgumentException("Rangs primes invalides (to < from).");
+                    List<PrizeTier> tiers = new ArrayList<>();
 
-                    Integer amountCents = parseEuroToCents(prizeAmountEuro.getText());
-                    if (amountCents == null)
-                        throw new IllegalArgumentException("Montant prime invalide (ex: 10.00).");
+                    for (int i = 0; i < PRIZE_ROWS; i++) {
+                        String txt = amountFields.get(i).getText();
+                        if (txt == null || txt.isBlank()) {
+                            continue; // ligne ignorée
+                        }
 
-                    prizes = new PrizeDistribution(List.of(new PrizeTier(from, to, amountCents)));
+                        int from = fromSpinners.get(i).getValue();
+                        int to = toSpinners.get(i).getValue();
+                        if (to < from) {
+                            throw new IllegalArgumentException("Prime ligne " + (i + 1) + " : rang 'à' < rang 'de'.");
+                        }
+
+                        Integer amountCents = parseEuroToCents(txt);
+                        if (amountCents == null) {
+                            throw new IllegalArgumentException(
+                                    "Prime ligne " + (i + 1) + " : montant invalide (ex: 10.00).");
+                        }
+
+                        tiers.add(new PrizeTier(from, to, amountCents));
+                    }
+
+                    if (tiers.isEmpty()) {
+                        throw new IllegalArgumentException("Au moins une prime doit être renseignée.");
+                    }
+
+                    prizes = new PrizeDistribution(tiers);
                 }
 
                 return new Tableau(
@@ -257,6 +342,60 @@ public final class CreateTableauDialog extends Dialog<Tableau> {
             }
         });
     }
+
+    // ================== Auto designation ==================
+
+    private static void refreshDesignation(
+            TextField code,
+            TextField designation,
+            ComboBox<TableauPointsRuleType> pointsRule,
+            Spinner<Integer> minPoints,
+            Spinner<Integer> maxPoints,
+            boolean[] updating,
+            boolean[] auto) {
+        if (!auto[0])
+            return;
+
+        TableauPointsRuleType rule = (pointsRule == null) ? null : pointsRule.getValue();
+        if (rule == null)
+            rule = TableauPointsRuleType.TOUTES_SERIES;
+
+        Integer min = null;
+        Integer max = null;
+
+        if (minPoints != null && maxPoints != null) {
+            if (rule == TableauPointsRuleType.MAX_ONLY) {
+                max = maxPoints.getValue();
+            } else if (rule == TableauPointsRuleType.RANGE_MIN_MAX) {
+                min = minPoints.getValue();
+                max = maxPoints.getValue();
+            }
+        }
+
+        String autoText = buildAutoDesignation(code.getText(), rule, min, max);
+
+        updating[0] = true;
+        designation.setText(autoText);
+        updating[0] = false;
+    }
+
+    private static String buildAutoDesignation(String code, TableauPointsRuleType rule, Integer min, Integer max) {
+        String c = (code == null || code.isBlank()) ? "?" : code.trim().toUpperCase();
+
+        String pointsPart = switch (rule) {
+            case TOUTES_SERIES -> "Toutes séries";
+            case MAX_ONLY -> (max == null) ? "≤ ? pts" : "≤ " + max + " pts";
+            case RANGE_MIN_MAX -> {
+                String a = (min == null) ? "?" : String.valueOf(min);
+                String b = (max == null) ? "?" : String.valueOf(max);
+                yield a + " à " + b + " pts";
+            }
+        };
+
+        return "Tableau " + c + " - " + pointsPart;
+    }
+
+    // ================== Utils ==================
 
     private static Label lbl(String t) {
         Label l = new Label(t);
