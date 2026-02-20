@@ -6,6 +6,8 @@ import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteClubProfileRep
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteOrganizerAccountRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteTableauRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteTournamentRepository;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.mail.EmailSender;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.mail.EmailVerificationService;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.HomeView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.OrganizerLoginView;
@@ -23,54 +25,67 @@ public class Navigator {
 
     private final Stage stage;
 
-    // 2 DB files
-    private final SqliteDb identityDb;
+    // --- DB + repos ---
+    private final SqliteDb clubDb;
     private final SqliteDb competitionDb;
 
-    // repos
-    private final SqliteTournamentRepository tournamentRepo;
-    private final SqliteTableauRepository tableauRepo;
+    private final SqliteOrganizerAccountRepository organizerRepo;
     private final SqliteClubProfileRepository clubProfileRepo;
 
-    // services
+    private final SqliteTournamentRepository tournamentRepo;
+    private final SqliteTableauRepository tableauRepo;
+
+    // --- mail ---
+    private final EmailSender emailSender;
+    private final EmailVerificationService emailVerification;
+
+    // --- services ---
     private final OrganizerAuthService organizerAuth;
 
-    // session
+    // --- session ---
     private OrganizerAccount currentOrganizer;
 
     public Navigator(Stage stage) {
         this.stage = stage;
 
-        this.identityDb = new SqliteDb(Path.of("data", "identity.db"));
-        this.competitionDb = new SqliteDb(Path.of("data", "competition.db"));
+        // 2 DB files (séparation club/competition)
+        Path clubDbFile = Path.of("data", "club.db");
+        Path competitionDbFile = Path.of("data", "competition.db");
 
-        // Migrations identity
-        try (Connection c = identityDb.openConnection()) {
-            DbMigrations.applySqlResource(c, "/db/identity.sql");
+        this.clubDb = new SqliteDb(clubDbFile);
+        this.competitionDb = new SqliteDb(competitionDbFile);
+
+        // Apply schemas (idempotent)
+        try (Connection c1 = clubDb.openConnection()) {
+            DbMigrations.applySqlResource(c1, "/db/Club.sql");
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("DB init failed (identity)", e);
+            throw new RuntimeException("DB init failed (Club)", e);
         }
 
-        // Migrations competition
-        try (Connection c = competitionDb.openConnection()) {
-            DbMigrations.applySqlResource(c, "/db/competition.sql");
+        try (Connection c2 = competitionDb.openConnection()) {
+            DbMigrations.applySqlResource(c2, "/db/Competition.sql");
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("DB init failed (competition)", e);
+            throw new RuntimeException("DB init failed (Competition)", e);
         }
 
-        // Identity repos
-        var organizerRepo = new SqliteOrganizerAccountRepository(identityDb);
-        this.clubProfileRepo = new SqliteClubProfileRepository(identityDb);
+        // Repos
+        this.organizerRepo = new SqliteOrganizerAccountRepository(clubDb);
+        this.clubProfileRepo = new SqliteClubProfileRepository(clubDb);
 
-        // Competition repos
         this.tournamentRepo = new SqliteTournamentRepository(competitionDb);
         this.tableauRepo = new SqliteTableauRepository(competitionDb);
 
+        // Mail (dev console)
+        this.emailSender = new EmailSender();
+        this.emailVerification = new EmailVerificationService(organizerRepo, emailSender);
+
         // Services
-        this.organizerAuth = new OrganizerAuthService(organizerRepo);
+        this.organizerAuth = new OrganizerAuthService(organizerRepo, emailVerification);
     }
+
+    // ---------------- Accessors ----------------
 
     public OrganizerAuthService organizerAuth() {
         return organizerAuth;
@@ -88,6 +103,8 @@ public class Navigator {
         return clubProfileRepo;
     }
 
+    // ---------------- Session ----------------
+
     public OrganizerAccount getCurrentOrganizer() {
         return currentOrganizer;
     }
@@ -100,6 +117,8 @@ public class Navigator {
         this.currentOrganizer = null;
         showHome();
     }
+
+    // ---------------- Navigation ----------------
 
     public void showHome() {
         stage.setScene(new Scene(new HomeView(this), 900, 600));

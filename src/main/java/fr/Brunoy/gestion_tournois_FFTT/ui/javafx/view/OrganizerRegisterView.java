@@ -34,10 +34,19 @@ public class OrganizerRegisterView extends VBox {
         createBtn.setOnAction(e -> {
             try {
                 var acc = nav.organizerAuth().register(clubName.getText(), email.getText(), password.getText());
-                message.setStyle("-fx-text-fill: #1b5e20;");
-                message.setText("✅ Compte créé : " + acc.getClubName() + " (id=" + acc.getId() + ")");
-                // Tu peux ensuite rediriger vers login si tu veux :
-                // nav.showOrganizerLogin();
+
+                EmailVerificationDialog dlg = new EmailVerificationDialog(nav, acc.getEmail());
+                dlg.showAndWait();
+
+                if (dlg.isVerified()) {
+                    message.setStyle("-fx-text-fill: #1b5e20;");
+                    message.setText("✅ Email vérifié ! Vous pouvez vous connecter.");
+                    nav.showOrganizerLogin();
+                } else {
+                    message.setStyle("-fx-text-fill: #b00020;");
+                    message.setText("⚠️ Compte créé mais email non vérifié (connexion impossible).");
+                }
+
             } catch (IllegalArgumentException ex) {
                 message.setStyle("-fx-text-fill: #b00020;");
                 message.setText(ex.getMessage());
