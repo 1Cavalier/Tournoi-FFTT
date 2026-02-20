@@ -20,6 +20,7 @@ import javafx.stage.Stage;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 public class CreateTournamentDialog extends Stage {
 
@@ -365,7 +366,7 @@ public class CreateTournamentDialog extends Stage {
                 FemaleExtraRuleType rule = femaleRule.getValue();
                 String code = femaleCode.getText();
 
-                nav.tournamentRepo().createDraftTournament(
+                nav.tournamentRepo().createDraftTournamentAndTableaux(
                         org.getId(),
                         name.getText().trim(),
                         level.getValue().name(),
@@ -374,7 +375,9 @@ public class CreateTournamentDialog extends Stage {
                         ed,
                         maxPerDay.getValue(),
                         rule.name(),
-                        code);
+                        code,
+                        List.copyOf(tableaux)
+                );
 
                 // IMPORTANT : tableaux non persistés ici (étape suivante)
                 close();

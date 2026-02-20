@@ -10,10 +10,9 @@ import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.HomeView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.OrganizerLoginView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.OrganizerRegisterView;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.CreateTournamentDialog;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.OrganizerDashboardView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.OrganizerProfileDialog;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.CreateTournamentDialog;
-
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
@@ -24,44 +23,54 @@ public class Navigator {
 
     private final Stage stage;
 
-    // --- DB + repos ---
-    private final SqliteDb db;
+    // 2 DB files
+    private final SqliteDb identityDb;
+    private final SqliteDb competitionDb;
+
+    // repos
     private final SqliteTournamentRepository tournamentRepo;
     private final SqliteTableauRepository tableauRepo;
     private final SqliteClubProfileRepository clubProfileRepo;
 
-    // --- services ---
+    // services
     private final OrganizerAuthService organizerAuth;
 
-    // --- session ---
+    // session
     private OrganizerAccount currentOrganizer;
 
     public Navigator(Stage stage) {
         this.stage = stage;
 
-        // DB file local
-        Path dbFile = Path.of("data", "app.db");
-        this.db = new SqliteDb(dbFile);
+        this.identityDb = new SqliteDb(Path.of("data", "identity.db"));
+        this.competitionDb = new SqliteDb(Path.of("data", "competition.db"));
 
-        // Apply schema (idempotent)
-        try (Connection c = db.openConnection()) {
-            DbMigrations.applySchema(c);
+        // Migrations identity
+        try (Connection c = identityDb.openConnection()) {
+            DbMigrations.applySqlResource(c, "/db/identity.sql");
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("DB init failed", e);
+            throw new RuntimeException("DB init failed (identity)", e);
         }
 
-        // Repositories
-        var organizerRepo = new SqliteOrganizerAccountRepository(db);
-        this.tournamentRepo = new SqliteTournamentRepository(db);
-        this.tableauRepo = new SqliteTableauRepository(db);
-        this.clubProfileRepo = new SqliteClubProfileRepository(db);
+        // Migrations competition
+        try (Connection c = competitionDb.openConnection()) {
+            DbMigrations.applySqlResource(c, "/db/competition.sql");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("DB init failed (competition)", e);
+        }
+
+        // Identity repos
+        var organizerRepo = new SqliteOrganizerAccountRepository(identityDb);
+        this.clubProfileRepo = new SqliteClubProfileRepository(identityDb);
+
+        // Competition repos
+        this.tournamentRepo = new SqliteTournamentRepository(competitionDb);
+        this.tableauRepo = new SqliteTableauRepository(competitionDb);
 
         // Services
         this.organizerAuth = new OrganizerAuthService(organizerRepo);
     }
-
-    // ---------------- Accessors ----------------
 
     public OrganizerAuthService organizerAuth() {
         return organizerAuth;
@@ -79,8 +88,6 @@ public class Navigator {
         return clubProfileRepo;
     }
 
-    // ---------------- Session ----------------
-
     public OrganizerAccount getCurrentOrganizer() {
         return currentOrganizer;
     }
@@ -93,8 +100,6 @@ public class Navigator {
         this.currentOrganizer = null;
         showHome();
     }
-
-    // ---------------- Navigation ----------------
 
     public void showHome() {
         stage.setScene(new Scene(new HomeView(this), 900, 600));
@@ -120,15 +125,12 @@ public class Navigator {
     public void showOrganizerProfileDialog() {
         OrganizerProfileDialog dialog = new OrganizerProfileDialog(this);
         dialog.showAndWait();
-
-        // Rafraîchir le dashboard pour refléter les changements
         showOrganizerDashboard();
     }
 
     public void showCreateTournamentDialog() {
         CreateTournamentDialog dialog = new CreateTournamentDialog(this);
         dialog.showAndWait();
-        showOrganizerDashboard(); // refresh après création
+        showOrganizerDashboard();
     }
-
 }

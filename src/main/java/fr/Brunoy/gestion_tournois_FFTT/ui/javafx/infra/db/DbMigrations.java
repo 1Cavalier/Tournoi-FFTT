@@ -9,8 +9,8 @@ public final class DbMigrations {
     private DbMigrations() {
     }
 
-    public static void applySchema(Connection c) {
-        String sql = readResource("/db/schema.sql");
+    public static void applySqlResource(Connection c, String resourcePath) {
+        String sql = readResource(resourcePath);
         for (String stmt : sql.split(";")) {
             String s = stmt.trim();
             if (!s.isEmpty()) {
