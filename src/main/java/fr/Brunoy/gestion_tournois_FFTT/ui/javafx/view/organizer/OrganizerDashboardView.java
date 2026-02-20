@@ -3,32 +3,28 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.Navigator;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.ClubProfileRow;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.shape.Circle;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.TableauRow;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.TournamentRow;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.Separator;
+import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.shape.Circle;
 
+import java.util.List;
 import java.util.Optional;
 
 public class OrganizerDashboardView extends BorderPane {
 
     public OrganizerDashboardView(Navigator nav) {
-
         OrganizerAccount organizer = nav.getCurrentOrganizer();
-
-        // Sidebar : tu gardes ta version actuelle (parfaite)
         setLeft(createSidebar(nav, organizer));
-
-        // Centre : nouveau layout simple
-        setCenter(createMainContent(nav));
+        setCenter(createMainContent(nav, organizer));
     }
 
-    // ================= SIDEBAR =================
+    // ================= SIDEBAR (inchangé) =================
 
     private VBox createSidebar(Navigator nav, OrganizerAccount organizer) {
 
@@ -43,12 +39,9 @@ public class OrganizerDashboardView extends BorderPane {
         String clubName = organizer != null ? organizer.getClubName() : "(non connecté)";
         String email = organizer != null ? organizer.getEmail() : "";
 
-        // Charger le profil UNE SEULE FOIS
         Optional<ClubProfileRow> pOpt = (organizer == null)
                 ? Optional.empty()
                 : nav.clubProfileRepo().findByOrganizerId(organizer.getId());
-
-        // ================= LOGO =================
 
         StackPane logoContainer = new StackPane();
         logoContainer.setPrefSize(140, 140);
@@ -61,7 +54,6 @@ public class OrganizerDashboardView extends BorderPane {
                     -fx-border-width:2;
                 """);
 
-        // si logo en DB -> afficher image, sinon placeholder
         String logoPath = pOpt.map(ClubProfileRow::logoPath).orElse(null);
 
         if (logoPath != null && !logoPath.isBlank()) {
@@ -69,11 +61,8 @@ public class OrganizerDashboardView extends BorderPane {
                 ImageView imageView = new ImageView(new Image("file:" + logoPath, 140, 140, true, true));
                 imageView.setFitWidth(140);
                 imageView.setFitHeight(140);
-
-                // clip cercle
                 Circle clip = new Circle(70, 70, 70);
                 imageView.setClip(clip);
-
                 logoContainer.getChildren().add(imageView);
             } catch (Exception e) {
                 Label placeholder = new Label("LOGO");
@@ -91,8 +80,6 @@ public class OrganizerDashboardView extends BorderPane {
         logoBox.setPadding(new Insets(10, 0, 0, 0));
         logoBox.setStyle("-fx-alignment:center;");
 
-        // ================= IDENTITE =================
-
         Label nameLabel = new Label(clubName);
         nameLabel.setMaxWidth(Double.MAX_VALUE);
         nameLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-alignment:center;");
@@ -104,22 +91,16 @@ public class OrganizerDashboardView extends BorderPane {
         VBox identityBox = new VBox(4, nameLabel, emailLabel);
         identityBox.setStyle("-fx-alignment:center;");
 
-        // ================= BOUTON =================
-
         Button editProfileBtn = new Button("Modifier le profil de l'organisme");
         editProfileBtn.setMaxWidth(Double.MAX_VALUE);
         editProfileBtn.setDisable(organizer == null);
         editProfileBtn.setOnAction(e -> nav.showOrganizerProfileDialog());
 
-        // ================= DETAILS =================
-
         VBox details = new VBox(4);
         details.setPadding(new Insets(8, 0, 0, 0));
 
         if (organizer != null && pOpt.isPresent()) {
-
             ClubProfileRow p = pOpt.get();
-
             details.getChildren().addAll(
                     new Label("N° club : " + nvl(p.clubNumber())),
                     new Label("Nom club : " + nvl(p.clubName())),
@@ -130,9 +111,7 @@ public class OrganizerDashboardView extends BorderPane {
                     new Label("Latitude : " + (p.latitude() == null ? "null" : p.latitude())),
                     new Label("Longitude : " + (p.longitude() == null ? "null" : p.longitude())),
                     new Label("Responsable : " + fullNameOrNull(p.contactFirstName(), p.contactLastName())));
-
         } else if (organizer != null) {
-            // connecté mais pas de profil encore
             details.getChildren().addAll(
                     new Label("N° club : null"),
                     new Label("Nom club : null"),
@@ -147,10 +126,7 @@ public class OrganizerDashboardView extends BorderPane {
             details.getChildren().add(new Label("Profil : null"));
         }
 
-        // ================= MENU =================
-
         VBox menu = new VBox(8);
-
         Button accueilBtn = new Button("Accueil");
         Button historiqueBtn = new Button("Historique");
         Button tournoiBtn = new Button("Tournoi");
@@ -190,50 +166,239 @@ public class OrganizerDashboardView extends BorderPane {
         return full.isEmpty() ? "null" : full;
     }
 
-    // ================= HEADER =================
+    // ================= MAIN CONTENT (refait) =================
 
-    private VBox createMainContent(Navigator nav) {
+    private VBox createMainContent(Navigator nav, OrganizerAccount organizer) {
 
-        VBox root = new VBox(18);
+        VBox root = new VBox(16);
         root.setPadding(new Insets(20));
 
-        VBox publishedBlock = createBlock("Tournoi Publié :", "Rien pour le moment");
-        VBox draftBlock = createBlock("Tournoi Brouillon :", "Rien pour le moment");
+        if (organizer == null) {
+            root.getChildren().add(new Label("Aucun organisme connecté."));
+            return root;
+        }
 
-        Button createBtn = new Button("Crée un Tournoi");
-        createBtn.setMaxWidth(Double.MAX_VALUE);
+        // récupérer les listes
+        List<TournamentRow> active = nav.tournamentRepo().findActiveForOrganizer(organizer.getId());
+        List<TournamentRow> drafts = nav.tournamentRepo().findDraftForOrganizer(organizer.getId());
+
+        // --- Zone tournois actifs ---
+        root.getChildren().add(sectionTitle("Tournois actifs (OPEN / RUNNING)"));
+
+        if (active.isEmpty()) {
+            root.getChildren().add(infoBanner("Actuellement aucun tournoi n'est en cours ni n'a été publié."));
+        } else {
+            root.getChildren().add(tournamentsListBox(nav, active, Mode.ACTIVE));
+        }
+
+        // --- Zone drafts ---
+        root.getChildren().add(sectionTitle("Tournois en préparation (DRAFT)"));
+
+        if (drafts.isEmpty()) {
+            root.getChildren().add(infoBanner("Vous n'avez pas commencé à créer un tournoi."));
+        } else {
+            root.getChildren().add(tournamentsListBox(nav, drafts, Mode.DRAFT));
+        }
+
+        Button createBtn = new Button("Créer un tournoi");
         createBtn.setOnAction(e -> nav.showCreateTournamentDialog());
+        createBtn.setMaxWidth(240);
 
-        VBox buttonRow = new VBox(createBtn);
-        buttonRow.setAlignment(Pos.CENTER);
-        buttonRow.setPadding(new Insets(8, 0, 0, 0));
+        HBox bottom = new HBox(createBtn);
+        bottom.setAlignment(Pos.CENTER);
+        bottom.setPadding(new Insets(10, 0, 0, 0));
 
-        root.getChildren().addAll(publishedBlock, draftBlock, buttonRow);
-        return root;
+        root.getChildren().add(bottom);
+
+        // scroll si beaucoup de tournois
+        ScrollPane sp = new ScrollPane(root);
+        sp.setFitToWidth(true);
+        sp.setPadding(Insets.EMPTY);
+
+        VBox container = new VBox(sp);
+        VBox.setVgrow(sp, Priority.ALWAYS);
+        return container;
     }
 
-    private VBox createBlock(String titleText, String centerText) {
+    private Label sectionTitle(String txt) {
+        Label l = new Label(txt);
+        l.setStyle("-fx-font-size: 15px; -fx-font-weight: bold;");
+        return l;
+    }
 
-        VBox block = new VBox(10);
-        block.setPadding(new Insets(14));
-        block.setStyle("-fx-border-color:black; -fx-border-width:3; -fx-background-color:white;");
+    private VBox infoBanner(String txt) {
+        VBox box = new VBox();
+        box.setPadding(new Insets(12));
+        box.setStyle("-fx-border-color:black; -fx-border-width:2; -fx-background-color:white;");
+        Label l = new Label(txt);
+        l.setStyle("-fx-font-weight:bold;");
+        box.getChildren().add(l);
+        return box;
+    }
 
-        Label title = new Label(titleText);
+    private VBox tournamentsListBox(Navigator nav, List<TournamentRow> tournaments, Mode mode) {
+        VBox list = new VBox(12);
+        for (TournamentRow t : tournaments) {
+            list.getChildren().add(tournamentCard(nav, t, mode));
+        }
+        return list;
+    }
+
+    private VBox tournamentCard(Navigator nav, TournamentRow t, Mode mode) {
+        VBox card = new VBox(10);
+        card.setPadding(new Insets(14));
+        card.setStyle("-fx-border-color:black; -fx-border-width:3; -fx-background-color:white;");
+
+        // header: titre + badge
+        HBox header = new HBox(10);
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        Label title = new Label(t.name());
         title.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
 
-        Region space = new Region();
-        space.setMinHeight(60);
+        StatusBadge badge = new StatusBadge(mapStatus(t.status()));
 
-        Label center = new Label(centerText);
-        center.setStyle("-fx-font-size: 14px; -fx-text-fill:#d07a4a; -fx-font-weight:bold;");
-        center.setMaxWidth(Double.MAX_VALUE);
-        center.setAlignment(Pos.CENTER);
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        VBox content = new VBox(10, space, center);
-        content.setAlignment(Pos.CENTER);
-        content.setMinHeight(130);
+        header.getChildren().addAll(title, spacer, badge);
 
-        block.getChildren().addAll(title, content);
-        return block;
+        // body : 3 colonnes (infos | liste tableaux | actions)
+        HBox body = new HBox(14);
+        body.setAlignment(Pos.TOP_LEFT);
+
+        VBox leftInfos = tournamentInfosBox(nav, t);
+        VBox centerTableaux = tableauxBox(nav, t.id());
+        VBox rightActions = actionsBox(t, mode);
+
+        HBox.setHgrow(centerTableaux, Priority.ALWAYS);
+
+        body.getChildren().addAll(leftInfos, centerTableaux, rightActions);
+
+        card.getChildren().addAll(header, new Separator(), body);
+        return card;
+    }
+
+    private VBox tournamentInfosBox(Navigator nav, TournamentRow t) {
+        VBox box = new VBox(6);
+        box.setMinWidth(240);
+
+        Optional<ClubProfileRow> pOpt = nav.clubProfileRepo().findByOrganizerId(t.organizerId());
+
+        String ville = pOpt.map(ClubProfileRow::city).orElse(null);
+        String dep = pOpt.map(ClubProfileRow::departementCode).orElse(null);
+
+        box.getChildren().addAll(
+                kv("Nom", t.name()),
+                kv("Lieu",
+                        (ville == null || ville.isBlank()) ? "—"
+                                : (ville + (dep == null || dep.isBlank() ? "" : " (" + dep + ")"))),
+                kv("Niveau", t.level()),
+                kv("Phase", t.phase()),
+                kv("Dates", t.startDate() + " → " + t.endDate()));
+        return box;
+    }
+
+    private Label kv(String k, String v) {
+        Label l = new Label(k + " : " + (v == null || v.isBlank() ? "—" : v));
+        l.setStyle("-fx-opacity:0.9;");
+        return l;
+    }
+
+    private VBox tableauxBox(Navigator nav, String tournamentId) {
+        VBox box = new VBox(8);
+        Label title = new Label("Liste des tableaux");
+        title.setStyle("-fx-font-weight:bold;");
+
+        TableView<TableauRow> table = new TableView<>();
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        table.setPrefHeight(140);
+
+        TableColumn<TableauRow, String> cCode = new TableColumn<>("Code");
+        cCode.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().code()));
+
+        TableColumn<TableauRow, String> cLabel = new TableColumn<>("Libellé");
+        cLabel.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().label()));
+
+        TableColumn<TableauRow, String> cDate = new TableColumn<>("Date");
+        cDate.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().date()));
+
+        TableColumn<TableauRow, String> cPrice = new TableColumn<>("Prix");
+        cPrice.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(
+                data.getValue().prepaidEuro() + "€ / " + data.getValue().onsiteEuro() + "€"));
+
+        TableColumn<TableauRow, String> cCap = new TableColumn<>("Cap.");
+        cCap.setCellValueFactory(
+                data -> new javafx.beans.property.SimpleStringProperty(String.valueOf(data.getValue().capacity())));
+
+        table.getColumns().addAll(cCode, cLabel, cDate, cPrice, cCap);
+
+        // load data
+        table.getItems().setAll(nav.tableauRepo().findByTournamentId(tournamentId));
+
+        box.getChildren().addAll(title, table);
+        VBox.setVgrow(table, Priority.ALWAYS);
+        return box;
+    }
+
+    private VBox actionsBox(TournamentRow t, Mode mode) {
+        VBox box = new VBox(10);
+        box.setMinWidth(220);
+
+        if (mode == Mode.ACTIVE) {
+            Button bPlayers = new Button("Gestion des joueurs");
+            Button bStart = new Button("Lancement du tournoi");
+            Button bEdit = new Button("Modification du tournoi");
+
+            bPlayers.setMaxWidth(Double.MAX_VALUE);
+            bStart.setMaxWidth(Double.MAX_VALUE);
+            bEdit.setMaxWidth(Double.MAX_VALUE);
+
+            // placeholders
+            bPlayers.setOnAction(e -> info("À venir", "Gestion des joueurs (à implémenter)."));
+            bStart.setOnAction(e -> info("À venir", "Lancement du tournoi (à implémenter)."));
+            bEdit.setOnAction(e -> info("À venir", "Modification tournoi actif (à implémenter)."));
+
+            box.getChildren().addAll(bPlayers, bStart, bEdit);
+
+        } else {
+            Button bEditInfo = new Button("Modifier infos générales");
+            Button bEditTabs = new Button("Modifier les tableaux");
+            Button bPublish = new Button("Publier le tournoi");
+
+            bEditInfo.setMaxWidth(Double.MAX_VALUE);
+            bEditTabs.setMaxWidth(Double.MAX_VALUE);
+            bPublish.setMaxWidth(Double.MAX_VALUE);
+
+            bEditInfo.setOnAction(e -> info("À venir", "Édition infos générales (à implémenter)."));
+            bEditTabs.setOnAction(e -> info("À venir", "Édition des tableaux (à implémenter)."));
+            bPublish.setOnAction(e -> info("À venir", "Publication (DRAFT → OPEN) (à implémenter)."));
+
+            box.getChildren().addAll(bEditInfo, bEditTabs, bPublish);
+        }
+
+        return box;
+    }
+
+    private void info(String title, String msg) {
+        Alert a = new Alert(Alert.AlertType.INFORMATION);
+        a.setTitle(title);
+        a.setHeaderText(null);
+        a.setContentText(msg);
+        a.showAndWait();
+    }
+
+    private TournamentStatus mapStatus(String status) {
+        if (status == null)
+            return TournamentStatus.DRAFT;
+        try {
+            return TournamentStatus.valueOf(status.trim().toUpperCase());
+        } catch (Exception e) {
+            return TournamentStatus.DRAFT;
+        }
+    }
+
+    private enum Mode {
+        ACTIVE, DRAFT
     }
 }
