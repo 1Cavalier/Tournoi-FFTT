@@ -61,6 +61,25 @@ public final class CreateTableauDialog extends Dialog<Tableau> {
         if (tournamentStart != null)
             date.setValue(tournamentStart);
 
+        if (tournamentStart != null && tournamentEnd != null) {
+            date.setDayCellFactory(dp -> new DateCell() {
+                @Override
+                public void updateItem(LocalDate item, boolean empty) {
+                    super.updateItem(item, empty);
+
+                    if (empty || item == null)
+                        return;
+
+                    boolean out = item.isBefore(tournamentStart) || item.isAfter(tournamentEnd);
+                    setDisable(out);
+                    if (out) {
+                        setStyle("-fx-opacity: 0.45;"); // optionnel
+                        setTooltip(new Tooltip("Date hors du tournoi"));
+                    }
+                }
+            });
+        }
+
         ComboBox<GenderPolicy> genderPolicy = new ComboBox<>();
         genderPolicy.getItems().addAll(GenderPolicy.values());
         genderPolicy.setMaxWidth(Double.MAX_VALUE);

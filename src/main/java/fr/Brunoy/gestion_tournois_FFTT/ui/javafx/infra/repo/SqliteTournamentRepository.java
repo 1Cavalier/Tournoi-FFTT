@@ -46,7 +46,7 @@ public class SqliteTournamentRepository {
                         rs.getString("organizer_id"),
                         rs.getString("name"),
                         rs.getString("level"),
-                        rs.getInt("phase"),
+                        rs.getString("phase"),
                         rs.getString("start_date"),
                         rs.getString("end_date"),
                         rs.getString("status")));
@@ -66,8 +66,12 @@ public class SqliteTournamentRepository {
             int maxPerDay,
             String femaleRule,
             String femaleCode) {
+
         String id = "tourn-" + java.util.UUID.randomUUID();
         String now = java.time.Instant.now().toString();
+
+        long days = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate) + 1; // inclusif
+        int maxTotal = (int) Math.max(1, days * (long) maxPerDay);
 
         String insert = """
                 INSERT INTO tournament(
@@ -86,31 +90,37 @@ public class SqliteTournamentRepository {
         try (java.sql.Connection c = db.openConnection()) {
             c.setAutoCommit(false);
 
+            System.out.println("DB URL = " + c.getMetaData().getURL());
+
+            try (var st = c.createStatement();
+                    var rs = st.executeQuery("PRAGMA table_info(tournament)")) {
+                System.out.println("=== PRAGMA table_info(tournament) ===");
+                while (rs.next()) {
+                    System.out.println(
+                            rs.getString("name") + " | type=" + rs.getString("type")
+                                    + " | notnull=" + rs.getInt("notnull"));
+                }
+            }
+
             try (var ps = c.prepareStatement(insert)) {
                 ps.setString(1, id);
                 ps.setString(2, organizerId);
                 ps.setString(3, name);
                 ps.setString(4, level);
-
-                // phase -> on ne l'utilise plus ici : null
-                ps.setObject(5, null);
-
+                ps.setString(5, rankingPhase);
                 ps.setString(6, startDate.toString());
                 ps.setString(7, endDate.toString());
                 ps.setString(8, "DRAFT");
-
                 ps.setInt(9, maxPerDay);
-                ps.setString(10, femaleRule);
-                ps.setString(11, (femaleCode == null || femaleCode.isBlank()) ? null : femaleCode.trim().toUpperCase());
-
-                ps.setString(12, now);
+                ps.setInt(10, maxTotal);
+                ps.setString(11, femaleRule);
+                ps.setString(12, (femaleCode == null || femaleCode.isBlank())
+                        ? null
+                        : femaleCode.trim().toUpperCase());
                 ps.setString(13, now);
+                ps.setString(14, now);
                 ps.executeUpdate();
             }
-
-            // stocker rankingPhase pour le moment dans "level"? NON.
-            // Donc: ajoute une colonne ranking_phase si tu veux le stocker en DB
-            // => voir section 1bis ci-dessous (recommandé)
 
             try (var ps2 = c.prepareStatement(setCurrent)) {
                 ps2.setString(1, id);
@@ -121,8 +131,8 @@ public class SqliteTournamentRepository {
             return id;
 
         } catch (Exception e) {
-            throw new RuntimeException("DB error createDraftTournament", e);
+            Throwable cause = e;
+            throw new RuntimeException("DB error createDraftTournament (root=" + cause + ")", e);
         }
     }
-
 }
