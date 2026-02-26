@@ -28,6 +28,13 @@ public class OrganizerLoginView extends VBox {
         message.setStyle("-fx-text-fill: #b00020;");
 
         Button loginBtn = new Button("Se connecter");
+
+        Button verifyEmailBtn = new Button("Valider mon email (code)");
+        verifyEmailBtn.setDisable(true);
+
+        Button resendCodeBtn = new Button("Renvoyer un code");
+        resendCodeBtn.setDisable(true);
+
         loginBtn.setOnAction(e -> {
             try {
                 var acc = nav.organizerAuth().login(emailField.getText(), passwordField.getText());
@@ -35,6 +42,54 @@ public class OrganizerLoginView extends VBox {
                 nav.showOrganizerDashboard();
 
             } catch (IllegalArgumentException ex) {
+                message.setStyle("-fx-text-fill: #b00020;");
+                message.setText(ex.getMessage());
+
+                boolean notVerified = ex.getMessage() != null
+                        && ex.getMessage().toLowerCase().contains("non vérifié");
+
+                verifyEmailBtn.setDisable(!notVerified);
+                resendCodeBtn.setDisable(!notVerified);
+            }
+        });
+
+        verifyEmailBtn.setOnAction(e -> {
+            String email = emailField.getText();
+            if (email == null || email.isBlank()) {
+                message.setStyle("-fx-text-fill: #b00020;");
+                message.setText("Email obligatoire.");
+                return;
+            }
+
+            EmailVerificationDialog dlg = new EmailVerificationDialog(nav, email.trim().toLowerCase());
+            dlg.showAndWait();
+
+            if (dlg.isVerified()) {
+                message.setStyle("-fx-text-fill: #1b5e20;");
+                message.setText("✅ Email vérifié. Vous pouvez vous connecter.");
+                verifyEmailBtn.setDisable(true);
+                resendCodeBtn.setDisable(true);
+            } else {
+                message.setStyle("-fx-text-fill: #b00020;");
+                message.setText("Validation annulée ou code incorrect.");
+            }
+        });
+
+        resendCodeBtn.setOnAction(e -> {
+            try {
+                String email = emailField.getText();
+                if (email == null || email.isBlank()) {
+                    message.setStyle("-fx-text-fill: #b00020;");
+                    message.setText("Email obligatoire.");
+                    return;
+                }
+
+                nav.organizerAuth().resendVerificationCode(email);
+                message.setStyle("-fx-text-fill: #1b5e20;");
+                message.setText("✅ Code renvoyé (regarde la console pour le moment).");
+
+            } catch (IllegalArgumentException ex) {
+                message.setStyle("-fx-text-fill: #b00020;");
                 message.setText(ex.getMessage());
             }
         });
@@ -45,6 +100,15 @@ public class OrganizerLoginView extends VBox {
         Button backBtn = new Button("Retour");
         backBtn.setOnAction(e -> nav.showHome());
 
-        getChildren().addAll(title, emailField, passwordField, loginBtn, registerBtn, backBtn, message);
+        getChildren().addAll(
+                title,
+                emailField,
+                passwordField,
+                loginBtn,
+                verifyEmailBtn,
+                resendCodeBtn,
+                registerBtn,
+                backBtn,
+                message);
     }
 }

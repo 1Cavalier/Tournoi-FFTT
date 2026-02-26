@@ -103,7 +103,7 @@ public class SqliteOrganizerAccountRepository {
 
     public boolean verifyEmail(String email, String code) {
 
-        // ✅ Vérification + expiration côté SQL
+        // Vérification + expiration côté SQL
         String sql = """
                 UPDATE organizer_account
                 SET email_verified = 1,
