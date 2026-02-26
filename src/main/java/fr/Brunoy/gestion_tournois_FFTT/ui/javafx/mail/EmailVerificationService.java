@@ -14,9 +14,11 @@ public class EmailVerificationService {
         this.sender = sender;
     }
 
+    // ---------------- INSCRIPTION : verification email ----------------
+
     public void sendVerificationCode(String organizerId, String email) {
         String code = VerificationCodeGenerator.code6();
-        String expiresAt = Instant.now().plusSeconds(15 * 60).toString();
+        String expiresAt = Instant.now().plusSeconds(15 * 60).toString(); // 15 min
 
         repo.setEmailVerification(organizerId, code, expiresAt);
 
@@ -27,5 +29,13 @@ public class EmailVerificationService {
 
     public boolean verify(String email, String code) {
         return repo.verifyEmail(email, code);
+    }
+
+    // ---------------- CONNEXION : OTP à chaque login ----------------
+
+    public void sendLoginOtp(String email, String otp) {
+        sender.send(email,
+                EmailTemplates.loginOtpSubject(),
+                EmailTemplates.loginOtpBody(otp));
     }
 }

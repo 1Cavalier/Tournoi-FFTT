@@ -6,19 +6,37 @@ public final class EmailTemplates {
     }
 
     public static String verificationSubject() {
-        return "Validation de votre compte organisateur";
+        return "Vérification email — Tournoi FFTT";
     }
 
     public static String verificationBody(String code) {
         return """
                 Bonjour,
 
-                Voici votre code de validation : %s
+                Voici votre code de vérification d'email :
+                %s
 
-                Ce code expire dans 15 minutes.
+                Ce code est valable 15 minutes.
 
-                Cordialement,
-                Tournoi FFTT
+                — Tournoi FFTT
                 """.formatted(code);
+    }
+
+    public static String loginOtpSubject() {
+        return "Code de connexion — Tournoi FFTT";
+    }
+
+    public static String loginOtpBody(String otp) {
+        return """
+                Bonjour,
+
+                Voici votre code de connexion :
+                %s
+
+                Ce code est valable 10 minutes.
+                Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.
+
+                — Tournoi FFTT
+                """.formatted(otp);
     }
 }

@@ -1,43 +1,62 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.security;
 
 public final class PasswordPolicy {
+
     private PasswordPolicy() {
     }
 
-    // 8+ ; 1 majuscule ; 1 chiffre ; 1 ponctuation ; 1 spécial
-    // Ponctuation : . , ; : ! ?
-    // Spécial : tout le reste non-alphanum hors ponctuation (ex: @#$%&*()_+-=...)
-    public static boolean isValid(String password) {
-        if (password == null)
-            return false;
-        if (password.length() < 8)
-            return false;
-
-        boolean hasUpper = false;
-        boolean hasDigit = false;
-        boolean hasPunct = false;
-        boolean hasSpecial = false;
-
-        for (int i = 0; i < password.length(); i++) {
-            char c = password.charAt(i);
-            if (Character.isUpperCase(c))
-                hasUpper = true;
-            else if (Character.isDigit(c))
-                hasDigit = true;
-            else if (isPunctuation(c))
-                hasPunct = true;
-            else if (!Character.isLetterOrDigit(c))
-                hasSpecial = true;
-        }
-
-        return hasUpper && hasDigit && hasPunct && hasSpecial;
-    }
-
-    private static boolean isPunctuation(char c) {
-        return c == '.' || c == ',' || c == ';' || c == ':' || c == '!' || c == '?';
-    }
+    // Tu peux ajuster facilement ces règles
+    public static final int MIN_LEN = 8;
 
     public static String rulesText() {
-        return "Mot de passe: 8+ caractères, 1 majuscule, 1 chiffre, 1 ponctuation (. , ; : ! ?), 1 caractère spécial (ex: @#$%).";
+        return """
+                Règles mot de passe :
+                - au moins %d caractères
+                - au moins 1 lettre
+                - au moins 1 chiffre
+                """.formatted(MIN_LEN);
+    }
+
+    public static boolean isValid(String password) {
+        try {
+            validateOrThrow(password);
+            return true;
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
+    }
+
+    /**
+     * Valide le mot de passe et lève IllegalArgumentException avec un message clair
+     * si invalide.
+     */
+    public static void validateOrThrow(String password) {
+        if (password == null || password.isBlank()) {
+            throw new IllegalArgumentException("Mot de passe obligatoire.");
+        }
+
+        String p = password.trim();
+
+        if (p.length() < MIN_LEN) {
+            throw new IllegalArgumentException("Mot de passe trop court (min " + MIN_LEN + " caractères).");
+        }
+
+        boolean hasLetter = false;
+        boolean hasDigit = false;
+
+        for (int i = 0; i < p.length(); i++) {
+            char ch = p.charAt(i);
+            if (Character.isLetter(ch))
+                hasLetter = true;
+            if (Character.isDigit(ch))
+                hasDigit = true;
+        }
+
+        if (!hasLetter) {
+            throw new IllegalArgumentException("Le mot de passe doit contenir au moins 1 lettre.");
+        }
+        if (!hasDigit) {
+            throw new IllegalArgumentException("Le mot de passe doit contenir au moins 1 chiffre.");
+        }
     }
 }
