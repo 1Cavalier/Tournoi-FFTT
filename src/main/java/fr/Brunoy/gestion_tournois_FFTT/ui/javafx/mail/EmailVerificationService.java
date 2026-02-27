@@ -3,7 +3,13 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.mail;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteOrganizerAccountRepository;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
+/**
+ * Service d'envoi et validation des codes liés à l'email :
+ * - code de vérification d'email à l'inscription
+ * - envoi du code OTP de connexion (le stockage OTP est géré ailleurs)
+ */
 public class EmailVerificationService {
 
     private final SqliteOrganizerAccountRepository repo;
@@ -14,28 +20,48 @@ public class EmailVerificationService {
         this.sender = sender;
     }
 
-    // ---------------- INSCRIPTION : verification email ----------------
+    // ---------------- INSCRIPTION : vérification email ----------------
 
     public void sendVerificationCode(String organizerId, String email) {
+        requireNotBlank(organizerId, "OrganizerId obligatoire.");
+        requireNotBlank(email, "Email obligatoire.");
+
         String code = VerificationCodeGenerator.code6();
-        String expiresAt = Instant.now().plusSeconds(15 * 60).toString(); // 15 min
+        String expiresAt = Instant.now()
+                .plus(EmailTemplates.EMAIL_VERIFICATION_TTL_MINUTES, ChronoUnit.MINUTES)
+                .toString();
 
         repo.setEmailVerification(organizerId, code, expiresAt);
 
-        sender.send(email,
+        sender.send(
+                email,
                 EmailTemplates.verificationSubject(),
                 EmailTemplates.verificationBody(code));
     }
 
     public boolean verify(String email, String code) {
-        return repo.verifyEmail(email, code);
+        if (email == null || email.isBlank())
+            return false;
+        if (code == null || code.isBlank())
+            return false;
+        return repo.verifyEmail(email.trim().toLowerCase(), code.trim());
     }
 
-    // ---------------- CONNEXION : OTP à chaque login ----------------
+    // ---------------- CONNEXION : OTP ----------------
 
     public void sendLoginOtp(String email, String otp) {
-        sender.send(email,
+        requireNotBlank(email, "Email obligatoire.");
+        requireNotBlank(otp, "OTP obligatoire.");
+
+        sender.send(
+                email,
                 EmailTemplates.loginOtpSubject(),
                 EmailTemplates.loginOtpBody(otp));
+    }
+
+    private static void requireNotBlank(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(message);
+        }
     }
 }

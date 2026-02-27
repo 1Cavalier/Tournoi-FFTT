@@ -1,130 +1,70 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app;
 
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.db.DbMigrations;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.db.SqliteDb;
-
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteClubRepository;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteClubProfileRepository;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteOrganizerAccountRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteTableauRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteTournamentRepository;
-
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.mail.EmailSender;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.mail.EmailVerificationService;
-
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
-
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.HomeView;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.OrganizerLoginView;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.OrganizerRegisterView;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.CreateTournamentDialog;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.auth.OrganizerLoginView;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.auth.OrganizerRegisterView;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.home.HomeView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.OrganizerDashboardView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.OrganizerProfileDialog;
-
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.tournament.CreateTournamentDialog;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
-import java.nio.file.Path;
-import java.sql.Connection;
+/**
+ * Navigator :
+ * - Gère la navigation JavaFX (changement de Scene, ouverture des dialogs)
+ * - Gère une session simple (organizer connecté)
+ * - Expose AppContext aux vues via des getters
+ *
+ * Important :
+ * - Aucun code d'initialisation DB ici (c'est dans AppContext)
+ */
+public final class Navigator {
 
-public class Navigator {
+    private static final double DEFAULT_WIDTH = 900;
+    private static final double DEFAULT_HEIGHT = 600;
 
     private final Stage stage;
+    private final AppContext ctx;
 
-    // --- DB + repos ---
-    private final SqliteDb clubDb;
-    private final SqliteDb competitionDb;
-
-    private final SqliteOrganizerAccountRepository organizerRepo;
-    private final SqliteClubRepository clubRepo;
-
-    // (tu peux supprimer SqliteClubProfileRepository plus tard si tu migres tout
-    // vers table club)
-    private final SqliteClubProfileRepository clubProfileRepo;
-
-    private final SqliteTournamentRepository tournamentRepo;
-    private final SqliteTableauRepository tableauRepo;
-
-    // --- mail ---
-    private final EmailSender emailSender;
-    private final EmailVerificationService emailVerification;
-
-    // --- services ---
-    private final OrganizerAuthService organizerAuth;
-
-    // --- session ---
+    // Session (simple)
     private OrganizerAccount currentOrganizer;
 
-    public Navigator(Stage stage) {
+    public Navigator(Stage stage, AppContext ctx) {
         this.stage = stage;
-
-        Path clubDbFile = Path.of("data", "club.db");
-        Path competitionDbFile = Path.of("data", "competition.db");
-
-        this.clubDb = new SqliteDb(clubDbFile);
-        this.competitionDb = new SqliteDb(competitionDbFile);
-
-        // Apply schemas
-        try (Connection c = clubDb.openConnection()) {
-            DbMigrations.applySchema(c, "/db/Club.sql");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("DB init failed (Club)", e);
-        }
-
-        try (Connection c = competitionDb.openConnection()) {
-            DbMigrations.applySchema(c, "/db/Competition.sql");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("DB init failed (Competition)", e);
-        }
-
-        // repos
-        this.organizerRepo = new SqliteOrganizerAccountRepository(clubDb);
-        this.clubRepo = new SqliteClubRepository(clubDb);
-
-        this.clubProfileRepo = new SqliteClubProfileRepository(clubDb); // legacy (peut rester)
-        this.tournamentRepo = new SqliteTournamentRepository(competitionDb);
-        this.tableauRepo = new SqliteTableauRepository(competitionDb);
-
-        // mail (DEV console)
-        this.emailSender = new EmailSender();
-        this.emailVerification = new EmailVerificationService(organizerRepo, emailSender);
-
-        // auth
-        this.organizerAuth = new OrganizerAuthService(organizerRepo, clubRepo, emailVerification);
+        this.ctx = ctx;
     }
 
-    // -------- Accessors --------
+    // --------- Accès aux services/repos (via AppContext) ---------
 
     public OrganizerAuthService organizerAuth() {
-        return organizerAuth;
-    }
-
-    public SqliteTournamentRepository tournamentRepo() {
-        return tournamentRepo;
-    }
-
-    public SqliteTableauRepository tableauRepo() {
-        return tableauRepo;
-    }
-
-    public SqliteClubProfileRepository clubProfileRepo() {
-        return clubProfileRepo;
+        return ctx.organizerAuthService();
     }
 
     public SqliteClubRepository clubRepo() {
-        return clubRepo;
+        return ctx.clubRepo();
     }
 
-    // -------- Session --------
+    public SqliteTournamentRepository tournamentRepo() {
+        return ctx.tournamentRepo();
+    }
+
+    public SqliteTableauRepository tableauRepo() {
+        return ctx.tableauRepo();
+    }
+
+    // --------- Session ---------
 
     public OrganizerAccount getCurrentOrganizer() {
         return currentOrganizer;
     }
 
-    public void setCurrentOrganizer(OrganizerAccount currentOrganizer) {
-        this.currentOrganizer = currentOrganizer;
+    public void setCurrentOrganizer(OrganizerAccount organizer) {
+        this.currentOrganizer = organizer;
     }
 
     public void logoutOrganizer() {
@@ -132,27 +72,23 @@ public class Navigator {
         showHome();
     }
 
-    // -------- Navigation --------
+    // --------- Navigation ---------
 
     public void showHome() {
-        stage.setScene(new Scene(new HomeView(this), 900, 600));
-        stage.setTitle("Tournoi FFTT — Accueil");
-        stage.show();
+        setScene(new HomeView(this), DEFAULT_WIDTH, DEFAULT_HEIGHT, "Tournoi FFTT — Accueil");
     }
 
     public void showOrganizerLogin() {
-        stage.setScene(new Scene(new OrganizerLoginView(this), 900, 600));
-        stage.setTitle("Tournoi FFTT — Connexion Organisme");
+        setScene(new OrganizerLoginView(this), DEFAULT_WIDTH, DEFAULT_HEIGHT, "Tournoi FFTT — Connexion Organisme");
     }
 
     public void showOrganizerRegister() {
-        stage.setScene(new Scene(new OrganizerRegisterView(this), 900, 600));
-        stage.setTitle("Tournoi FFTT — Inscription Organisme");
+        setScene(new OrganizerRegisterView(this), DEFAULT_WIDTH, DEFAULT_HEIGHT,
+                "Tournoi FFTT — Inscription Organisme");
     }
 
     public void showOrganizerDashboard() {
-        stage.setScene(new Scene(new OrganizerDashboardView(this), 1200, 700));
-        stage.setTitle("Tournoi FFTT — Dashboard Organisme");
+        setScene(new OrganizerDashboardView(this), 1200, 700, "Tournoi FFTT — Dashboard Organisme");
     }
 
     public void showOrganizerProfileDialog() {
@@ -165,5 +101,11 @@ public class Navigator {
         CreateTournamentDialog dialog = new CreateTournamentDialog(this);
         dialog.showAndWait();
         showOrganizerDashboard();
+    }
+
+    private void setScene(Parent root, double w, double h, String title) {
+        stage.setScene(new Scene(root, w, h));
+        stage.setTitle(title);
+        stage.show();
     }
 }

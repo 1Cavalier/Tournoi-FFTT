@@ -1,7 +1,11 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model;
 
-public record ClubProfileRow(
-        String organizerId,
+/**
+ * DTO UI : représentation d'un club utilisable partout (UI, services, repos).
+ * Ne dépend pas de SQLite.
+ */
+public record ClubRow(
+        String id,
         String clubNumber,
         String clubName,
         String departementCode,
@@ -12,5 +16,6 @@ public record ClubProfileRow(
         Double longitude,
         String contactFirstName,
         String contactLastName,
-        String logoPath) {
+        String logoPath,
+        String updatedAt) {
 }

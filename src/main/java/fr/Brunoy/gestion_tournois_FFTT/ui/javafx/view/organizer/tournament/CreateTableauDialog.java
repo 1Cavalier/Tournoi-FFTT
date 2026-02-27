@@ -1,4 +1,4 @@
-package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer;
+package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.tournament;
 
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.entity.Tableau;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.GenderPolicy;
