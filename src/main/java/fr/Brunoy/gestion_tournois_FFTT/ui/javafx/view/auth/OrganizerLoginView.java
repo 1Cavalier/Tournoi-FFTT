@@ -2,181 +2,190 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.auth;
 
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.Navigator;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 
-/**
- * Connexion organisme :
- * - Étape 1 : email + mot de passe => envoi d'un OTP
- * - Étape 2 : saisie OTP via CodeVerificationDialog => ouverture session
- */
-public class OrganizerLoginView extends VBox {
+public class OrganizerLoginView extends BorderPane {
 
-    private static final String TITLE_STYLE = "-fx-font-size: 18px; -fx-font-weight: bold;";
-    private static final String ERROR_STYLE = "-fx-text-fill: #b00020;";
-    private static final String SUCCESS_STYLE = "-fx-text-fill: #1b5e20;";
+    private static final String ERROR_STYLE = "-fx-text-fill: #b00020; -fx-font-weight: 700;";
+    private static final String SUCCESS_STYLE = "-fx-text-fill: #1b5e20; -fx-font-weight: 700;";
 
     private final Label messageLabel = new Label();
 
     public OrganizerLoginView(Navigator nav) {
-        setPadding(new Insets(24));
-        setSpacing(12);
+        AppTheme.applyPage(this);
+        setPadding(new Insets(AppTheme.PADDING_PAGE));
 
-        Label title = new Label("Connexion Organisme");
-        title.setStyle(TITLE_STYLE);
+        // Centre global
+        VBox root = new VBox(AppTheme.SPACE_LG);
+        root.setAlignment(Pos.TOP_CENTER);
 
+        // Header
+        VBox header = new VBox(AppTheme.SPACE_SM);
+        header.setAlignment(Pos.TOP_CENTER);
+        header.setMaxWidth(720);
+
+        Label title = new Label("Connexion Organisateur");
+        AppTheme.applyTitle(title);
+
+        Label subtitle = new Label("Accédez à l’espace club pour gérer inscriptions, tableaux, matchs et résultats.");
+        AppTheme.applySubtitle(subtitle);
+
+        header.getChildren().addAll(title, subtitle);
+
+        // Form fields
         TextField emailField = new TextField();
-        emailField.setPromptText("Adresse mail");
+        emailField.setPromptText("Adresse email");
+        emailField.setMaxWidth(Double.MAX_VALUE);
 
         PasswordField passwordField = new PasswordField();
         passwordField.setPromptText("Mot de passe");
+        passwordField.setMaxWidth(Double.MAX_VALUE);
 
+        // Message label
+        messageLabel.setManaged(false);
+        messageLabel.setVisible(false);
         messageLabel.setStyle(ERROR_STYLE);
+        messageLabel.setWrapText(true);
 
+        // Action buttons
         Button loginButton = new Button("Se connecter");
+        AppTheme.stylePrimary(loginButton);
 
-        // Actions utiles si l'utilisateur a un compte non vérifié
-        Button verifyEmailButton = new Button("Valider mon email (code)");
-        verifyEmailButton.setDisable(true);
+        // Links row: "email oublié" / "mot de passe oublié"
+        Button forgotEmailBtn = new Button("Email oublié");
+        AppTheme.styleLinkButton(forgotEmailBtn);
 
-        Button resendVerificationButton = new Button("Renvoyer le code d’inscription");
-        resendVerificationButton.setDisable(true);
+        Button forgotPasswordBtn = new Button("Mot de passe oublié");
+        AppTheme.styleLinkButton(forgotPasswordBtn);
 
-        loginButton.setOnAction(e -> {
-            try {
-                clearMessage();
+        Region linksSpacer = new Region();
+        HBox.setHgrow(linksSpacer, Priority.ALWAYS);
 
-                String email = normalizeEmail(emailField.getText());
-                String password = passwordField.getText();
+        HBox linksRow = new HBox(12, forgotEmailBtn, linksSpacer, forgotPasswordBtn);
+        linksRow.setAlignment(Pos.CENTER_LEFT);
 
-                requireNotBlank(email, "Email obligatoire.");
-                requireNotBlank(password, "Mot de passe obligatoire.");
+        // Card container (pro)
+        VBox card = AppTheme.card(
+                sectionTitle("Connexion"),
+                emailField,
+                passwordField,
+                linksRow,
+                loginButton,
+                messageLabel);
+        card.setMaxWidth(520);
 
-                // Étape 1 : mot de passe OK => envoi OTP
-                nav.organizerAuth().loginStart(email, password);
+        // Bottom actions
+        Button registerButton = new Button("Créer un compte organisateur");
+        AppTheme.styleSecondary(registerButton);
 
-                // Étape 2 : saisie OTP => récupération OrganizerAccount
-                final OrganizerAccount[] holder = new OrganizerAccount[1];
+        Button backButton = new Button("Retour");
+        AppTheme.styleSecondary(backButton);
 
-                CodeVerificationDialog dlg = new CodeVerificationDialog(
-                        "Code de connexion",
-                        "Un code de connexion a été envoyé à : " + email,
-                        code -> {
-                            try {
-                                holder[0] = nav.organizerAuth().verifyLoginOtpAndFinish(email, code);
-                                return true;
-                            } catch (IllegalArgumentException ex) {
-                                return false;
-                            }
-                        });
+        HBox bottom = new HBox(12, backButton, registerButton);
+        bottom.setAlignment(Pos.CENTER);
+        bottom.setMaxWidth(520);
 
-                dlg.showAndWait();
+        // Wiring actions
+        loginButton.setOnAction(e -> doLogin(nav, emailField, passwordField));
+        registerButton.setOnAction(e -> nav.showOrganizerRegister());
+        backButton.setOnAction(e -> nav.showHome());
 
-                if (dlg.isSuccess() && holder[0] != null) {
-                    nav.setCurrentOrganizer(holder[0]);
-                    nav.showOrganizerDashboard();
-                } else {
-                    showError("Connexion annulée ou code incorrect.");
-                }
-
-                // Si on est ici, on n'est plus dans le cas "email non vérifié"
-                verifyEmailButton.setDisable(true);
-                resendVerificationButton.setDisable(true);
-
-            } catch (IllegalArgumentException ex) {
-                showError(ex.getMessage());
-
-                // Astuce temporaire : détection par message. À remplacer plus tard par une
-                // erreur typée.
-                boolean emailNotVerified = isEmailNotVerifiedError(ex);
-                verifyEmailButton.setDisable(!emailNotVerified);
-                resendVerificationButton.setDisable(!emailNotVerified);
+        // Placeholders (à relier à ton auth service quand prêt)
+        forgotPasswordBtn.setOnAction(e -> {
+            clearMessage();
+            String email = normalizeEmail(emailField.getText());
+            if (email.isBlank()) {
+                showError("Saisis ton email pour recevoir la procédure de réinitialisation.");
+                return;
             }
+            // TODO: nav.organizerAuth().sendPasswordReset(email);
+            showSuccess("Fonction à venir : réinitialisation du mot de passe.");
         });
 
-        verifyEmailButton.setOnAction(e -> {
+        forgotEmailBtn.setOnAction(e -> {
+            clearMessage();
+            // TODO: nav.showRecoverEmail(); ou un dialog
+            showSuccess("Fonction à venir : aide pour retrouver l’email du compte.");
+        });
+
+        root.getChildren().addAll(header, card, bottom);
+        setCenter(root);
+    }
+
+    private Label sectionTitle(String text) {
+        Label l = new Label(text);
+        AppTheme.applyCardTitle(l);
+        return l;
+    }
+
+    private void doLogin(Navigator nav, TextField emailField, PasswordField passwordField) {
+        try {
             clearMessage();
 
             String email = normalizeEmail(emailField.getText());
-            if (email.isBlank()) {
-                showError("Email obligatoire.");
-                return;
-            }
+            String password = passwordField.getText();
+
+            requireNotBlank(email, "Email obligatoire.");
+            requireNotBlank(password, "Mot de passe obligatoire.");
+
+            // Étape 1 : mot de passe OK => envoi OTP
+            nav.organizerAuth().loginStart(email, password);
+
+            // Étape 2 : saisie OTP => récupération OrganizerAccount
+            final OrganizerAccount[] holder = new OrganizerAccount[1];
 
             CodeVerificationDialog dlg = new CodeVerificationDialog(
-                    "Vérification email",
-                    "Un code a été envoyé à : " + email,
-                    code -> nav.organizerAuth().verifyEmail(email, code));
+                    "Code de connexion",
+                    "Un code de connexion a été envoyé à : " + email,
+                    code -> {
+                        try {
+                            holder[0] = nav.organizerAuth().verifyLoginOtpAndFinish(email, code);
+                            return true;
+                        } catch (IllegalArgumentException ex) {
+                            return false;
+                        }
+                    });
 
             dlg.showAndWait();
 
-            if (dlg.isSuccess()) {
-                showSuccess("Email vérifié. Reconnecte-toi.");
-                verifyEmailButton.setDisable(true);
-                resendVerificationButton.setDisable(true);
+            if (dlg.isSuccess() && holder[0] != null) {
+                nav.setCurrentOrganizer(holder[0]);
+                nav.showOrganizerDashboard();
             } else {
-                showError("Validation annulée ou code incorrect.");
+                showError("Connexion annulée ou code incorrect.");
             }
-        });
 
-        resendVerificationButton.setOnAction(e -> {
-            try {
-                clearMessage();
-
-                String email = normalizeEmail(emailField.getText());
-                if (email.isBlank()) {
-                    showError("Email obligatoire.");
-                    return;
-                }
-
-                nav.organizerAuth().resendVerificationCode(email);
-                showSuccess("Code renvoyé (console pour le moment).");
-
-            } catch (IllegalArgumentException ex) {
-                showError(ex.getMessage());
-            }
-        });
-
-        Button registerButton = new Button("Créer un compte organisme");
-        registerButton.setOnAction(e -> nav.showOrganizerRegister());
-
-        Button backButton = new Button("Retour");
-        backButton.setOnAction(e -> nav.showHome());
-
-        getChildren().addAll(
-                title,
-                emailField,
-                passwordField,
-                loginButton,
-                verifyEmailButton,
-                resendVerificationButton,
-                registerButton,
-                backButton,
-                messageLabel);
+        } catch (IllegalArgumentException ex) {
+            showError(ex.getMessage());
+        }
     }
 
     private void clearMessage() {
         messageLabel.setText("");
         messageLabel.setStyle(ERROR_STYLE);
+        messageLabel.setManaged(false);
+        messageLabel.setVisible(false);
     }
 
     private void showError(String text) {
         messageLabel.setStyle(ERROR_STYLE);
         messageLabel.setText(text);
+        messageLabel.setManaged(true);
+        messageLabel.setVisible(true);
     }
 
     private void showSuccess(String text) {
         messageLabel.setStyle(SUCCESS_STYLE);
         messageLabel.setText(text);
-    }
-
-    private boolean isEmailNotVerifiedError(IllegalArgumentException ex) {
-        String msg = ex.getMessage();
-        return msg != null && msg.toLowerCase().contains("non vérifié");
+        messageLabel.setManaged(true);
+        messageLabel.setVisible(true);
     }
 
     private static String normalizeEmail(String raw) {
@@ -184,8 +193,7 @@ public class OrganizerLoginView extends VBox {
     }
 
     private static void requireNotBlank(String value, String message) {
-        if (value == null || value.isBlank()) {
+        if (value == null || value.isBlank())
             throw new IllegalArgumentException(message);
-        }
     }
 }
