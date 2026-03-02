@@ -3,22 +3,19 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.components;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.Navigator;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteClubRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.scene.shape.Circle;
 
 import java.util.Optional;
 
-/**
- * Bloc UI: colonne de gauche (profil + navigation + déconnexion).
- * Aucun accès direct aux autres vues: uniquement via Navigator.
- */
 public class OrganizerSidebar extends VBox {
 
     private final Navigator nav;
@@ -28,126 +25,133 @@ public class OrganizerSidebar extends VBox {
         this.nav = nav;
         this.organizer = organizer;
 
-        setSpacing(14);
-        setPadding(new Insets(20));
-        setPrefWidth(280);
-        setStyle("-fx-background-color:#F4F4F4;");
+        setSpacing(AppTheme.SPACE_MD);
+        setPadding(new Insets(16));
+        setPrefWidth(300);
+        setStyle(AppTheme.SIDEBAR_STYLE);
 
         build();
     }
 
     private void build() {
-        Label title = new Label("Profil Organisme");
-        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-
-        String email = organizer != null ? UiUtils.safe(organizer.getEmail()) : "";
-
         Optional<SqliteClubRepository.ClubRow> clubOpt = (organizer == null)
                 ? Optional.empty()
                 : nav.clubRepo().findByOrganizerId(organizer.getId());
 
+        String email = organizer != null ? UiUtils.safe(organizer.getEmail()) : "";
         String clubName = clubOpt.map(SqliteClubRepository.ClubRow::clubName).orElse("(club non renseigné)");
         if (clubName == null || clubName.isBlank())
             clubName = "(club non renseigné)";
 
+        // Header (petit)
+        Label title = new Label("Espace Organisateur");
+        AppTheme.applyCardTitle(title);
+
         StackPane logo = buildLogo(clubOpt.map(SqliteClubRepository.ClubRow::logoPath).orElse(null));
 
-        VBox identityBox = new VBox(
-                UiUtils.centeredLabel(clubName, "-fx-font-size: 14px; -fx-font-weight: bold;"),
-                UiUtils.centeredLabel(email, "-fx-opacity:0.85;"));
-        identityBox.setStyle("-fx-alignment:center;");
+        Label clubLabel = new Label(clubName);
+        clubLabel.setStyle("-fx-font-weight: 900; -fx-text-fill: " + AppTheme.COLOR_TEXT + ";");
+        clubLabel.setWrapText(true);
 
-        Button editProfileBtn = new Button("Modifier le profil de l'organisme");
-        editProfileBtn.setMaxWidth(Double.MAX_VALUE);
+        Label emailLabel = new Label(email);
+        AppTheme.applyBody(emailLabel);
+
+        VBox identity = new VBox(6, logo, clubLabel, emailLabel);
+        identity.setAlignment(Pos.CENTER);
+        identity.setPadding(new Insets(8, 8, 8, 8));
+
+        Button editProfileBtn = new Button("Profil du club");
+        AppTheme.styleSecondary(editProfileBtn);
         editProfileBtn.setDisable(organizer == null);
         editProfileBtn.setOnAction(e -> nav.showOrganizerProfileDialog());
 
-        VBox details = buildDetails(clubOpt);
-
-        VBox menu = new VBox(8);
-        Button accueilBtn = new Button("Accueil");
+        // Menu
+        VBox menu = new VBox(10);
+        Button dashboardBtn = new Button("Dashboard");
         Button historiqueBtn = new Button("Historique");
-        Button tournoiBtn = new Button("Tournoi");
+        Button tournoiBtn = new Button("Tournois");
 
-        accueilBtn.setMaxWidth(Double.MAX_VALUE);
-        historiqueBtn.setMaxWidth(Double.MAX_VALUE);
-        tournoiBtn.setMaxWidth(Double.MAX_VALUE);
+        AppTheme.styleSecondary(dashboardBtn);
+        AppTheme.styleSecondary(historiqueBtn);
+        AppTheme.styleSecondary(tournoiBtn);
 
-        menu.getChildren().addAll(accueilBtn, historiqueBtn, tournoiBtn);
+        // TODO: branche tes routes
+        // dashboardBtn.setOnAction(e -> nav.showOrganizerDashboard());
+        // tournoiBtn.setOnAction(e -> nav.showOrganizerTournaments());
+        // etc.
+
+        menu.getChildren().addAll(dashboardBtn, tournoiBtn, historiqueBtn);
+
+        Region spacer = new Region();
+        VBox.setVgrow(spacer, Priority.ALWAYS);
 
         Button logoutBtn = new Button("Déconnexion");
-        logoutBtn.setMaxWidth(Double.MAX_VALUE);
+        AppTheme.styleSecondary(logoutBtn);
         logoutBtn.setOnAction(e -> nav.logoutOrganizer());
+
+        // (Optionnel) détails club -> mets-les dans un dialog plutôt que de saturer la
+        // sidebar
+        Button clubInfosBtn = new Button("Infos club");
+        AppTheme.styleLinkButton(clubInfosBtn);
+        clubInfosBtn.setOnAction(e -> UiUtils.info("Infos club", buildClubInfoText(clubOpt)));
 
         getChildren().addAll(
                 title,
-                UiUtils.centeredBox(logo, 10),
-                identityBox,
+                identity,
                 editProfileBtn,
-                details,
+                clubInfosBtn,
                 new Separator(),
                 menu,
+                spacer,
                 new Separator(),
                 logoutBtn);
     }
 
+    private String buildClubInfoText(Optional<SqliteClubRepository.ClubRow> clubOpt) {
+        if (organizer == null)
+            return "Profil : non connecté";
+        if (clubOpt.isEmpty())
+            return "Club : introuvable";
+        SqliteClubRepository.ClubRow c = clubOpt.get();
+        return ""
+                + "N° club : " + UiUtils.nvl(c.clubNumber()) + "\n"
+                + "Nom club : " + UiUtils.nvl(c.clubName()) + "\n"
+                + "Département : " + UiUtils.nvl(c.departementCode()) + "\n"
+                + "Ville : " + UiUtils.nvl(c.city()) + "\n"
+                + "Adresse 1 : " + UiUtils.nvl(c.address1()) + "\n"
+                + "Adresse 2 : " + UiUtils.nvl(c.address2()) + "\n"
+                + "Latitude : " + (c.latitude() == null ? "—" : c.latitude()) + "\n"
+                + "Longitude : " + (c.longitude() == null ? "—" : c.longitude()) + "\n"
+                + "Responsable : " + UiUtils.fullNameOrDash(c.contactFirstName(), c.contactLastName());
+    }
+
     private StackPane buildLogo(String logoPath) {
+        double size = 84;
+
         StackPane container = new StackPane();
-        container.setPrefSize(140, 140);
-        container.setMaxSize(140, 140);
-        container.setStyle("""
-                -fx-background-color:#E0E0E0;
-                -fx-background-radius:100;
-                -fx-border-color:black;
-                -fx-border-radius:100;
-                -fx-border-width:2;
-                """);
+        container.setPrefSize(size, size);
+        container.setMaxSize(size, size);
+        container.setStyle(
+                "-fx-background-color: rgba(21,101,192,0.08);" +
+                        "-fx-background-radius: 999;" +
+                        "-fx-border-color: " + AppTheme.COLOR_BORDER + ";" +
+                        "-fx-border-radius: 999;");
 
         if (logoPath != null && !logoPath.isBlank()) {
             try {
-                ImageView imageView = new ImageView(new Image("file:" + logoPath, 140, 140, true, true));
-                imageView.setFitWidth(140);
-                imageView.setFitHeight(140);
-                imageView.setClip(new Circle(70, 70, 70));
-                container.getChildren().add(imageView);
+                ImageView iv = new ImageView(new Image("file:" + logoPath, size, size, true, true));
+                iv.setFitWidth(size);
+                iv.setFitHeight(size);
+                iv.setClip(new Circle(size / 2, size / 2, size / 2));
+                container.getChildren().add(iv);
                 return container;
             } catch (Exception ignored) {
-                // fallback ci-dessous
             }
         }
 
         Label placeholder = new Label("LOGO");
-        placeholder.setStyle("-fx-font-weight:bold; -fx-opacity:0.6;");
+        placeholder.setStyle("-fx-font-weight: 900; -fx-text-fill: rgba(30,41,59,0.55);");
         container.getChildren().add(placeholder);
         return container;
-    }
-
-    private VBox buildDetails(Optional<SqliteClubRepository.ClubRow> clubOpt) {
-        VBox details = new VBox(4);
-        details.setPadding(new Insets(8, 0, 0, 0));
-
-        if (organizer == null) {
-            details.getChildren().add(new Label("Profil : non connecté"));
-            return details;
-        }
-
-        if (clubOpt.isEmpty()) {
-            details.getChildren().add(new Label("Club : introuvable"));
-            return details;
-        }
-
-        SqliteClubRepository.ClubRow c = clubOpt.get();
-        details.getChildren().addAll(
-                new Label("N° club : " + UiUtils.nvl(c.clubNumber())),
-                new Label("Nom club : " + UiUtils.nvl(c.clubName())),
-                new Label("Département : " + UiUtils.nvl(c.departementCode())),
-                new Label("Ville : " + UiUtils.nvl(c.city())),
-                new Label("Adresse 1 : " + UiUtils.nvl(c.address1())),
-                new Label("Adresse 2 : " + UiUtils.nvl(c.address2())),
-                new Label("Latitude : " + (c.latitude() == null ? "—" : c.latitude())),
-                new Label("Longitude : " + (c.longitude() == null ? "—" : c.longitude())),
-                new Label("Responsable : " + UiUtils.fullNameOrDash(c.contactFirstName(), c.contactLastName())));
-
-        return details;
     }
 }

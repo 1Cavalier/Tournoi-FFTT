@@ -4,6 +4,7 @@ import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.Navigator;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteClubRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.TableauRow;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.TournamentRow;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -11,12 +12,11 @@ import javafx.scene.layout.*;
 
 import java.util.Optional;
 
-/**
- * Bloc UI: une "carte" tournoi.
- */
 public class TournamentCard extends VBox {
 
-    public enum Mode { ACTIVE, DRAFT }
+    public enum Mode {
+        ACTIVE, DRAFT
+    }
 
     private final Navigator nav;
     private final TournamentRow t;
@@ -27,23 +27,23 @@ public class TournamentCard extends VBox {
         this.t = t;
         this.mode = mode;
 
-        setSpacing(10);
-        setPadding(new Insets(14));
-        setStyle("-fx-border-color:black; -fx-border-width:3; -fx-background-color:white;");
+        setFillWidth(true);
 
-        build();
-    }
+        VBox content = new VBox(AppTheme.SPACE_MD);
+        content.getChildren().addAll(buildHeader(), buildBody());
 
-    private void build() {
-        getChildren().addAll(buildHeader(), new Separator(), buildBody());
+        VBox card = AppTheme.card(content);
+        card.setMaxWidth(Double.MAX_VALUE);
+
+        getChildren().add(card);
     }
 
     private HBox buildHeader() {
         HBox header = new HBox(10);
         header.setAlignment(Pos.CENTER_LEFT);
 
-        Label title = new Label(t.name());
-        title.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+        Label title = new Label(UiUtils.nvl(t.name()));
+        AppTheme.applyCardTitle(title);
 
         StatusBadge badge = new StatusBadge(mapStatus(t.status()));
 
@@ -55,12 +55,15 @@ public class TournamentCard extends VBox {
     }
 
     private HBox buildBody() {
-        HBox body = new HBox(14);
+        HBox body = new HBox(16);
         body.setAlignment(Pos.TOP_LEFT);
 
         VBox leftInfos = buildInfos();
         VBox centerTableaux = buildTableaux();
         VBox rightActions = buildActions();
+
+        leftInfos.setMinWidth(260);
+        rightActions.setMinWidth(230);
 
         HBox.setHgrow(centerTableaux, Priority.ALWAYS);
         body.getChildren().addAll(leftInfos, centerTableaux, rightActions);
@@ -69,7 +72,6 @@ public class TournamentCard extends VBox {
 
     private VBox buildInfos() {
         VBox box = new VBox(6);
-        box.setMinWidth(240);
 
         Optional<SqliteClubRepository.ClubRow> clubOpt = nav.clubRepo().findByOrganizerId(t.organizerId());
         String ville = clubOpt.map(SqliteClubRepository.ClubRow::city).orElse(null);
@@ -84,8 +86,7 @@ public class TournamentCard extends VBox {
                 UiUtils.kv("Lieu", lieu),
                 UiUtils.kv("Niveau", t.level()),
                 UiUtils.kv("Phase", t.phase()),
-                UiUtils.kv("Dates", t.startDate() + " → " + t.endDate())
-        );
+                UiUtils.kv("Dates", t.startDate() + " → " + t.endDate()));
 
         return box;
     }
@@ -93,67 +94,68 @@ public class TournamentCard extends VBox {
     private VBox buildTableaux() {
         VBox box = new VBox(8);
 
-        Label title = new Label("Liste des tableaux");
-        title.setStyle("-fx-font-weight:bold;");
+        Label title = new Label("Tableaux");
+        AppTheme.applyCardTitle(title);
+        title.setStyle(title.getStyle() + "-fx-font-size: 13px;"); // légèrement plus petit
 
         TableView<TableauRow> table = new TableView<>();
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        table.setPrefHeight(140);
+        table.setPrefHeight(160);
 
         TableColumn<TableauRow, String> cCode = new TableColumn<>("Code");
-        cCode.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().code()));
+        cCode.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().code()));
 
         TableColumn<TableauRow, String> cLabel = new TableColumn<>("Libellé");
-        cLabel.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().label()));
+        cLabel.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().label()));
 
         TableColumn<TableauRow, String> cDate = new TableColumn<>("Date");
-        cDate.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().date()));
+        cDate.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().date()));
 
         TableColumn<TableauRow, String> cPrice = new TableColumn<>("Prix");
-        cPrice.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(
-                data.getValue().prepaidEuro() + "€ / " + data.getValue().onsiteEuro() + "€"));
+        cPrice.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(
+                d.getValue().prepaidEuro() + "€ / " + d.getValue().onsiteEuro() + "€"));
 
         TableColumn<TableauRow, String> cCap = new TableColumn<>("Cap.");
-        cCap.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(String.valueOf(data.getValue().capacity())));
+        cCap.setCellValueFactory(
+                d -> new javafx.beans.property.SimpleStringProperty(String.valueOf(d.getValue().capacity())));
 
-        table.getColumns().addAll(cCode, cLabel, cDate, cPrice, cCap);
         table.getItems().setAll(nav.tableauRepo().findByTournamentId(t.id()));
 
-        box.getChildren().addAll(title, table);
         VBox.setVgrow(table, Priority.ALWAYS);
+        box.getChildren().addAll(title, table);
         return box;
     }
 
     private VBox buildActions() {
         VBox box = new VBox(10);
-        box.setMinWidth(220);
+        box.setPadding(new Insets(0, 0, 0, 0));
 
         if (mode == Mode.ACTIVE) {
-            Button bPlayers = new Button("Gestion des joueurs");
-            Button bStart = new Button("Lancement du tournoi");
-            Button bEdit = new Button("Modification du tournoi");
+            Button bPlayers = new Button("Joueurs");
+            Button bStart = new Button("Lancer");
+            Button bEdit = new Button("Modifier");
 
-            bPlayers.setMaxWidth(Double.MAX_VALUE);
-            bStart.setMaxWidth(Double.MAX_VALUE);
-            bEdit.setMaxWidth(Double.MAX_VALUE);
+            AppTheme.styleSecondary(bPlayers);
+            AppTheme.stylePrimary(bStart);
+            AppTheme.styleSecondary(bEdit);
 
-            bPlayers.setOnAction(e -> UiUtils.info("À venir", "Gestion des joueurs (à implémenter)."));
-            bStart.setOnAction(e -> UiUtils.info("À venir", "Lancement du tournoi (à implémenter)."));
-            bEdit.setOnAction(e -> UiUtils.info("À venir", "Modification tournoi actif (à implémenter)."));
+            bPlayers.setOnAction(e -> UiUtils.info("À venir", "Gestion des joueurs."));
+            bStart.setOnAction(e -> UiUtils.info("À venir", "Lancement du tournoi."));
+            bEdit.setOnAction(e -> UiUtils.info("À venir", "Modification tournoi actif."));
 
             box.getChildren().addAll(bPlayers, bStart, bEdit);
         } else {
-            Button bEditInfo = new Button("Modifier infos générales");
-            Button bEditTabs = new Button("Modifier les tableaux");
-            Button bPublish = new Button("Publier le tournoi");
+            Button bEditInfo = new Button("Infos générales");
+            Button bEditTabs = new Button("Tableaux");
+            Button bPublish = new Button("Publier");
 
-            bEditInfo.setMaxWidth(Double.MAX_VALUE);
-            bEditTabs.setMaxWidth(Double.MAX_VALUE);
-            bPublish.setMaxWidth(Double.MAX_VALUE);
+            AppTheme.styleSecondary(bEditInfo);
+            AppTheme.styleSecondary(bEditTabs);
+            AppTheme.stylePrimary(bPublish);
 
-            bEditInfo.setOnAction(e -> UiUtils.info("À venir", "Édition infos générales (à implémenter)."));
-            bEditTabs.setOnAction(e -> UiUtils.info("À venir", "Édition des tableaux (à implémenter)."));
-            bPublish.setOnAction(e -> UiUtils.info("À venir", "Publication (DRAFT → OPEN) (à implémenter)."));
+            bEditInfo.setOnAction(e -> UiUtils.info("À venir", "Édition infos générales."));
+            bEditTabs.setOnAction(e -> UiUtils.info("À venir", "Édition des tableaux."));
+            bPublish.setOnAction(e -> UiUtils.info("À venir", "Publication (DRAFT → OPEN)."));
 
             box.getChildren().addAll(bEditInfo, bEditTabs, bPublish);
         }
@@ -162,7 +164,8 @@ public class TournamentCard extends VBox {
     }
 
     private TournamentStatus mapStatus(String status) {
-        if (status == null) return TournamentStatus.DRAFT;
+        if (status == null)
+            return TournamentStatus.DRAFT;
         try {
             return TournamentStatus.valueOf(status.trim().toUpperCase());
         } catch (Exception e) {

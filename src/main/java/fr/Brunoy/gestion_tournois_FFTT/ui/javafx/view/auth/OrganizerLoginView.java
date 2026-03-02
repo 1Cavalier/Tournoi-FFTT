@@ -58,17 +58,13 @@ public class OrganizerLoginView extends BorderPane {
         Button loginButton = new Button("Se connecter");
         AppTheme.stylePrimary(loginButton);
 
-        // Links row: "email oublié" / "mot de passe oublié"
-        Button forgotEmailBtn = new Button("Email oublié");
-        AppTheme.styleLinkButton(forgotEmailBtn);
-
         Button forgotPasswordBtn = new Button("Mot de passe oublié");
         AppTheme.styleLinkButton(forgotPasswordBtn);
 
         Region linksSpacer = new Region();
         HBox.setHgrow(linksSpacer, Priority.ALWAYS);
 
-        HBox linksRow = new HBox(12, forgotEmailBtn, linksSpacer, forgotPasswordBtn);
+        HBox linksRow = new HBox(12, linksSpacer, forgotPasswordBtn);
         linksRow.setAlignment(Pos.CENTER_LEFT);
 
         // Card container (pro)
@@ -107,12 +103,6 @@ public class OrganizerLoginView extends BorderPane {
             }
             // TODO: nav.organizerAuth().sendPasswordReset(email);
             showSuccess("Fonction à venir : réinitialisation du mot de passe.");
-        });
-
-        forgotEmailBtn.setOnAction(e -> {
-            clearMessage();
-            // TODO: nav.showRecoverEmail(); ou un dialog
-            showSuccess("Fonction à venir : aide pour retrouver l’email du compte.");
         });
 
         root.getChildren().addAll(header, card, bottom);

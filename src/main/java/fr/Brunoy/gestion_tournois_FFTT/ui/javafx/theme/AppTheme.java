@@ -8,6 +8,8 @@ import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 
 /**
  * Thème UI centralisé (tokens + helpers).
@@ -28,7 +30,7 @@ public final class AppTheme {
     public static final String COLOR_BORDER = "rgba(30,41,59,0.15)";
 
     // Dans AppTheme
-    public static final String LOGO_RESOURCE = "/fr/Brunoy/gestion_tournois_FFTT/ui/javafx/theme/PingMaster.png";
+    public static final String LOGO_RESOURCE = "/fr/Brunoy/gestion_tournois_FFTT/ui/javafx/theme/PingManager.png";
 
     // ---------- Layout ----------
     public static final double PADDING_PAGE = 28;
@@ -92,6 +94,43 @@ public final class AppTheme {
             "-fx-font-weight: 700;" +
             "-fx-padding: 0;" +
             "-fx-cursor: hand;";
+
+    // Top bar
+    public static final double TOPBAR_HEIGHT = 56;
+
+    public static final String TOPBAR_STYLE = "-fx-background-color: " + COLOR_SURFACE + ";" +
+            "-fx-border-color: " + COLOR_BORDER + ";" +
+            "-fx-border-width: 0 0 1 0;";
+
+    // Sidebar (si tu veux homogénéiser plus tard)
+    public static final String SIDEBAR_STYLE = "-fx-background-color: " + COLOR_SURFACE + ";" +
+            "-fx-border-color: " + COLOR_BORDER + ";" +
+            "-fx-border-width: 0 1 0 0;";
+
+    // Small tag / badge
+    public static String badgeStyle(String bg) {
+        return "-fx-background-color: " + bg + ";" +
+                "-fx-text-fill: white;" +
+                "-fx-font-weight: 800;" +
+                "-fx-padding: 4 10;" +
+                "-fx-background-radius: 999;";
+    }
+
+    public static ImageView logoView(double height) {
+        try {
+            var url = AppTheme.class.getResource(LOGO_RESOURCE);
+            if (url == null)
+                return null;
+            ImageView iv = new ImageView(new Image(url.toExternalForm(), true));
+            iv.setFitHeight(height);
+            iv.setPreserveRatio(true);
+            iv.setSmooth(true);
+            iv.setCache(true);
+            return iv;
+        } catch (Exception e) {
+            return null;
+        }
+    }
 
     public static void styleLinkButton(Button btn) {
         btn.setStyle(LINK_BUTTON_STYLE);
