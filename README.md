@@ -1,195 +1,204 @@
-# Gestion Tournois FFTT
+# PingManager – Gestion Tournois FFTT
+
+![Java](https://img.shields.io/badge/Java-20%2B-blue)
+![JavaFX](https://img.shields.io/badge/JavaFX-Desktop-blue)
+![SQLite](https://img.shields.io/badge/SQLite-Embedded-lightgrey)
+![Architecture](https://img.shields.io/badge/Architecture-DDD-success)
+![Mode](https://img.shields.io/badge/Mode-Offline--First-orange)
+
+---
 
 ## Présentation
 
-Gestion Tournois FFTT est une application desktop développée en Java visant à gérer l’organisation complète de tournois de tennis de table selon les règles de la FFTT.
+PingManager est une application desktop destinée à la gestion complète de tournois de tennis de table selon les règles de la FFTT.
 
-Le projet est conçu avec une approche orientée domaine (DDD) afin de séparer clairement la logique métier, l’interface utilisateur et l’infrastructure technique.
+Le logiciel permet :
 
-L’objectif final est de disposer d’un logiciel utilisable en conditions réelles de tournoi, capable de fonctionner hors ligne pendant la compétition, avec synchronisation ultérieure vers un serveur.
+- la création et la configuration de tournois
+- la définition des tableaux (catégories, points, sexe, capacité)
+- la gestion des inscriptions multi-tableaux
+- l'application stricte des règles FFTT
+- la gestion des paiements (sur place / en ligne)
+- le fonctionnement hors ligne pendant la compétition
 
----
-
-## Objectifs du projet
-
-Le projet vise à permettre :
-
-- la gestion des inscriptions joueurs selon les règles FFTT
-- la création et la configuration de tournois et tableaux
-- la gestion des capacités et des règles spécifiques (féminines, quotas, paiements)
-- l’utilisation du logiciel en mode hors ligne le jour du tournoi
-- la synchronisation des résultats vers un serveur après l’événement
-
-L’architecture est pensée pour évoluer vers un backend serveur tout en conservant un cœur métier indépendant.
+L’objectif est de fournir un outil robuste, utilisable en conditions réelles de tournoi.
 
 ---
 
-## Architecture technique
+## Architecture
 
-Langage principal : Java  
-Interface utilisateur : JavaFX  
-Base de données locale : SQLite  
-Build : Maven  
+Le projet suit une architecture **DDD (Domain Driven Design)**.
 
-Organisation du code :
+Séparation claire entre :
 
-- domain : cœur métier et règles FFTT
-- ui/javafx : interface utilisateur desktop
-- infra : accès base de données et repositories
-- common : exceptions et éléments transverses
+- `domain` → règles métier
+- `ui/javafx` → interface utilisateur
+- `infra` → accès base SQLite
+- `common` → gestion des erreurs
 
-Le cœur métier est totalement indépendant de l’UI et de la base de données.
+Le cœur métier ne dépend ni de JavaFX ni de SQLite.
 
 ---
 
-## Fonctionnalités réalisées
+# 🧠 Modèle métier
 
-### Cœur métier
+## Agrégat principal : Tournament
 
-Le domaine métier est largement implémenté et testé.
+Le tournoi est l’agrégat racine.
 
-Modélisation :
+Il garantit :
 
-- Player (licence, club, points, certificat médical, sexe)
-- Tournament
-- Tableau
-- Registration
+- cohérence des tableaux
+- respect des quotas
+- respect des capacités
+- impossibilité de contourner les règles métier
 
-Règles métier implémentées :
+Toutes les inscriptions passent par lui.
 
-- nombre maximum de tableaux par jour
-- nombre maximum total
-- gestion des capacités des tableaux
-- règles spécifiques féminines :
+---
+
+## Entité Tableau
+
+Un tableau représente une compétition spécifique.
+
+Il contient :
+
+- code unique
+- désignation
+- date
+- règle de genre (mixte / féminin)
+- règle de points :
+  - toutes séries
+  - maximum
+  - intervalle min/max
+- capacité maximale
+- horaires (fin pointage / début)
+- frais d’inscription
+- primes éventuelles
+
+L’éligibilité d’un joueur est calculée directement dans l’entité.
+
+---
+
+## Gestion des inscriptions
+
+### MultiTableauRegistrationService
+
+Valide une inscription globale :
+
+- vérification du certificat médical
+- vérification du niveau du tournoi
+- vérification des points
+- vérification de la règle de genre
+- vérification des quotas par jour
+- application du bonus féminin
+- vérification capacité active
+
+Retourne un résumé des violations.
+
+---
+
+### TournamentRegistrationPolicy
+
+Centralise les règles :
+
+- max tableaux par jour
+- max total
+- bonus féminin :
   - NONE
   - ANY_TABLEAU
   - SPECIFIC_TABLEAU_CODE
-- validation multi-tableaux
-- gestion des paiements :
-  - paiement sur place avec confirmation immédiate
-  - paiement en ligne avec réservation et expiration
-- suppression automatique des réservations expirées
-- calcul du récapitulatif et du prix
 
-Services métier :
-
-- MultiTableauRegistrationService
-- RegistrationCheckoutService
-- RegistrationService
-
-Tests unitaires couvrant :
-
-- règles féminines
-- quotas
-- gestion des réservations
-- expiration
-- capacité après expiration
+Toutes les règles de quota sont regroupées ici.
 
 ---
 
-### Application desktop (JavaFX)
+### RegistrationCheckoutService
 
-Fonctionnalités disponibles :
+Gère :
 
-- écran d’accueil
-- connexion organisme
-- inscription organisme
-- stockage sécurisé des comptes avec hash du mot de passe
-- dashboard organisme
-- affichage dynamique selon la présence d’un tournoi courant
-- badge de statut du tournoi :
-  - DRAFT
-  - OPEN
-  - RUNNING
-  - FINISHED
-- affichage des informations du tournoi
-- affichage de la liste des tableaux
-- activation des actions selon le statut du tournoi
+- paiement sur place (confirmation immédiate)
+- paiement en ligne (réservation temporaire)
+- expiration automatique des réservations
+
+Les capacités sont calculées uniquement sur inscriptions actives.
 
 ---
 
-### Base de données locale
+## Sécurité métier
 
-Base SQLite locale utilisée pour :
+Les invariants sont protégés :
 
-- comptes organismes
-- état de l’application
+- impossible d’ajouter directement une inscription
+- unicité garantie
+- capacité garantie
+- aucune modification externe possible des listes internes
+
+Le domaine protège lui-même ses règles.
+
+---
+
+# 🖥️ Interface utilisateur
+
+## Écran d’accueil
+
+![Accueil](docs/screenshots/home.png)
+
+---
+
+## Dashboard Organisateur
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+---
+
+## Création d’un tournoi
+
+![Création tournoi](docs/screenshots/create_tournament.png)
+
+---
+
+## Création d’un tableau
+
+![Création tableau](docs/screenshots/create_tableau.png)
+
+---
+
+# 💾 Base de données
+
+Base SQLite embarquée.
+
+Stockage :
+
+- organisateurs
 - tournois
 - tableaux
+- inscriptions
 
-Le schéma est géré via un fichier SQL versionné.
-
-Le logiciel fonctionne entièrement en local.
+Fonctionnement 100% local.
 
 ---
 
-## Fonctionnalités prévues
+# 🚀 Roadmap
 
-### Court terme
+### Prochaines étapes
 
-- création d’un tournoi depuis l’interface
-- modification des informations du tournoi
-- gestion du statut du tournoi
-- gestion complète des tableaux depuis l’UI
-- rafraîchissement dynamique du dashboard
-
-### Moyen terme
-
-- gestion des joueurs
-- inscriptions aux tableaux depuis l’interface
+- gestion des joueurs depuis l’interface
 - gestion des listes d’inscrits
-- gestion des paiements côté interface
-- gestion des résultats
-
-### Long terme
-
-- backend serveur (Spring Boot)
-- synchronisation des données
-- gestion multi-tournois
+- gestion des poules et tableaux finaux
+- génération automatique du règlement FFTT
 - export des résultats
-- interface joueur complète
-- déploiement utilisable en production
 
 ---
 
-## Philosophie du projet
+# ▶ Lancer le projet
 
-Le projet suit plusieurs principes :
+### Prérequis
 
-- séparation stricte du domaine métier
-- logique métier indépendante de l’infrastructure
-- architecture évolutive vers un mode client-serveur
-- fonctionnement offline-first
-- code lisible et maintenable
-
----
-
-## État actuel
-
-Le cœur métier est stable et fortement testé.
-
-L’application desktop est fonctionnelle pour la gestion des comptes organismes et l’affichage du dashboard avec lecture de la base SQLite.
-
-Le projet est prêt pour l’implémentation des écrans de création et de gestion de tournoi.
-
----
-
-## Lancer le projet
-
-Prérequis :
-
-- Java JDK 20 ou supérieur
+- Java 20+
 - Maven
 
-Commande :
+### Commande
 
+```bash
 mvn clean javafx:run
-
-
-La base de données locale sera créée automatiquement si elle n’existe pas.
-
----
-
-## Auteur
-
-Projet personnel visant à développer un logiciel complet de gestion de tournois FFTT avec une architecture robuste et évolutive.

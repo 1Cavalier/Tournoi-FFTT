@@ -1,14 +1,14 @@
 package fr.Brunoy.gestion_tournois_FFTT.domain.model.competition.service;
 
-import fr.Brunoy.gestion_tournois_FFTT.domain.competition.service.RegistrationService;
-import fr.Brunoy.gestion_tournois_FFTT.domain.model.competition.TestFixtures;
-
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.entity.Tableau;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.entity.Tournament;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.GenderPolicy;
+import fr.Brunoy.gestion_tournois_FFTT.domain.competition.service.RegistrationService;
+import fr.Brunoy.gestion_tournois_FFTT.domain.competition.service.TournamentLevelEligibilityPolicy;
 import fr.Brunoy.gestion_tournois_FFTT.domain.identity.model.Player;
+import fr.Brunoy.gestion_tournois_FFTT.domain.model.competition.TestFixtures;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -17,7 +17,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class RegistrationServiceTest {
 
-    private final RegistrationService service = new RegistrationService();
+    private final TournamentLevelEligibilityPolicy levelPolicy = new TournamentLevelEligibilityPolicy();
+    private final RegistrationService service = new RegistrationService(levelPolicy);
 
     @Test
     void register_ok_addsRegistration() {

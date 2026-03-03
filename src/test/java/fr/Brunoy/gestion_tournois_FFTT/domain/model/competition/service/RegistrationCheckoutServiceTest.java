@@ -1,8 +1,5 @@
 package fr.Brunoy.gestion_tournois_FFTT.domain.model.competition.service;
 
-import fr.Brunoy.gestion_tournois_FFTT.domain.competition.service.MultiTableauRegistrationService;
-import fr.Brunoy.gestion_tournois_FFTT.domain.competition.service.RegistrationCheckoutService;
-
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.entity.Registration;
@@ -11,6 +8,9 @@ import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.GenderPoli
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.RegistrationStatus;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.registration.RegistrationDraft;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.registration.RegistrationSummary;
+import fr.Brunoy.gestion_tournois_FFTT.domain.competition.service.MultiTableauRegistrationService;
+import fr.Brunoy.gestion_tournois_FFTT.domain.competition.service.RegistrationCheckoutService;
+import fr.Brunoy.gestion_tournois_FFTT.domain.competition.service.TournamentLevelEligibilityPolicy;
 import fr.Brunoy.gestion_tournois_FFTT.domain.identity.model.Player;
 import fr.Brunoy.gestion_tournois_FFTT.domain.model.competition.TestFixtures;
 import org.junit.jupiter.api.Test;
@@ -23,7 +23,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class RegistrationCheckoutServiceTest {
 
-    private final MultiTableauRegistrationService validator = new MultiTableauRegistrationService();
+    private final TournamentLevelEligibilityPolicy levelPolicy = new TournamentLevelEligibilityPolicy();
+    private final MultiTableauRegistrationService validator = new MultiTableauRegistrationService(levelPolicy);
     private final RegistrationCheckoutService checkout = new RegistrationCheckoutService(validator);
 
     @Test
@@ -31,7 +32,6 @@ class RegistrationCheckoutServiceTest {
         LocalDate day = LocalDate.of(2026, 2, 10);
         Tournament t = TestFixtures.tournament1DayWithPolicy3PerDay(day);
 
-        // 2 tableaux sélectionnés
         t.addTableau(TestFixtures.tableauAllSeries("A", day, GenderPolicy.MIXTE, 16));
         t.addTableau(TestFixtures.tableauAllSeries("B", day, GenderPolicy.MIXTE, 16));
 
@@ -79,7 +79,6 @@ class RegistrationCheckoutServiceTest {
         Instant now = Instant.parse("2026-02-10T10:00:00Z");
         RegistrationCheckoutService.ReservationReceipt receipt = checkout.reserveOnline(t, draft, now);
 
-        // paiement OK à +30 minutes
         Instant payTime = now.plusSeconds(30 * 60);
 
         checkout.confirmOnlinePayment(t, receipt.batchId(), payTime);
@@ -110,7 +109,6 @@ class RegistrationCheckoutServiceTest {
         Instant now = Instant.parse("2026-02-10T10:00:00Z");
         RegistrationCheckoutService.ReservationReceipt receipt = checkout.reserveOnline(t, draft, now);
 
-        // paiement tenté après 1h + 1s => expiré
         Instant late = now.plusSeconds(3600 + 1);
 
         BusinessException ex = assertThrows(BusinessException.class,
@@ -139,10 +137,8 @@ class RegistrationCheckoutServiceTest {
 
         Instant now = Instant.parse("2026-02-10T10:00:00Z");
 
-        // créer une réservation online
         checkout.reserveOnline(t, draft, now);
 
-        // juste avant expiration => rien
         int cancelled0 = checkout.cancelExpiredOnlineReservations(t, now.plusSeconds(3599));
         assertEquals(0, cancelled0);
         assertEquals(RegistrationStatus.RESERVED, t.registrationsFor("A").get(0).status());
@@ -153,38 +149,30 @@ class RegistrationCheckoutServiceTest {
         LocalDate day = LocalDate.of(2026, 2, 10);
         Tournament t = TestFixtures.tournament1DayWithPolicy3PerDay(day);
 
-        // maxPlayers = 1
         t.addTableau(TestFixtures.tableauAllSeries("A", day, GenderPolicy.MIXTE, 1));
 
         Player p1 = TestFixtures.playerMale(500, 500);
         Player p2 = TestFixtures.playerFemale(500, 500);
 
-        // p1 réserve online
         RegistrationDraft draft1 = new RegistrationDraft(p1);
         draft1.addTableau("A");
 
         Instant now = Instant.parse("2026-02-10T10:00:00Z");
         checkout.reserveOnline(t, draft1, now);
 
-        // p2 tente de réserver => doit être refusé (mais checkout renvoie
-        // REGISTRATION_INVALID)
         RegistrationDraft draft2 = new RegistrationDraft(p2);
         draft2.addTableau("A");
 
-        // on confirme que le validator détecte bien TABLEAU_FULL
         RegistrationSummary s = validator.validate(t, draft2);
         assertFalse(s.isValid());
-        assertTrue(
-                s.violations().stream().anyMatch(v -> v.getCode() == ErrorCode.TABLEAU_FULL),
+        assertTrue(s.violations().stream().anyMatch(v -> v.getCode() == ErrorCode.TABLEAU_FULL),
                 "Le validator devrait contenir une violation TABLEAU_FULL");
 
-        // checkout masque la cause => REGISTRATION_INVALID
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> checkout.reserveOnline(t, draft2, now.plusSeconds(10)));
 
         assertEquals(ErrorCode.REGISTRATION_INVALID, ex.getCode());
 
-        // Après expiration + cleanup, p2 peut réserver
         checkout.cancelExpiredOnlineReservations(t, now.plusSeconds(3600 + 1));
 
         RegistrationCheckoutService.ReservationReceipt receipt2 = checkout.reserveOnline(t, draft2,
@@ -194,7 +182,5 @@ class RegistrationCheckoutServiceTest {
 
         assertEquals(1, t.registrationsFor("A").size());
         assertEquals(RegistrationStatus.RESERVED, t.registrationsFor("A").get(0).status());
-
     }
-
 }

@@ -1,14 +1,14 @@
 package fr.Brunoy.gestion_tournois_FFTT.domain.model.competition.service;
 
-import fr.Brunoy.gestion_tournois_FFTT.domain.competition.service.MultiTableauRegistrationService;
-import fr.Brunoy.gestion_tournois_FFTT.domain.model.competition.TestFixtures;
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.entity.Tournament;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.GenderPolicy;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.registration.RegistrationDraft;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.registration.RegistrationSummary;
+import fr.Brunoy.gestion_tournois_FFTT.domain.competition.service.MultiTableauRegistrationService;
+import fr.Brunoy.gestion_tournois_FFTT.domain.competition.service.TournamentLevelEligibilityPolicy;
 import fr.Brunoy.gestion_tournois_FFTT.domain.identity.model.Player;
-
+import fr.Brunoy.gestion_tournois_FFTT.domain.model.competition.TestFixtures;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -17,14 +17,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class MultiTableauRegistrationServiceTest {
 
-    private final MultiTableauRegistrationService service = new MultiTableauRegistrationService();
+    private final TournamentLevelEligibilityPolicy levelPolicy = new TournamentLevelEligibilityPolicy();
+    private final MultiTableauRegistrationService service = new MultiTableauRegistrationService(levelPolicy);
 
     @Test
     void validate_ok_whenThreeTableauxSameDay_andPolicyIs3PerDay() {
         LocalDate day = LocalDate.of(2026, 2, 10);
         Tournament t = TestFixtures.tournament1DayWithPolicy3PerDay(day);
 
-        // 3 tableaux le même jour
         t.addTableau(TestFixtures.tableauAllSeries("A", day, GenderPolicy.MIXTE, 16));
         t.addTableau(TestFixtures.tableauAllSeries("B", day, GenderPolicy.MIXTE, 16));
         t.addTableau(TestFixtures.tableauAllSeries("C", day, GenderPolicy.MIXTE, 16));
@@ -47,7 +47,6 @@ class MultiTableauRegistrationServiceTest {
         LocalDate day = LocalDate.of(2026, 2, 10);
         Tournament t = TestFixtures.tournament1DayWithPolicy3PerDay(day);
 
-        // 4 tableaux le même jour
         t.addTableau(TestFixtures.tableauAllSeries("A", day, GenderPolicy.MIXTE, 16));
         t.addTableau(TestFixtures.tableauAllSeries("B", day, GenderPolicy.MIXTE, 16));
         t.addTableau(TestFixtures.tableauAllSeries("C", day, GenderPolicy.MIXTE, 16));
@@ -64,9 +63,10 @@ class MultiTableauRegistrationServiceTest {
         RegistrationSummary summary = service.validate(t, draft);
 
         assertFalse(summary.isValid(), "4 tableaux/jour doit être invalide avec une policy à 3/jour");
+        assertTrue(summary.violations().stream()
+                .anyMatch(v -> v.getCode() == ErrorCode.REGISTRATION_MAX_TABLEAUX_PER_DAY_EXCEEDED));
     }
 
-    // (optionnel) test register() : 3 OK → ajoute 3 inscriptions
     @Test
     void register_ok_whenThreeTableauxSameDay() {
         LocalDate day = LocalDate.of(2026, 2, 10);
@@ -95,7 +95,6 @@ class MultiTableauRegistrationServiceTest {
         LocalDate day = LocalDate.of(2026, 2, 10);
         Tournament t = TestFixtures.tournament1Day3PerDay_FemaleNone(day);
 
-        // 4 tableaux le même jour
         t.addTableau(TestFixtures.tableauAllSeries("A", day, GenderPolicy.MIXTE, 16));
         t.addTableau(TestFixtures.tableauAllSeries("B", day, GenderPolicy.MIXTE, 16));
         t.addTableau(TestFixtures.tableauAllSeries("C", day, GenderPolicy.MIXTE, 16));
@@ -126,7 +125,6 @@ class MultiTableauRegistrationServiceTest {
         t.addTableau(TestFixtures.tableauAllSeries("C", day, GenderPolicy.MIXTE, 16));
         t.addTableau(TestFixtures.tableauAllSeries("D", day, GenderPolicy.MIXTE, 16));
 
-        // Femme : 4 doit passer
         Player female = TestFixtures.playerFemale(500, 500);
         RegistrationDraft draftF = new RegistrationDraft(female);
         draftF.addTableau("A");
@@ -137,7 +135,6 @@ class MultiTableauRegistrationServiceTest {
         RegistrationSummary sumF = service.validate(t, draftF);
         assertTrue(sumF.isValid(), "Avec ANY_TABLEAU, une féminine doit pouvoir faire +1 (4 au total)");
 
-        // Homme : 4 doit échouer
         Player male = TestFixtures.playerMale(500, 500);
         RegistrationDraft draftM = new RegistrationDraft(male);
         draftM.addTableau("A");
@@ -164,7 +161,6 @@ class MultiTableauRegistrationServiceTest {
 
         Player female = TestFixtures.playerFemale(500, 500);
 
-        // Cas 1: A,B,C,D (sans F) => KO
         RegistrationDraft noF = new RegistrationDraft(female);
         noF.addTableau("A");
         noF.addTableau("B");
@@ -176,7 +172,6 @@ class MultiTableauRegistrationServiceTest {
         assertTrue(sumNoF.violations().stream()
                 .anyMatch(v -> v.getCode() == ErrorCode.REGISTRATION_MAX_TABLEAUX_PER_DAY_EXCEEDED));
 
-        // Cas 2: A,B,C,F => OK (+1 uniquement via F)
         RegistrationDraft withF = new RegistrationDraft(female);
         withF.addTableau("A");
         withF.addTableau("B");
@@ -186,7 +181,6 @@ class MultiTableauRegistrationServiceTest {
         RegistrationSummary sumWithF = service.validate(t, withF);
         assertTrue(sumWithF.isValid(), "Avec F sélectionné, la féminine a +1 => 4 autorisés");
 
-        // Cas 3: A,B,C,F,D => KO (5 tableaux)
         RegistrationDraft tooMany = new RegistrationDraft(female);
         tooMany.addTableau("A");
         tooMany.addTableau("B");
