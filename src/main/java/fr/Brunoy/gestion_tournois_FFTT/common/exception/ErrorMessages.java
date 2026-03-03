@@ -184,6 +184,15 @@ public final class ErrorMessages {
             case REGISTRATION_RESERVATION_EXPIRED ->
                 "Le délai de paiement a expiré : l'inscription a été annulée, veuillez recommencer";
 
+            case REGISTRATION_PLAYER_NOT_IN_DEPARTEMENT ->
+                "Inscription impossible : tournoi départemental réservé aux joueurs du même département que le club organisateur.";
+
+            case REGISTRATION_PLAYER_NOT_IN_REGION ->
+                "Inscription impossible : tournoi régional réservé aux joueurs de la même région que le club organisateur.";
+
+            case REGISTRATION_LEVEL_INTERNATIONAL_NOT_SUPPORTED ->
+                "Inscription impossible : la gestion des tournois internationaux n'est pas encore supportée.";
+                
         };
     }
 }

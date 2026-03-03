@@ -1,0 +1,149 @@
+Structure du dossier pour le volume Acer
+Le numéro de série du volume est B597-2A90
+C:\USERS\SOUME\ONEDRIVE\DESKTOP\TOURNOI-FFTT\SRC\MAIN\JAVA\FR
+\---Brunoy
+    \---gestion_tournois_FFTT
+        +---common
+        |   \---exception
+        |           BusinessException.java
+        |           ErrorCode.java
+        |           ErrorMessages.java
+        |           
+        +---domain
+        |   +---competition
+        |   |   +---model
+        |   |   |   +---entity
+        |   |   |   |       Registration.java
+        |   |   |   |       Tableau.java
+        |   |   |   |       Tournament.java
+        |   |   |   |       
+        |   |   |   +---enums
+        |   |   |   |       CompetitionFormat.java
+        |   |   |   |       GenderPolicy.java
+        |   |   |   |       RegistrationPaymentType.java
+        |   |   |   |       RegistrationStatus.java
+        |   |   |   |       TableauPointsRuleType.java
+        |   |   |   |       TournamentLevel.java
+        |   |   |   |       
+        |   |   |   +---registration
+        |   |   |   |       RegistrationDraft.java
+        |   |   |   |       RegistrationLine.java
+        |   |   |   |       RegistrationRecap.java
+        |   |   |   |       RegistrationSummary.java
+        |   |   |   |       RegistrationViolation.java
+        |   |   |   |       
+        |   |   |   \---value
+        |   |   |           FemaleExtraRuleType.java
+        |   |   |           PaymentMode.java
+        |   |   |           PrizeDistribution.java
+        |   |   |           PrizeTier.java
+        |   |   |           RegistrationFee.java
+        |   |   |           TournamentRegistrationPolicy.java
+        |   |   |           
+        |   |   \---service
+        |   |           MultiTableauRegistrationService.java
+        |   |           RegistrationCheckoutService.java
+        |   |           RegistrationService.java
+        |   |           TournamentLevelEligibilityPolicy.java
+        |   |           
+        |   +---identity
+        |   |   +---model
+        |   |   |       OfficialQualification.java
+        |   |   |       Player.java
+        |   |   |       
+        |   |   +---repository
+        |   |   \---service
+        |   +---organization
+        |   |   +---model
+        |   |   |       Club.java
+        |   |   |       Departement.java
+        |   |   |       Region.java
+        |   |   |       
+        |   |   +---repository
+        |   |   \---service
+        |   \---refdata
+        |       +---enums
+        |       |       AgeCategory.java
+        |       |       Gender.java
+        |       |       JudgeRefereeGrade.java
+        |       |       LicenseType.java
+        |       |       MedicalCertificateStatus.java
+        |       |       OfficialRoleType.java
+        |       |       RankingPhase.java
+        |       |       RefereeGrade.java
+        |       |       TechnicalGrade.java
+        |       |       
+        |       \---rules
+        \---ui
+            \---javafx
+                +---app
+                |       AppContext.java
+                |       MainApp.java
+                |       Navigator.java
+                |       OrganizerAuthService.java
+                |       
+                +---infra
+                |   +---db
+                |   |       DbMigrations.java
+                |   |       SqliteDb.java
+                |   |       
+                |   +---repo
+                |   |       ClubRepository.java
+                |   |       OrganizerAccountRepository.java
+                |   |       SqliteClubRepository.java
+                |   |       SqliteOrganizerAccountRepository.java
+                |   |       SqliteTableauRepository.java
+                |   |       SqliteTournamentRepository.java
+                |   |       
+                |   +---security
+                |   |       HashUtils.java
+                |   |       PasswordPolicy.java
+                |   |       
+                |   \---splite
+                +---mail
+                |       ConsoleEmailSender.java
+                |       EmailSender.java
+                |       EmailTemplates.java
+                |       EmailVerificationService.java
+                |       VerificationCodeGenerator.java
+                |       
+                +---model
+                |       ClubRow.java
+                |       OrganizerAccount.java
+                |       TableauRow.java
+                |       TournamentRow.java
+                |       
+                +---theme
+                |       AppTheme.java
+                |       ed6c9f30-e27a-4250-aab1-34a0971da5ef.png
+                |       PingManager.png
+                |       
+                \---view
+                    +---auth
+                    |       CodeVerificationDialog.java
+                    |       OrganizerLoginView.java
+                    |       OrganizerRegisterView.java
+                    |       
+                    +---home
+                    |       HomeView.java
+                    |       
+                    +---organizer
+                    |   |   OrganizerDashboardView.java
+                    |   |   OrganizerProfileDialog.java
+                    |   |   
+                    |   +---components
+                    |   |       OrganizerMainContent.java
+                    |   |       OrganizerSidebar.java
+                    |   |       StatusBadge.java
+                    |   |       TournamentCard.java
+                    |   |       TournamentStatus.java
+                    |   |       UiUtils.java
+                    |   |       
+                    |   \---tournament
+                    |           CreateTableauDialog.java
+                    |           CreateTournamentDialog.java
+                    |           
+                    \---player
+                            PlayerDashboardView.java
+                            PlayerLoginView.java
+                            
