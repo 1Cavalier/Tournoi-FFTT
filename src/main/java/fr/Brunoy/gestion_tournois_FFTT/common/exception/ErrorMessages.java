@@ -192,7 +192,54 @@ public final class ErrorMessages {
 
             case REGISTRATION_LEVEL_INTERNATIONAL_NOT_SUPPORTED ->
                 "Inscription impossible : la gestion des tournois internationaux n'est pas encore supportée.";
-                
+
+            case TOURNAMENT_HOMOLOGATION_REQUIRED_FOR_PUBLICATION ->
+                "Impossible de publier / générer un règlement conforme : le numéro d'homologation est manquant";
+
+            case TOURNAMENT_ORGANIZER_CONTACT_REQUIRED ->
+                "Les coordonnées de l'organisateur (au minimum l'email) sont obligatoires pour le règlement";
+
+            case TOURNAMENT_VENUE_REQUIRED ->
+                "La salle (nom du gymnase) est obligatoire pour le règlement";
+
+            case TOURNAMENT_TABLE_COUNT_INVALID ->
+                "Le nombre de tables doit être strictement positif";
+
+            case TOURNAMENT_PLAYING_AREA_REQUIRED ->
+                "Les informations d'aires de jeu sont obligatoires pour le règlement";
+
+            case TOURNAMENT_PLAYING_AREA_INCOMPATIBLE_LEVEL ->
+                "L'aire de jeu choisie n'est pas compatible avec le niveau du tournoi";
+
+            case TOURNAMENT_PLAYING_AREA_CUSTOM_INFO_REQUIRED ->
+                "En configuration personnalisée, la description des aires de jeu est obligatoire";
+
+            case TOURNAMENT_PLAYING_AREA_DIMENSIONS_INCOMPLETE ->
+                "Les dimensions d'aire de jeu doivent être renseignées complètement (longueur et largeur)";
+
+            case TOURNAMENT_PLAYING_AREA_DIMENSIONS_INVALID ->
+                "Les dimensions d'aire de jeu doivent être strictement positives";
+
+            case TOURNAMENT_BALL_INFO_REQUIRED ->
+                "Les informations sur les balles (marque/type + fourniture) sont obligatoires pour le règlement";
+
+            case TOURNAMENT_REGISTRATION_DEADLINE_REQUIRED ->
+                "La date limite d'engagement est obligatoire";
+
+            case TOURNAMENT_CHECKIN_DEADLINE_REQUIRED ->
+                "La fin du pointage est obligatoire";
+
+            case TOURNAMENT_FIRST_MATCH_START_REQUIRED ->
+                "L'heure de début des matchs est obligatoire";
+
+            case TOURNAMENT_TIMELINE_INCONSISTENT ->
+                "Les dates/horaires du règlement sont incohérents (deadline, pointage, début)";
+
+            case TOURNAMENT_EXPECTED_END_TIME_REQUIRED ->
+                "L'horaire de fin prévisionnel est obligatoire";
+
+            case TOURNAMENT_REGULATION_INFO_REQUIRED ->
+                "Les informations de règlement du tournoi sont obligatoires.";
         };
     }
 }

@@ -18,8 +18,10 @@ C:\USERS\SOUME\ONEDRIVE\DESKTOP\TOURNOI-FFTT\SRC\MAIN\JAVA\FR
         |   |   |   |       Tournament.java
         |   |   |   |       
         |   |   |   +---enums
+        |   |   |   |       BallProvisionPolicy.java
         |   |   |   |       CompetitionFormat.java
         |   |   |   |       GenderPolicy.java
+        |   |   |   |       PlayingAreaPreset.java
         |   |   |   |       RegistrationPaymentType.java
         |   |   |   |       RegistrationStatus.java
         |   |   |   |       TableauPointsRuleType.java
@@ -35,16 +37,19 @@ C:\USERS\SOUME\ONEDRIVE\DESKTOP\TOURNOI-FFTT\SRC\MAIN\JAVA\FR
         |   |   |   \---value
         |   |   |           FemaleExtraRuleType.java
         |   |   |           PaymentMode.java
+        |   |   |           PlayingAreaSpec.java
         |   |   |           PrizeDistribution.java
         |   |   |           PrizeTier.java
         |   |   |           RegistrationFee.java
         |   |   |           TournamentRegistrationPolicy.java
+        |   |   |           TournamentRegulationInfo.java
         |   |   |           
         |   |   \---service
         |   |           MultiTableauRegistrationService.java
         |   |           RegistrationCheckoutService.java
         |   |           RegistrationService.java
         |   |           TournamentLevelEligibilityPolicy.java
+        |   |           TournamentRegulationInfoDefaults.java
         |   |           
         |   +---identity
         |   |   +---model
