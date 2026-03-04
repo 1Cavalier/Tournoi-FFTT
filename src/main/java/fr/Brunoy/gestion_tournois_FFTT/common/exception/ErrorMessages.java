@@ -252,6 +252,18 @@ public final class ErrorMessages {
 
             case TABLEAU_WAITLIST_FULL ->
                 "Le tableau est complet et la file d'attente est pleine";
+
+            case TOURNAMENT_JA_REQUIRED ->
+                "Au moins un juge-arbitre (JA) doit être désigné pour publier officiellement le tournoi";
+
+            case TOURNAMENT_JA_DUPLICATE ->
+                "Ce juge-arbitre (JA) est déjà affecté au tournoi";
+
+            case TOURNAMENT_JA_GRADE_REQUIRED ->
+                "Le grade du juge-arbitre (JA) est obligatoire";
+
+            case TOURNAMENT_JA_GRADE_TOO_LOW_FOR_LEVEL ->
+                "Aucun juge-arbitre désigné n'a le grade requis pour le niveau du tournoi";
         };
     }
 }
