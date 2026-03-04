@@ -240,6 +240,18 @@ public final class ErrorMessages {
 
             case TOURNAMENT_REGULATION_INFO_REQUIRED ->
                 "Les informations de règlement du tournoi sont obligatoires.";
+
+            case CLUB_GEO_COORDINATES_INCOMPLETE ->
+                "Latitude et longitude doivent être renseignées ensemble (ou toutes les deux null).";
+
+            case CLUB_GEO_COORDINATES_INVALID ->
+                "Coordonnées géographiques invalides : latitude doit être entre -90 et 90, longitude entre -180 et 180.";
+
+            case TABLEAU_WAITLIST_CAPACITY_INVALID ->
+                "La capacité de la file d'attente du tableau ne peut pas être négative";
+
+            case TABLEAU_WAITLIST_FULL ->
+                "Le tableau est complet et la file d'attente est pleine";
         };
     }
 }

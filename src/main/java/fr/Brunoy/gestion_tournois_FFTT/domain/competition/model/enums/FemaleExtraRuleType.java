@@ -1,4 +1,4 @@
-package fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value;
+package fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums;
 
 public enum FemaleExtraRuleType {
     NONE,                 // pas d’extra

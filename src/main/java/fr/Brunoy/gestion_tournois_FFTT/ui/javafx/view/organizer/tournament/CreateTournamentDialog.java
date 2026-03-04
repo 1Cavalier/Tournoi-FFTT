@@ -1,9 +1,9 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.tournament;
 
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.entity.Tableau;
+import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.FemaleExtraRuleType;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.TournamentLevel;
-import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.FemaleExtraRuleType;
-import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.enums.RankingPhase;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.RankingPhase;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.Navigator;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
 import javafx.beans.binding.BooleanBinding;
@@ -509,6 +509,7 @@ public class CreateTournamentDialog extends Stage {
                 tb.minPoints(),
                 tb.maxPoints(),
                 tb.maxPlayers(),
+                tb.waitlistCapacity(), // ← ajouté
                 tb.fee(),
                 tb.checkInEnd(),
                 tb.startTime(),

@@ -4,12 +4,11 @@ import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.BallProvis
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.TournamentLevel;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.PlayingAreaSpec;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.TournamentRegulationInfo;
-import fr.Brunoy.gestion_tournois_FFTT.domain.organization.model.Club;
+import fr.Brunoy.gestion_tournois_FFTT.domain.organization.Club;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Génère un TournamentRegulationInfo par défaut à partir du club organisateur.

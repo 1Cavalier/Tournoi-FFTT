@@ -7,8 +7,9 @@ import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.entity.Tournamen
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.GenderPolicy;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.service.RegistrationService;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.service.TournamentLevelEligibilityPolicy;
-import fr.Brunoy.gestion_tournois_FFTT.domain.identity.model.Player;
+import fr.Brunoy.gestion_tournois_FFTT.domain.identity.Player;
 import fr.Brunoy.gestion_tournois_FFTT.domain.model.competition.TestFixtures;
+
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;

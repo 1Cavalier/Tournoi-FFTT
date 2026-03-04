@@ -3,7 +3,8 @@ package fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value;
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.entity.Tableau;
-import fr.Brunoy.gestion_tournois_FFTT.domain.identity.model.Player;
+import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.FemaleExtraRuleType;
+import fr.Brunoy.gestion_tournois_FFTT.domain.identity.Player;
 
 import java.util.List;
 

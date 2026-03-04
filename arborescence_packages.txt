@@ -20,23 +20,16 @@ C:\USERS\SOUME\ONEDRIVE\DESKTOP\TOURNOI-FFTT\SRC\MAIN\JAVA\FR
         |   |   |   +---enums
         |   |   |   |       BallProvisionPolicy.java
         |   |   |   |       CompetitionFormat.java
+        |   |   |   |       FemaleExtraRuleType.java
         |   |   |   |       GenderPolicy.java
+        |   |   |   |       PaymentMode.java
+        |   |   |   |       PaymentStatus.java
         |   |   |   |       PlayingAreaPreset.java
-        |   |   |   |       RegistrationPaymentType.java
         |   |   |   |       RegistrationStatus.java
         |   |   |   |       TableauPointsRuleType.java
         |   |   |   |       TournamentLevel.java
         |   |   |   |       
-        |   |   |   +---registration
-        |   |   |   |       RegistrationDraft.java
-        |   |   |   |       RegistrationLine.java
-        |   |   |   |       RegistrationRecap.java
-        |   |   |   |       RegistrationSummary.java
-        |   |   |   |       RegistrationViolation.java
-        |   |   |   |       
         |   |   |   \---value
-        |   |   |           FemaleExtraRuleType.java
-        |   |   |           PaymentMode.java
         |   |   |           PlayingAreaSpec.java
         |   |   |           PrizeDistribution.java
         |   |   |           PrizeTier.java
@@ -45,40 +38,28 @@ C:\USERS\SOUME\ONEDRIVE\DESKTOP\TOURNOI-FFTT\SRC\MAIN\JAVA\FR
         |   |   |           TournamentRegulationInfo.java
         |   |   |           
         |   |   \---service
-        |   |           MultiTableauRegistrationService.java
-        |   |           RegistrationCheckoutService.java
-        |   |           RegistrationService.java
-        |   |           TournamentLevelEligibilityPolicy.java
         |   |           TournamentRegulationInfoDefaults.java
         |   |           
         |   +---identity
-        |   |   +---model
-        |   |   |       OfficialQualification.java
-        |   |   |       Player.java
-        |   |   |       
-        |   |   +---repository
-        |   |   \---service
+        |   |       OfficialQualification.java
+        |   |       Player.java
+        |   |       
         |   +---organization
-        |   |   +---model
-        |   |   |       Club.java
-        |   |   |       Departement.java
-        |   |   |       Region.java
-        |   |   |       
-        |   |   +---repository
-        |   |   \---service
+        |   |       Club.java
+        |   |       Departement.java
+        |   |       Region.java
+        |   |       
         |   \---refdata
-        |       +---enums
-        |       |       AgeCategory.java
-        |       |       Gender.java
-        |       |       JudgeRefereeGrade.java
-        |       |       LicenseType.java
-        |       |       MedicalCertificateStatus.java
-        |       |       OfficialRoleType.java
-        |       |       RankingPhase.java
-        |       |       RefereeGrade.java
-        |       |       TechnicalGrade.java
-        |       |       
-        |       \---rules
+        |           AgeCategory.java
+        |           Gender.java
+        |           JudgeRefereeGrade.java
+        |           LicenseType.java
+        |           MedicalCertificateStatus.java
+        |           OfficialRoleType.java
+        |           RankingPhase.java
+        |           RefereeGrade.java
+        |           TechnicalGrade.java
+        |           
         \---ui
             \---javafx
                 +---app

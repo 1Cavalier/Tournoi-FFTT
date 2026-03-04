@@ -10,10 +10,15 @@ import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.PrizeDistr
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.PrizeTier;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.RegistrationFee;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.TournamentRegistrationPolicy;
-import fr.Brunoy.gestion_tournois_FFTT.domain.identity.model.Player;
-import fr.Brunoy.gestion_tournois_FFTT.domain.organization.model.Club;
-import fr.Brunoy.gestion_tournois_FFTT.domain.organization.model.Departement;
-import fr.Brunoy.gestion_tournois_FFTT.domain.organization.model.Region;
+import fr.Brunoy.gestion_tournois_FFTT.domain.identity.Player;
+import fr.Brunoy.gestion_tournois_FFTT.domain.organization.Club;
+import fr.Brunoy.gestion_tournois_FFTT.domain.organization.Departement;
+import fr.Brunoy.gestion_tournois_FFTT.domain.organization.Region;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.AgeCategory;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.Gender;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.LicenseType;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.MedicalCertificateStatus;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.RankingPhase;
 import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.enums.*;
 
 import java.time.LocalDate;

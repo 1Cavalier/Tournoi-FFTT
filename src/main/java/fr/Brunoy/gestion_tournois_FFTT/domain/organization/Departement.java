@@ -1,4 +1,4 @@
-package fr.Brunoy.gestion_tournois_FFTT.domain.organization.model;
+package fr.Brunoy.gestion_tournois_FFTT.domain.organization;
 
 import java.util.Objects;
 

@@ -11,8 +11,9 @@ import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.registration.Reg
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.service.MultiTableauRegistrationService;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.service.RegistrationCheckoutService;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.service.TournamentLevelEligibilityPolicy;
-import fr.Brunoy.gestion_tournois_FFTT.domain.identity.model.Player;
+import fr.Brunoy.gestion_tournois_FFTT.domain.identity.Player;
 import fr.Brunoy.gestion_tournois_FFTT.domain.model.competition.TestFixtures;
+
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;

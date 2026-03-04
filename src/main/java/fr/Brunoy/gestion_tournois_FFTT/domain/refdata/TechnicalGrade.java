@@ -1,4 +1,4 @@
-package fr.Brunoy.gestion_tournois_FFTT.domain.refdata.enums;
+package fr.Brunoy.gestion_tournois_FFTT.domain.refdata;
 
 public enum TechnicalGrade {
     IC, // Initiateur de Club

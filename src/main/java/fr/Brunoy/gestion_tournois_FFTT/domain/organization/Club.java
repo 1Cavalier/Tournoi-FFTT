@@ -1,4 +1,4 @@
-package fr.Brunoy.gestion_tournois_FFTT.domain.organization.model;
+package fr.Brunoy.gestion_tournois_FFTT.domain.organization;
 
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
@@ -46,17 +46,17 @@ public class Club {
         boolean hasLat = latitude != null;
         boolean hasLon = longitude != null;
         if (hasLat ^ hasLon) {
-            // si tu veux un ErrorCode dédié plus tard, on pourra l’ajouter
-            throw new IllegalArgumentException(
-                    "Latitude et longitude doivent être renseignées ensemble (ou toutes les deux null).");
+            throw new BusinessException(ErrorCode.CLUB_GEO_COORDINATES_INCOMPLETE);
         }
 
         // bornes classiques
-        if (latitude != null && (latitude < -90.0 || latitude > 90.0))
-            throw new IllegalArgumentException("Latitude invalide (doit être entre -90 et 90).");
-
-        if (longitude != null && (longitude < -180.0 || longitude > 180.0))
-            throw new IllegalArgumentException("Longitude invalide (doit être entre -180 et 180).");
+        if (latitude != null) {
+            boolean latInvalid = latitude < -90.0 || latitude > 90.0;
+            boolean lonInvalid = longitude < -180.0 || longitude > 180.0;
+            if (latInvalid || lonInvalid) {
+                throw new BusinessException(ErrorCode.CLUB_GEO_COORDINATES_INVALID);
+            }
+        }
 
         this.number = number.trim();
         this.name = name.trim();

@@ -2,6 +2,7 @@ package fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value;
 
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
+import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.PaymentMode;
 
 public final class RegistrationFee {
 

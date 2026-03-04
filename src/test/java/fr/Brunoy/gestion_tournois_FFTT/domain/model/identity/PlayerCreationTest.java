@@ -1,8 +1,18 @@
 package fr.Brunoy.gestion_tournois_FFTT.domain.model.identity;
 
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.*;
+import fr.Brunoy.gestion_tournois_FFTT.domain.identity.OfficialQualification;
+import fr.Brunoy.gestion_tournois_FFTT.domain.identity.Player;
 import fr.Brunoy.gestion_tournois_FFTT.domain.identity.model.*;
+import fr.Brunoy.gestion_tournois_FFTT.domain.organization.Club;
+import fr.Brunoy.gestion_tournois_FFTT.domain.organization.Departement;
+import fr.Brunoy.gestion_tournois_FFTT.domain.organization.Region;
 import fr.Brunoy.gestion_tournois_FFTT.domain.organization.model.*;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.AgeCategory;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.Gender;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.LicenseType;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.MedicalCertificateStatus;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.RefereeGrade;
 import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.enums.*;
 
 import org.junit.jupiter.api.Test;

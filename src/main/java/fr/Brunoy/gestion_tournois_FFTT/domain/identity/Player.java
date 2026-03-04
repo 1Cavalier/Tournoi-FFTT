@@ -1,16 +1,18 @@
-package fr.Brunoy.gestion_tournois_FFTT.domain.identity.model;
+package fr.Brunoy.gestion_tournois_FFTT.domain.identity;
 
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
-import fr.Brunoy.gestion_tournois_FFTT.common.exception.*;
-import fr.Brunoy.gestion_tournois_FFTT.domain.organization.model.Club;
-import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.enums.AgeCategory;
-import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.enums.Gender;
-import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.enums.LicenseType;
-import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.enums.MedicalCertificateStatus;
-import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.enums.RankingPhase;
+import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
+import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
+import fr.Brunoy.gestion_tournois_FFTT.domain.organization.Club;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.AgeCategory;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.Gender;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.LicenseType;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.MedicalCertificateStatus;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.OfficialRoleType;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.RankingPhase;
 
 public class Player {
 
@@ -142,7 +144,7 @@ public class Player {
     /** Points à utiliser selon la phase du tournoi. */
     public int pointsFor(RankingPhase phase) {
         if (phase == null) {
-            // on peut aussi throw BusinessException, mais ici on est safe
+            // Safe default : points officiels
             return phase2OfficialPoints;
         }
         return switch (phase) {
@@ -170,6 +172,36 @@ public class Player {
 
     public Set<OfficialQualification> getQualifications() {
         return Set.copyOf(qualifications);
+    }
+
+    // -------------------------------------------------------------------------
+    // QUALIFICATIONS : méthodes métier 
+    // -------------------------------------------------------------------------
+
+    /**
+     * Indique si le joueur possède au moins une qualification du rôle donné.
+     * Utile pour la désignation des officiels (JA, arbitres, etc.).
+     */
+    public boolean hasQualification(OfficialRoleType roleType) {
+        if (roleType == null)
+            throw new BusinessException(ErrorCode.OFFICIAL_ROLE_REQUIRED);
+
+        return qualifications.stream().anyMatch(q -> q.getRoleType() == roleType);
+    }
+
+    /**
+     * Retourne la qualification du rôle donné, ou lève une BusinessException si
+     * absente.
+     * éviter de dupliquer des streams partout.
+     */
+    public OfficialQualification requireQualification(OfficialRoleType roleType) {
+        if (roleType == null)
+            throw new BusinessException(ErrorCode.OFFICIAL_ROLE_REQUIRED);
+
+        return qualifications.stream()
+                .filter(q -> q.getRoleType() == roleType)
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(ErrorCode.PLAYER_QUALIFICATION_REQUIRED));
     }
 
     @Override

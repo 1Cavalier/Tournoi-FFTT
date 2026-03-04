@@ -1,6 +1,7 @@
 package fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.entity;
 
-import fr.Brunoy.gestion_tournois_FFTT.common.exception.*;
+import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
+import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.GenderPolicy;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.TableauPointsRuleType;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.PrizeDistribution;
@@ -24,6 +25,9 @@ public final class Tableau {
 
     private final int maxPlayers;
 
+    // NEW : capacité file d'attente (ex: 20). 0 = pas de file d'attente
+    private final int waitlistCapacity;
+
     private final RegistrationFee fee;
     private final LocalTime checkInEnd;
     private final LocalTime startTime;
@@ -39,11 +43,13 @@ public final class Tableau {
             Integer minPoints,
             Integer maxPoints,
             int maxPlayers,
+            int waitlistCapacity, // NEW
             RegistrationFee fee,
             LocalTime checkInEnd,
             LocalTime startTime,
             PrizeDistribution prizes) {
-        this.code = requireText(code, ErrorCode.TABLEAU_CODE_REQUIRED);
+
+        this.code = requireText(code, ErrorCode.TABLEAU_CODE_REQUIRED).toUpperCase();
         this.designation = requireText(designation, ErrorCode.TABLEAU_DESIGNATION_REQUIRED);
         this.date = requireNonNull(date, ErrorCode.TABLEAU_DATE_REQUIRED);
 
@@ -58,6 +64,12 @@ public final class Tableau {
         }
         this.maxPlayers = maxPlayers;
 
+        // NEW
+        if (waitlistCapacity < 0) {
+            throw new BusinessException(ErrorCode.TABLEAU_WAITLIST_CAPACITY_INVALID);
+        }
+        this.waitlistCapacity = waitlistCapacity;
+
         this.fee = requireNonNull(fee, ErrorCode.TABLEAU_FEE_REQUIRED);
 
         this.checkInEnd = requireNonNull(checkInEnd, ErrorCode.TABLEAU_CHECKIN_TIME_REQUIRED);
@@ -69,40 +81,47 @@ public final class Tableau {
         validateTimes();
     }
 
+    // -------------------------------------------------------------------------
+    // VALIDATION
+    // -------------------------------------------------------------------------
+
     private void validatePointsRule() {
+
         switch (pointsRuleType) {
+
             case TOUTES_SERIES -> {
                 if (minPoints != null || maxPoints != null) {
                     throw new BusinessException(ErrorCode.TABLEAU_POINTS_RULE_INCONSISTENT);
                 }
             }
+
             case MAX_ONLY -> {
-                if (maxPoints == null) {
+                if (maxPoints == null)
                     throw new BusinessException(ErrorCode.TABLEAU_MAX_POINTS_REQUIRED);
-                }
-                if (maxPoints < 0) {
+
+                if (maxPoints < 0)
                     throw new BusinessException(ErrorCode.TABLEAU_MAX_POINTS_NEGATIVE);
-                }
-                if (minPoints != null) {
+
+                if (minPoints != null)
                     throw new BusinessException(ErrorCode.TABLEAU_POINTS_RULE_INCONSISTENT);
-                }
             }
+
             case RANGE_MIN_MAX -> {
-                if (minPoints == null) {
+
+                if (minPoints == null)
                     throw new BusinessException(ErrorCode.TABLEAU_MIN_POINTS_REQUIRED);
-                }
-                if (maxPoints == null) {
+
+                if (maxPoints == null)
                     throw new BusinessException(ErrorCode.TABLEAU_MAX_POINTS_REQUIRED);
-                }
-                if (minPoints < 0) {
+
+                if (minPoints < 0)
                     throw new BusinessException(ErrorCode.TABLEAU_MIN_POINTS_NEGATIVE);
-                }
-                if (maxPoints < 0) {
+
+                if (maxPoints < 0)
                     throw new BusinessException(ErrorCode.TABLEAU_MAX_POINTS_NEGATIVE);
-                }
-                if (minPoints > maxPoints) {
+
+                if (minPoints > maxPoints)
                     throw new BusinessException(ErrorCode.TABLEAU_MIN_GREATER_THAN_MAX);
-                }
             }
         }
     }
@@ -113,38 +132,40 @@ public final class Tableau {
         }
     }
 
-    private static String requireText(String value, ErrorCode codeIfInvalid) {
-        if (value == null || value.isBlank()) {
-            throw new BusinessException(codeIfInvalid);
-        }
-        return value.trim();
-    }
-
-    private static <T> T requireNonNull(T value, ErrorCode codeIfNull) {
-        if (Objects.isNull(value)) {
-            throw new BusinessException(codeIfNull);
-        }
-        return value;
-    }
+    // -------------------------------------------------------------------------
+    // ELIGIBILITY
+    // -------------------------------------------------------------------------
 
     /**
-     * Eligibilité simple (points + sexe). La capacité max est gérée dans le service
-     * d'inscription.
+     * Vérifie si un joueur est éligible au tableau
+     * (genre + points).
+     *
+     * La capacité maximale (et la file d'attente) est gérée par l'aggregate
+     * Tournament.
      */
     public boolean accepts(int playerPoints, boolean isFemale) {
+
         if (playerPoints < 0)
             return false;
 
-        if (genderPolicy == GenderPolicy.FEMININ_ONLY && !isFemale) {
+        if (genderPolicy == GenderPolicy.FEMININ_ONLY && !isFemale)
             return false;
-        }
 
         return switch (pointsRuleType) {
+
             case TOUTES_SERIES -> true;
-            case MAX_ONLY -> playerPoints <= maxPoints;
-            case RANGE_MIN_MAX -> playerPoints >= minPoints && playerPoints <= maxPoints;
+
+            case MAX_ONLY ->
+                playerPoints <= maxPoints;
+
+            case RANGE_MIN_MAX ->
+                playerPoints >= minPoints && playerPoints <= maxPoints;
         };
     }
+
+    // -------------------------------------------------------------------------
+    // GETTERS
+    // -------------------------------------------------------------------------
 
     public String code() {
         return code;
@@ -178,6 +199,11 @@ public final class Tableau {
         return maxPlayers;
     }
 
+    // NEW
+    public int waitlistCapacity() {
+        return waitlistCapacity;
+    }
+
     public RegistrationFee fee() {
         return fee;
     }
@@ -192,5 +218,21 @@ public final class Tableau {
 
     public PrizeDistribution prizes() {
         return prizes;
+    }
+
+    // -------------------------------------------------------------------------
+    // HELPERS
+    // -------------------------------------------------------------------------
+
+    private static String requireText(String value, ErrorCode error) {
+        if (value == null || value.isBlank())
+            throw new BusinessException(error);
+        return value.trim();
+    }
+
+    private static <T> T requireNonNull(T value, ErrorCode error) {
+        if (Objects.isNull(value))
+            throw new BusinessException(error);
+        return value;
     }
 }

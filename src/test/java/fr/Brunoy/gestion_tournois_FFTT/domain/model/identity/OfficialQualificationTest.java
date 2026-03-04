@@ -1,7 +1,12 @@
 package fr.Brunoy.gestion_tournois_FFTT.domain.model.identity;
 
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.*;
+import fr.Brunoy.gestion_tournois_FFTT.domain.identity.OfficialQualification;
 import fr.Brunoy.gestion_tournois_FFTT.domain.identity.model.*;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.JudgeRefereeGrade;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.OfficialRoleType;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.RefereeGrade;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.TechnicalGrade;
 import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.enums.*;
 
 import org.junit.jupiter.api.Test;

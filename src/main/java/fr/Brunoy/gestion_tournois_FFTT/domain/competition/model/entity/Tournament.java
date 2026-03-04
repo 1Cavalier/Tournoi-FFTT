@@ -3,11 +3,12 @@ package fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.entity;
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.TournamentLevel;
+import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.RegistrationStatus;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.TournamentRegistrationPolicy;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.TournamentRegulationInfo;
-import fr.Brunoy.gestion_tournois_FFTT.domain.identity.model.Player;
-import fr.Brunoy.gestion_tournois_FFTT.domain.organization.model.Club;
-import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.enums.RankingPhase;
+import fr.Brunoy.gestion_tournois_FFTT.domain.identity.Player;
+import fr.Brunoy.gestion_tournois_FFTT.domain.organization.Club;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.RankingPhase;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -27,14 +28,11 @@ public final class Tournament {
 
     /**
      * Bloc règlement FFTT (obligatoire en version pro).
+     * Peut être incomplet tant que le tournoi est en "draft".
      */
     private TournamentRegulationInfo regulationInfo;
 
     private final Map<String, List<Registration>> registrationsByTableauCode = new HashMap<>();
-
-    // -------------------------------------------------------------------------
-    // CONSTRUCTOR (VERSION PRO UNIQUE)
-    // -------------------------------------------------------------------------
 
     public Tournament(
             String name,
@@ -44,7 +42,6 @@ public final class Tournament {
             Collection<LocalDate> days,
             TournamentRegistrationPolicy registrationPolicy,
             TournamentRegulationInfo regulationInfo) {
-
         if (name == null || name.isBlank())
             throw new BusinessException(ErrorCode.TOURNAMENT_NAME_REQUIRED);
         if (organizingClub == null)
@@ -54,6 +51,8 @@ public final class Tournament {
         if (rankingPhase == null)
             throw new BusinessException(ErrorCode.TOURNAMENT_RANKING_PHASE_REQUIRED);
         if (days == null || days.isEmpty())
+            throw new BusinessException(ErrorCode.TOURNAMENT_DAYS_REQUIRED);
+        if (days.stream().anyMatch(Objects::isNull))
             throw new BusinessException(ErrorCode.TOURNAMENT_DAYS_REQUIRED);
         if (registrationPolicy == null)
             throw new BusinessException(ErrorCode.TOURNAMENT_REGISTRATION_POLICY_REQUIRED);
@@ -69,8 +68,7 @@ public final class Tournament {
         this.tableaux = new ArrayList<>();
         this.registrationPolicy = registrationPolicy;
 
-        // Validation métier minimale cohérente avec le niveau
-        regulationInfo.validateCompleteForRegulation(level, false);
+        // IMPORTANT : pas de validation "complète" ici -> tournoi peut être en DRAFT.
         this.regulationInfo = regulationInfo;
     }
 
@@ -129,18 +127,45 @@ public final class Tournament {
         if (player == null)
             throw new BusinessException(ErrorCode.PLAYER_REQUIRED);
 
+        // 1) Unicité : pas déjà inscrit (active = CONFIRMED/RESERVED/WAITLISTED)
         boolean alreadyActive = regs.stream()
                 .anyMatch(r -> r.player().equals(player) && r.isActiveAt(at));
 
         if (alreadyActive)
             throw new BusinessException(ErrorCode.REGISTRATION_ALREADY_REGISTERED);
 
-        long activeCount = regs.stream()
+        // 2) Compter les places réellement prises (status qui bloquent une place)
+        long spotCount = regs.stream()
                 .filter(r -> r.isActiveAt(at))
+                .filter(r -> r.status().blocksSpot())
                 .count();
 
-        if (activeCount >= tableau.maxPlayers())
+        // 3) Si une place est dispo => on force l'inscription en CONFIRMED
+        if (spotCount < tableau.maxPlayers()) {
+            if (registration.status() != RegistrationStatus.CONFIRMED) {
+                registration.confirm();
+            }
+            regs.add(registration);
+            return;
+        }
+
+        // 4) Tableau complet => file d'attente
+        int waitCap = tableau.waitlistCapacity();
+        if (waitCap <= 0)
             throw new BusinessException(ErrorCode.TABLEAU_FULL);
+
+        long waitCount = regs.stream()
+                .filter(r -> r.isActiveAt(at))
+                .filter(r -> r.status() == RegistrationStatus.WAITLISTED)
+                .count();
+
+        if (waitCount >= waitCap)
+            throw new BusinessException(ErrorCode.TABLEAU_WAITLIST_FULL);
+
+        // 5) On place automatiquement en file d'attente
+        if (registration.status() != RegistrationStatus.WAITLISTED) {
+            registration.waitlist(); // nécessite la méthode waitlist() dans Registration
+        }
 
         regs.add(registration);
     }
@@ -174,21 +199,15 @@ public final class Tournament {
     // REGLEMENT FFTT
     // -------------------------------------------------------------------------
 
-    /**
-     * Validation stricte avant publication officielle (homologation obligatoire).
-     */
     public void validateForOfficialPublication() {
         regulationInfo.validateCompleteForRegulation(level, true);
     }
 
-    /**
-     * Mise à jour encadrée du règlement (si besoin).
-     */
     public void updateRegulationInfo(TournamentRegulationInfo newInfo) {
         if (newInfo == null)
             throw new BusinessException(ErrorCode.TOURNAMENT_REGULATION_INFO_REQUIRED);
 
-        newInfo.validateCompleteForRegulation(level, false);
+        // Mise à jour autorisée même si incomplet (draft)
         this.regulationInfo = newInfo;
     }
 

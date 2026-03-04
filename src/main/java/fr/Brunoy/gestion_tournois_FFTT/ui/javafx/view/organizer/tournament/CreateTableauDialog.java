@@ -23,6 +23,8 @@ public final class CreateTableauDialog extends Dialog<Tableau> {
 
     public CreateTableauDialog(LocalDate tournamentStart, LocalDate tournamentEnd) {
 
+        int waitCap = 20;
+
         setTitle("Créer un tableau");
         setHeaderText("Paramètres du tableau");
 
@@ -345,11 +347,15 @@ public final class CreateTableauDialog extends Dialog<Tableau> {
                 }
 
                 return new Tableau(
-                        c, d, dt,
+                        c,
+                        d,
+                        dt,
                         gp,
                         pr,
-                        min, max,
+                        min,
+                        max,
                         cap,
+                        waitCap, // ← nouveau paramètre
                         fee,
                         checkInEnd,
                         start,
