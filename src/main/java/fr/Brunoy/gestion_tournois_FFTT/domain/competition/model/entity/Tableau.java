@@ -6,6 +6,8 @@ import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.GenderPoli
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.TableauPointsRuleType;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.PrizeDistribution;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.RegistrationFee;
+import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.AgeCategoryPolicy;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.AgeCategory;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -20,6 +22,7 @@ public final class Tableau {
     private final GenderPolicy genderPolicy;
 
     private final TableauPointsRuleType pointsRuleType;
+    private final AgeCategoryPolicy ageCategoryPolicy; // nullable => ANY
     private final Integer minPoints;
     private final Integer maxPoints;
 
@@ -39,6 +42,7 @@ public final class Tableau {
             String designation,
             LocalDate date,
             GenderPolicy genderPolicy,
+            AgeCategoryPolicy ageCategoryPolicy,
             TableauPointsRuleType pointsRuleType,
             Integer minPoints,
             Integer maxPoints,
@@ -71,6 +75,7 @@ public final class Tableau {
         this.waitlistCapacity = waitlistCapacity;
 
         this.fee = requireNonNull(fee, ErrorCode.TABLEAU_FEE_REQUIRED);
+        this.ageCategoryPolicy = ageCategoryPolicy; // null => pas de restriction
 
         this.checkInEnd = requireNonNull(checkInEnd, ErrorCode.TABLEAU_CHECKIN_TIME_REQUIRED);
         this.startTime = requireNonNull(startTime, ErrorCode.TABLEAU_START_TIME_REQUIRED);
@@ -144,6 +149,10 @@ public final class Tableau {
      * Tournament.
      */
     public boolean accepts(int playerPoints, boolean isFemale) {
+        return accepts(playerPoints, isFemale, null);
+    }
+
+    public boolean accepts(int playerPoints, boolean isFemale, AgeCategory ageCategory) {
 
         if (playerPoints < 0)
             return false;
@@ -151,15 +160,17 @@ public final class Tableau {
         if (genderPolicy == GenderPolicy.FEMININ_ONLY && !isFemale)
             return false;
 
+        if (ageCategoryPolicy != null) {
+            if (ageCategory == null)
+                return false;
+            if (!ageCategoryPolicy.accepts(ageCategory))
+                return false;
+        }
+
         return switch (pointsRuleType) {
-
             case TOUTES_SERIES -> true;
-
-            case MAX_ONLY ->
-                playerPoints <= maxPoints;
-
-            case RANGE_MIN_MAX ->
-                playerPoints >= minPoints && playerPoints <= maxPoints;
+            case MAX_ONLY -> playerPoints <= maxPoints;
+            case RANGE_MIN_MAX -> playerPoints >= minPoints && playerPoints <= maxPoints;
         };
     }
 
@@ -218,6 +229,10 @@ public final class Tableau {
 
     public PrizeDistribution prizes() {
         return prizes;
+    }
+
+    public AgeCategoryPolicy ageCategoryPolicy() {
+        return ageCategoryPolicy;
     }
 
     // -------------------------------------------------------------------------

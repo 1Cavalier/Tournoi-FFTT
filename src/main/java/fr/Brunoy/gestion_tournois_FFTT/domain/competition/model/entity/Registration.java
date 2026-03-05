@@ -3,15 +3,29 @@ package fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.entity;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.PaymentMode;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.PaymentStatus;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.RegistrationStatus;
+import fr.Brunoy.gestion_tournois_FFTT.domain.identity.FfttParticipant;
+import fr.Brunoy.gestion_tournois_FFTT.domain.identity.Participant;
 import fr.Brunoy.gestion_tournois_FFTT.domain.identity.Player;
 
 import java.time.Instant;
 import java.util.Objects;
 
+/**
+ * Inscription à un tableau.
+ *
+ * V1 :
+ * - WAITLISTED / RESERVED / CONFIRMED / CANCELLED
+ * - ONLINE/ON_SITE + PAID/UNPAID
+ * - RESERVED expire automatiquement via isActiveAt(now)
+ * - Invariants stricts sur reservedUntil
+ *
+ * IMPORTANT : on stocke un Participant (FFTT / guest / foreign).
+ * Des factories "Player" existent pour compat, sans casser l'UI actuelle.
+ */
 public final class Registration {
 
     private final String batchId; // optionnel (multi-tableaux plus tard)
-    private final Player player;
+    private final Participant participant;
     private final String tableauCode;
 
     private final Instant registeredAt;
@@ -24,15 +38,16 @@ public final class Registration {
 
     private Registration(
             String batchId,
-            Player player,
+            Participant participant,
             String tableauCode,
             PaymentMode paymentMode,
             PaymentStatus paymentStatus,
             RegistrationStatus status,
             Instant reservedUntil,
             Instant registeredAt) {
+
         this.batchId = normalizeOptional(batchId);
-        this.player = Objects.requireNonNull(player, "player");
+        this.participant = Objects.requireNonNull(participant, "participant");
         this.tableauCode = Objects.requireNonNull(tableauCode, "tableauCode").trim().toUpperCase();
 
         this.paymentMode = Objects.requireNonNull(paymentMode, "paymentMode");
@@ -47,15 +62,15 @@ public final class Registration {
     }
 
     // -------------------------------------------------------------------------
-    // FACTORIES
+    // FACTORIES (Participant)
     // -------------------------------------------------------------------------
 
     /** Inscription sur place : place prise, paiement non encaissé par défaut. */
-    public static Registration onSiteConfirmed(Player player, String tableauCode, Instant now) {
+    public static Registration onSiteConfirmed(Participant participant, String tableauCode, Instant now) {
         Instant at = (now != null) ? now : Instant.now();
         return new Registration(
                 null,
-                player,
+                participant,
                 tableauCode,
                 PaymentMode.ON_SITE,
                 PaymentStatus.UNPAID,
@@ -69,16 +84,18 @@ public final class Registration {
      * attente.
      */
     public static Registration onlineReserved(
-            Player player,
+            Participant participant,
             String tableauCode,
             Instant reservedUntil,
             Instant now,
             String batchId) {
+
         Instant at = (now != null) ? now : Instant.now();
         Objects.requireNonNull(reservedUntil, "reservedUntil");
+
         return new Registration(
                 batchId,
-                player,
+                participant,
                 tableauCode,
                 PaymentMode.ONLINE,
                 PaymentStatus.UNPAID,
@@ -88,17 +105,34 @@ public final class Registration {
     }
 
     /** Inscription en file d'attente (ne bloque pas de place). */
-    public static Registration waitlisted(Player player, String tableauCode, Instant now, String batchId) {
+    public static Registration waitlisted(Participant participant, String tableauCode, Instant now, String batchId) {
         Instant at = (now != null) ? now : Instant.now();
         return new Registration(
                 batchId,
-                player,
+                participant,
                 tableauCode,
-                PaymentMode.ON_SITE, // choix simple par défaut (tu peux changer plus tard)
+                PaymentMode.ON_SITE, // choix simple par défaut (modifiable plus tard)
                 PaymentStatus.UNPAID,
                 RegistrationStatus.WAITLISTED,
                 null,
                 at);
+    }
+
+    // -------------------------------------------------------------------------
+    // FACTORIES (compat Player FFTT)
+    // -------------------------------------------------------------------------
+
+    public static Registration onSiteConfirmed(Player player, String tableauCode, Instant now) {
+        return onSiteConfirmed(new FfttParticipant(player), tableauCode, now);
+    }
+
+    public static Registration onlineReserved(Player player, String tableauCode, Instant reservedUntil, Instant now,
+            String batchId) {
+        return onlineReserved(new FfttParticipant(player), tableauCode, reservedUntil, now, batchId);
+    }
+
+    public static Registration waitlisted(Player player, String tableauCode, Instant now, String batchId) {
+        return waitlisted(new FfttParticipant(player), tableauCode, now, batchId);
     }
 
     // -------------------------------------------------------------------------
@@ -109,8 +143,20 @@ public final class Registration {
         return batchId;
     }
 
-    public Player player() {
-        return player;
+    public Participant participant() {
+        return participant;
+    }
+
+    /**
+     * Compat / debug uniquement : retourne le Player FFTT si c'est un participant
+     * FFTT,
+     * sinon null (guest/foreign).
+     */
+    public Player ffttPlayerOrNull() {
+        if (participant instanceof FfttParticipant fp) {
+            return fp.player();
+        }
+        return null;
     }
 
     public String tableauCode() {
@@ -141,7 +187,10 @@ public final class Registration {
     // LOGIC
     // -------------------------------------------------------------------------
 
-    /** Active = pas CANCELLED et (si RESERVED) pas expirée. */
+    /**
+     * Active = pas CANCELLED et (si RESERVED) pas expirée.
+     * WAITLISTED est actif (mais ne bloque pas de place).
+     */
     public boolean isActiveAt(Instant now) {
         Instant at = (now != null) ? now : Instant.now();
 
@@ -183,6 +232,7 @@ public final class Registration {
         validateInvariants();
     }
 
+    /** Annulation : libère la place / supprime toute réservation. */
     public void cancel() {
         this.status = RegistrationStatus.CANCELLED;
         this.reservedUntil = null;
@@ -194,6 +244,7 @@ public final class Registration {
     // -------------------------------------------------------------------------
 
     private void validateInvariants() {
+
         // RESERVED => reservedUntil obligatoire
         if (status == RegistrationStatus.RESERVED && reservedUntil == null) {
             throw new IllegalArgumentException("reservedUntil obligatoire quand status=RESERVED");
@@ -204,6 +255,13 @@ public final class Registration {
                 || status == RegistrationStatus.CONFIRMED
                 || status == RegistrationStatus.CANCELLED) && reservedUntil != null) {
             throw new IllegalArgumentException("reservedUntil doit être null quand status=" + status);
+        }
+
+        // petit garde-fou "pro" : ONLINE => réservé ou confirmé (pas waitlist)
+        // (optionnel)
+        // Si tu veux autoriser waitlist online plus tard, supprime ce bloc.
+        if (paymentMode == PaymentMode.ONLINE && status == RegistrationStatus.WAITLISTED) {
+            // on reste permissif en V1 : pas d'exception, mais tu peux durcir si tu veux
         }
     }
 

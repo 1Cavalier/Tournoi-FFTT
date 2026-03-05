@@ -4,11 +4,12 @@ import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.RegistrationStatus;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.TournamentLevel;
-import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.TournamentRegistrationPolicy;
-import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.TournamentRegulationInfo;
+import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.JudgeRefereeAssignment;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.RegulationDocumentData;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.RegulationDocumentData.TableauLine;
-import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.JudgeRefereeAssignment;
+import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.TournamentRegistrationPolicy;
+import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.TournamentRegulationInfo;
+import fr.Brunoy.gestion_tournois_FFTT.domain.identity.Participant;
 import fr.Brunoy.gestion_tournois_FFTT.domain.identity.Player;
 import fr.Brunoy.gestion_tournois_FFTT.domain.organization.Club;
 import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.RankingPhase;
@@ -24,7 +25,7 @@ import java.util.*;
  * - Tableaux ajoutés au tournoi (unicité code + date valide)
  * - Inscriptions centralisées dans l'aggregate
  * - Application des règles d'inscription (TournamentRegistrationPolicy)
- * - Éligibilité tableau (points + genre)
+ * - Éligibilité tableau (points + genre + âge)
  * - Capacité tableau + file d'attente
  * - Promotion FIFO de la file d'attente quand une place se libère
  * - Validation règlement "officielle" via TournamentRegulationInfo
@@ -48,7 +49,12 @@ public final class Tournament {
      * Peut être incomplet tant que le tournoi est en "draft".
      */
     private TournamentRegulationInfo regulationInfo;
-    private final List<JudgeRefereeAssignment> judgeReferees = new ArrayList<>(); // draft autorisé
+
+    /**
+     * Liste de JA affectés (draft autorisé).
+     * (On garde Player ici car un JA FFTT est forcément licencié FFTT.)
+     */
+    private final List<JudgeRefereeAssignment> judgeReferees = new ArrayList<>();
 
     /**
      * Inscriptions indexées par code tableau (normalisé en upper case).
@@ -162,25 +168,25 @@ public final class Tournament {
         if (regs == null)
             throw new BusinessException(ErrorCode.REGISTRATION_TABLEAU_NOT_FOUND);
 
-        Player player = registration.player();
-        if (player == null)
-            throw new BusinessException(ErrorCode.PLAYER_REQUIRED);
+        Participant participant = registration.participant();
+        if (participant == null)
+            throw new BusinessException(ErrorCode.PARTICIPANT_REQUIRED);
 
-        // 0) Éligibilité tableau (points + genre)
-        int points = player.pointsFor(rankingPhase);
-        if (!tableau.accepts(points, player.isFemale())) {
+        // 0) Éligibilité tableau (points + genre + âge)
+        int points = participant.pointsFor(rankingPhase);
+        if (!tableau.accepts(points, participant.isFemale(), participant.ageCategory())) {
             throw new BusinessException(ErrorCode.REGISTRATION_NOT_ELIGIBLE);
         }
 
         // 1) Unicité : pas déjà inscrit actif (CONFIRMED/RESERVED/WAITLISTED)
         boolean alreadyActive = regs.stream()
-                .anyMatch(r -> r.player().equals(player) && r.isActiveAt(at));
+                .anyMatch(r -> sameParticipant(r, participant) && r.isActiveAt(at));
 
         if (alreadyActive)
             throw new BusinessException(ErrorCode.REGISTRATION_ALREADY_REGISTERED);
 
         // 2) Policy tournoi : max total / max par jour (+ bonus féminin)
-        enforceRegistrationPolicy(player, tableau, at);
+        enforceRegistrationPolicy(participant, tableau, at);
 
         // 3) Capacité tableau : spots (RESERVED/CONFIRMED) + file d'attente
         long spotCount = regs.stream()
@@ -220,11 +226,12 @@ public final class Tournament {
     /**
      * Annulation métier (V1) : permet de déclencher la promotion FIFO de la file
      * d'attente.
+     * (Participant-compatible : works for FFTT/guest/foreign)
      */
-    public void cancelRegistration(String tableauCode, Player player, Instant now) {
+    public void cancelRegistration(String tableauCode, String participantId, Instant now) {
 
-        if (player == null)
-            throw new BusinessException(ErrorCode.PLAYER_REQUIRED);
+        if (participantId == null || participantId.isBlank())
+            throw new BusinessException(ErrorCode.PARTICIPANT_ID_REQUIRED);
 
         final Instant at = (now != null) ? now : Instant.now();
 
@@ -234,7 +241,8 @@ public final class Tournament {
             throw new BusinessException(ErrorCode.REGISTRATION_TABLEAU_NOT_FOUND);
 
         Registration reg = regs.stream()
-                .filter(r -> r.player().equals(player))
+                .filter(r -> r.participant() != null)
+                .filter(r -> participantId.equalsIgnoreCase(r.participant().participantId()))
                 .filter(r -> r.isActiveAt(at))
                 .findFirst()
                 .orElseThrow(() -> new BusinessException(ErrorCode.REGISTRATION_INVALID));
@@ -246,9 +254,17 @@ public final class Tournament {
     }
 
     /**
+     * Backward helper (si tu as encore du code UI qui n'a que Player).
+     */
+    public void cancelRegistration(String tableauCode, Player player, Instant now) {
+        if (player == null)
+            throw new BusinessException(ErrorCode.PLAYER_REQUIRED);
+        cancelRegistration(tableauCode, player.getLicenseNumber(), now);
+    }
+
+    /**
      * Option utile : à appeler périodiquement (ou à l'ouverture d'écran) pour
      * nettoyer les réservations expirées et promouvoir la waitlist si possible.
-     * (Sans moteur sportif, c'est une manière "pro" de garder cohérent.)
      */
     public void refreshTableauQueue(String tableauCode, Instant now) {
         final Instant at = (now != null) ? now : Instant.now();
@@ -278,10 +294,10 @@ public final class Tournament {
     // POLICY
     // -------------------------------------------------------------------------
 
-    private void enforceRegistrationPolicy(Player player, Tableau targetTableau, Instant at) {
+    private void enforceRegistrationPolicy(Participant participant, Tableau targetTableau, Instant at) {
 
-        // A) toutes les inscriptions actives du joueur (tous tableaux)
-        List<Registration> activeRegs = allActiveRegistrationsOf(player, at);
+        // A) toutes les inscriptions actives du participant (tous tableaux)
+        List<Registration> activeRegs = allActiveRegistrationsOf(participant, at);
 
         // B) Max total
         if (activeRegs.size() + 1 > registrationPolicy.maxTotalTableaux()) {
@@ -299,14 +315,14 @@ public final class Tournament {
             }
         }
 
-        int allowedThatDay = registrationPolicy.allowedTableauxPerDay(player, selectedThatDay);
+        int allowedThatDay = registrationPolicy.allowedTableauxPerDay(participant, selectedThatDay);
         if (selectedThatDay.size() + 1 > allowedThatDay) {
             throw new BusinessException(ErrorCode.REGISTRATION_MAX_TABLEAUX_PER_DAY_EXCEEDED);
         }
 
-        // D) Garde-fou actuel : 1 seul tableau féminin-only par jour (si tu conserves
+        // D) Garde-fou actuel : 1 seul tableau féminin-only / jour (si tu conserves
         // cette règle)
-        if (player.isFemale()) {
+        if (participant.isFemale()) {
             int femaleOnlyCount = countFemaleOnlyTableaux(selectedThatDay);
             if (targetTableau.genderPolicy().isFemaleOnly()) {
                 femaleOnlyCount++;
@@ -326,11 +342,13 @@ public final class Tournament {
         return c;
     }
 
-    private List<Registration> allActiveRegistrationsOf(Player player, Instant at) {
+    private List<Registration> allActiveRegistrationsOf(Participant participant, Instant at) {
         List<Registration> out = new ArrayList<>();
         for (List<Registration> regs : registrationsByTableauCode.values()) {
             for (Registration r : regs) {
-                if (r.player().equals(player) && r.isActiveAt(at)) {
+                if (r.participant() != null
+                        && participant.participantId().equalsIgnoreCase(r.participant().participantId())
+                        && r.isActiveAt(at)) {
                     out.add(r);
                 }
             }
@@ -369,13 +387,12 @@ public final class Tournament {
         if (next == null)
             return;
 
-        // V1 simple : on confirme automatiquement
         next.confirm();
     }
 
     /**
-     * rafraîchit toutes les files (expiration RESERVED +
-     * promotion FIFO).
+     * Option B : rafraîchit toutes les files (expiration RESERVED + promotion
+     * FIFO).
      */
     public void refreshAllQueues(Instant now) {
         final Instant at = (now != null) ? now : Instant.now();
@@ -387,8 +404,6 @@ public final class Tournament {
             if (!registrationsByTableauCode.containsKey(key))
                 continue;
 
-            // Promote si une place est disponible (les RESERVED expirées ne bloquent plus
-            // via isActiveAt)
             promoteWaitlistIfPossible(key, at);
         }
     }
@@ -396,6 +411,13 @@ public final class Tournament {
     // -------------------------------------------------------------------------
     // LOOKUPS / HELPERS
     // -------------------------------------------------------------------------
+
+    private static boolean sameParticipant(Registration r, Participant p) {
+        return r != null
+                && r.participant() != null
+                && p != null
+                && r.participant().participantId().equalsIgnoreCase(p.participantId());
+    }
 
     private Tableau findTableauByNormalizedCode(String normalizedCode) {
         return tableaux.stream()
@@ -421,9 +443,6 @@ public final class Tournament {
     // REGLEMENT FFTT
     // -------------------------------------------------------------------------
 
-    /**
-     * Validation stricte avant publication officielle (homologation obligatoire).
-     */
     public void validateForOfficialPublication() {
         regulationInfo.validateCompleteForRegulation(level, true);
         validateJudgeRefereesForOfficialPublication();
@@ -463,22 +482,14 @@ public final class Tournament {
         return List.copyOf(judgeReferees);
     }
 
-    /**
-     * Mise à jour encadrée du règlement (draft autorisé).
-     */
     public void updateRegulationInfo(TournamentRegulationInfo newInfo) {
         if (newInfo == null)
             throw new BusinessException(ErrorCode.TOURNAMENT_REGULATION_INFO_REQUIRED);
         this.regulationInfo = newInfo;
     }
 
-    /**
-     * Snapshot "data-only" prêt pour export (HTML/PDF côté UI).
-     * Ne sort que si le règlement est conforme (validation stricte).
-     */
     public RegulationDocumentData regulationDocumentDataForPublication() {
 
-        // règlement officiel => validation stricte
         validateForOfficialPublication();
 
         TournamentRegulationInfo info = this.regulationInfo;

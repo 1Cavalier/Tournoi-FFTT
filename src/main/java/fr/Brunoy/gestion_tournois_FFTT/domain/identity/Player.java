@@ -175,7 +175,7 @@ public class Player {
     }
 
     // -------------------------------------------------------------------------
-    // QUALIFICATIONS : méthodes métier 
+    // QUALIFICATIONS : méthodes métier
     // -------------------------------------------------------------------------
 
     /**
@@ -234,5 +234,9 @@ public class Player {
     @Override
     public int hashCode() {
         return Objects.hash(licenseNumber);
+    }
+
+    public FfttParticipant asParticipant() {
+        return new FfttParticipant(this);
     }
 }

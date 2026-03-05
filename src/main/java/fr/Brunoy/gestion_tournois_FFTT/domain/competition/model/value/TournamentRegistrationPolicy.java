@@ -4,7 +4,7 @@ import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.entity.Tableau;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.FemaleExtraRuleType;
-import fr.Brunoy.gestion_tournois_FFTT.domain.identity.Player;
+import fr.Brunoy.gestion_tournois_FFTT.domain.identity.Participant;
 
 import java.util.List;
 
@@ -12,6 +12,7 @@ public final class TournamentRegistrationPolicy {
 
     private final int maxTableauxPerDay;
     private final int maxTotalTableaux;
+    private final ParticipantEligibilityPolicy participantEligibilityPolicy;
 
     private final FemaleExtraRuleType femaleExtraRuleType;
     private final String femaleExtraTableauCode; // utilisé si SPECIFIC_TABLEAU_CODE
@@ -20,7 +21,8 @@ public final class TournamentRegistrationPolicy {
             int maxTableauxPerDay,
             int maxTotalTableaux,
             FemaleExtraRuleType femaleExtraRuleType,
-            String femaleExtraTableauCode) {
+            String femaleExtraTableauCode,
+            ParticipantEligibilityPolicy participantEligibilityPolicy) {
 
         if (maxTableauxPerDay <= 0)
             throw new BusinessException(ErrorCode.TOURNAMENT_MAX_TABLEAUX_PER_DAY_INVALID);
@@ -34,15 +36,20 @@ public final class TournamentRegistrationPolicy {
         if (femaleExtraRuleType == null)
             throw new BusinessException(ErrorCode.TOURNAMENT_FEMALE_EXTRA_RULE_REQUIRED);
 
+        if (participantEligibilityPolicy == null)
+            throw new BusinessException(ErrorCode.TOURNAMENT_PARTICIPANT_POLICY_REQUIRED);
+
         if (femaleExtraRuleType == FemaleExtraRuleType.SPECIFIC_TABLEAU_CODE) {
             if (femaleExtraTableauCode == null || femaleExtraTableauCode.isBlank()) {
                 throw new BusinessException(ErrorCode.TOURNAMENT_FEMALE_EXTRA_TABLEAU_CODE_REQUIRED);
             }
+
         }
 
         this.maxTableauxPerDay = maxTableauxPerDay;
         this.maxTotalTableaux = maxTotalTableaux;
         this.femaleExtraRuleType = femaleExtraRuleType;
+        this.participantEligibilityPolicy = participantEligibilityPolicy;
         this.femaleExtraTableauCode = normalizeCode(femaleExtraTableauCode);
     }
 
@@ -62,16 +69,19 @@ public final class TournamentRegistrationPolicy {
         return femaleExtraTableauCode;
     }
 
+    public ParticipantEligibilityPolicy participantEligibilityPolicy() {
+        return participantEligibilityPolicy;
+    }
+
     /**
      * Nombre autorisé de tableaux pour ce jour (max/jour + bonus féminin éventuel).
      */
-    public int allowedTableauxPerDay(Player player, List<Tableau> selectedForThatDay) {
-        return maxTableauxPerDay + femaleDailyBonus(player, selectedForThatDay);
+    public int allowedTableauxPerDay(Participant participant, List<Tableau> selectedForThatDay) {
+        return maxTableauxPerDay + femaleDailyBonus(participant, selectedForThatDay);
     }
 
-    /** Bonus féminin = 0 ou 1 selon la règle du tournoi. */
-    public int femaleDailyBonus(Player player, List<Tableau> selectedForThatDay) {
-        if (player == null || !player.isFemale())
+    public int femaleDailyBonus(Participant participant, List<Tableau> selectedForThatDay) {
+        if (participant == null || !participant.isFemale())
             return 0;
 
         return switch (femaleExtraRuleType) {

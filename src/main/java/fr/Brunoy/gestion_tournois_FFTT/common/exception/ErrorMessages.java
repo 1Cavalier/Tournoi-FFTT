@@ -264,6 +264,39 @@ public final class ErrorMessages {
 
             case TOURNAMENT_JA_GRADE_TOO_LOW_FOR_LEVEL ->
                 "Aucun juge-arbitre désigné n'a le grade requis pour le niveau du tournoi";
+
+            case TABLEAU_AGE_POLICY_INVALID ->
+                "La restriction de catégorie d'âge du tableau est invalide";
+
+            // -------- PARTICIPANT --------
+            case PARTICIPANT_REQUIRED ->
+                "Le participant est obligatoire";
+            case PARTICIPANT_ID_REQUIRED ->
+                "L'identifiant du participant est obligatoire";
+            case PARTICIPANT_NAME_REQUIRED ->
+                "Le nom complet du participant est obligatoire";
+            case PARTICIPANT_GENDER_REQUIRED ->
+                "Le genre du participant est obligatoire";
+            case PARTICIPANT_NATIONALITY_REQUIRED ->
+                "La nationalité du participant est obligatoire";
+            case PARTICIPANT_AGE_CATEGORY_REQUIRED ->
+                "La catégorie d'âge du participant est obligatoire";
+            case PARTICIPANT_MEDICAL_CERT_REQUIRED ->
+                "Le statut du certificat médical du participant est obligatoire";
+            case PARTICIPANT_POINTS_NEGATIVE ->
+                "Les points du participant ne peuvent pas être négatifs";
+            case PARTICIPANT_FOREIGN_FEDERATION_REQUIRED ->
+                "Les informations de fédération étrangère sont obligatoires";
+
+            // -------- REGISTRATION (ELIGIBILITY / POLICY) --------
+            case REGISTRATION_GUEST_NOT_ALLOWED ->
+                "Inscription impossible : les non-licenciés ne sont pas autorisés pour ce tournoi";
+            case REGISTRATION_FOREIGN_NOT_ALLOWED ->
+                "Inscription impossible : les joueurs étrangers ne sont pas autorisés pour ce tournoi";
+            case REGISTRATION_FOREIGN_COUNTRY_NOT_ALLOWED ->
+                "Inscription impossible : ce pays n'est pas autorisé pour les joueurs étrangers sur ce tournoi";
+            case TOURNAMENT_PARTICIPANT_POLICY_REQUIRED ->
+                "a";
         };
     }
 }

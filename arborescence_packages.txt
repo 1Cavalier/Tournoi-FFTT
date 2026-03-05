@@ -30,10 +30,12 @@ C:\USERS\SOUME\ONEDRIVE\DESKTOP\TOURNOI-FFTT\SRC\MAIN\JAVA\FR
         |   |   |   |       TournamentLevel.java
         |   |   |   |       
         |   |   |   \---value
+        |   |   |           JudgeRefereeAssignment.java
         |   |   |           PlayingAreaSpec.java
         |   |   |           PrizeDistribution.java
         |   |   |           PrizeTier.java
         |   |   |           RegistrationFee.java
+        |   |   |           RegulationDocumentData.java
         |   |   |           TournamentRegistrationPolicy.java
         |   |   |           TournamentRegulationInfo.java
         |   |   |           
