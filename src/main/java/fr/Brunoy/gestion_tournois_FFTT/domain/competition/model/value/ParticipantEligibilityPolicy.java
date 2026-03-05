@@ -32,8 +32,9 @@ public final class ParticipantEligibilityPolicy {
         Set<String> norm = new HashSet<>();
         if (allowedCountryCodes != null) {
             for (String c : allowedCountryCodes) {
-                if (c != null && !c.isBlank()) {
-                    norm.add(c.trim().toUpperCase());
+                String cc = normalizeCountryCode(c);
+                if (cc != null) {
+                    norm.add(cc);
                 }
             }
         }
@@ -53,8 +54,9 @@ public final class ParticipantEligibilityPolicy {
     }
 
     public void assertEligible(Participant participant) {
-        if (participant == null)
+        if (participant == null) {
             throw new BusinessException(ErrorCode.PARTICIPANT_REQUIRED);
+        }
 
         if (participant instanceof GuestParticipant) {
             if (!allowGuests) {
@@ -69,12 +71,25 @@ public final class ParticipantEligibilityPolicy {
             }
 
             if (!allowedCountryCodes.isEmpty()) {
-                String cc = fp.nationalityCode();
-                if (cc == null || cc.isBlank() || !allowedCountryCodes.contains(cc.trim().toUpperCase())) {
+                String cc = normalizeCountryCode(fp.nationalityCode());
+                if (cc == null || !allowedCountryCodes.contains(cc)) {
                     throw new BusinessException(ErrorCode.REGISTRATION_FOREIGN_COUNTRY_NOT_ALLOWED);
                 }
             }
         }
-        // FFTT : toujours OK
+    }
+
+    private static String normalizeCountryCode(String code) {
+        if (code == null)
+            return null;
+        String t = code.trim().toUpperCase();
+        if (t.isEmpty())
+            return null;
+
+        // pro : ISO-2 attendu
+        if (t.length() != 2) {
+            return null;
+        }
+        return t;
     }
 }

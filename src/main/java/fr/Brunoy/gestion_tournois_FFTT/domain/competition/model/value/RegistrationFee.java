@@ -26,6 +26,14 @@ public final class RegistrationFee {
     }
 
     public int amountFor(PaymentMode mode) {
+        if (mode == null) {
+            throw new BusinessException(ErrorCode.REGISTRATION_PAYMENT_MODE_REQUIRED);
+        }
         return mode == PaymentMode.ONLINE ? prepaid : onSite;
+    }
+
+    @Override
+    public String toString() {
+        return "ONLINE=" + prepaid + "€, ON_SITE=" + onSite + "€";
     }
 }

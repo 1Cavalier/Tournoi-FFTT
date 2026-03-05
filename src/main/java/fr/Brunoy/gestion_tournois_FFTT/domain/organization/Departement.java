@@ -1,26 +1,28 @@
 package fr.Brunoy.gestion_tournois_FFTT.domain.organization;
 
-import java.util.Objects;
-
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
 
-public class Departement {
+import java.util.Locale;
+import java.util.Objects;
 
-    private final String code; // ex: "91"
+public final class Departement {
+
+    private final String code; // ex: "91", "2A", "971"
     private final String name; // ex: "Essonne"
     private final Region region;
 
     public Departement(String code, String name, Region region) {
-        if (code == null || code.isBlank())
+        String c = normalizeRequiredUpper(code, ErrorCode.DEPARTEMENT_CODE_REQUIRED);
+        if (!looksLikeDeptCode(c)) {
             throw new BusinessException(ErrorCode.DEPARTEMENT_CODE_REQUIRED);
-        if (name == null || name.isBlank())
-            throw new BusinessException(ErrorCode.DEPARTEMENT_NAME_REQUIRED);
+        }
+
+        this.code = c;
+        this.name = normalizeRequiredKeepCase(name, ErrorCode.DEPARTEMENT_NAME_REQUIRED);
+
         if (region == null)
             throw new BusinessException(ErrorCode.DEPARTEMENT_REGION_REQUIRED);
-
-        this.code = code.trim();
-        this.name = name.trim();
         this.region = region;
     }
 
@@ -38,7 +40,7 @@ public class Departement {
 
     @Override
     public String toString() {
-        return name + " (" + code + ", " + region + ")";
+        return name + " (" + code + ", " + region.getCode() + ")";
     }
 
     @Override
@@ -53,5 +55,35 @@ public class Departement {
     @Override
     public int hashCode() {
         return Objects.hash(code);
+    }
+
+    // ---------------- UTIL ----------------
+
+    private static boolean looksLikeDeptCode(String code) {
+        // "2A"/"2B"
+        if (code.length() == 2 && code.charAt(0) == '2' && (code.charAt(1) == 'A' || code.charAt(1) == 'B')) {
+            return true;
+        }
+        // chiffres 2 ou 3 (métropole + DOM/TOM usuels)
+        if (code.length() == 2 || code.length() == 3) {
+            for (int i = 0; i < code.length(); i++) {
+                if (!Character.isDigit(code.charAt(i)))
+                    return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private static String normalizeRequiredUpper(String s, ErrorCode errorIfBlank) {
+        if (s == null || s.isBlank())
+            throw new BusinessException(errorIfBlank);
+        return s.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private static String normalizeRequiredKeepCase(String s, ErrorCode errorIfBlank) {
+        if (s == null || s.isBlank())
+            throw new BusinessException(errorIfBlank);
+        return s.trim();
     }
 }

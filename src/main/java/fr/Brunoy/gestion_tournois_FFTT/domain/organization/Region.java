@@ -1,23 +1,19 @@
 package fr.Brunoy.gestion_tournois_FFTT.domain.organization;
 
-import java.util.Objects;
-
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
 
-public class Region {
+import java.util.Locale;
+import java.util.Objects;
+
+public final class Region {
 
     private final String code; // ex: "IDF"
     private final String name; // ex: "Île-de-France"
 
     public Region(String code, String name) {
-        if (code == null || code.isBlank())
-            throw new BusinessException(ErrorCode.REGION_CODE_REQUIRED);
-        if (name == null || name.isBlank())
-            throw new BusinessException(ErrorCode.REGION_NAME_REQUIRED);
-
-        this.code = code.trim();
-        this.name = name.trim();
+        this.code = normalizeRequiredUpper(code, ErrorCode.REGION_CODE_REQUIRED);
+        this.name = normalizeRequiredKeepCase(name, ErrorCode.REGION_NAME_REQUIRED);
     }
 
     public String getCode() {
@@ -45,5 +41,19 @@ public class Region {
     @Override
     public int hashCode() {
         return Objects.hash(code);
+    }
+
+    // ---------------- UTIL ----------------
+
+    private static String normalizeRequiredUpper(String s, ErrorCode errorIfBlank) {
+        if (s == null || s.isBlank())
+            throw new BusinessException(errorIfBlank);
+        return s.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private static String normalizeRequiredKeepCase(String s, ErrorCode errorIfBlank) {
+        if (s == null || s.isBlank())
+            throw new BusinessException(errorIfBlank);
+        return s.trim();
     }
 }

@@ -1,7 +1,22 @@
 package fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums;
 
+/**
+ * Règles "bonus féminin" optionnelles.
+ *
+ * - NONE : aucune règle
+ * - SPECIFIC_TABLEAU_ONCE : autorise 1 tableau de plus, uniquement si c'est le
+ * tableau (code) spécifié,
+ * et seulement une fois sur tout le tournoi.
+ * - SPECIFIC_TABLEAU_PER_DAY : autorise 1 tableau de plus par jour, uniquement
+ * si c'est le tableau (code) spécifié.
+ * - EXTRA_ANY_ONCE : autorise 1 tableau de plus (n'importe lequel), une seule
+ * fois sur tout le tournoi.
+ * - EXTRA_ANY_PER_DAY : autorise 1 tableau de plus par jour (n'importe lequel).
+ */
 public enum FemaleExtraRuleType {
-    NONE,                 // pas d’extra
-    ANY_TABLEAU,          // +1 sur n’importe quel tableau (un seul par jour)
-    SPECIFIC_TABLEAU_CODE // +1 uniquement si elle choisit un tableau précis (code)
+    NONE,
+    SPECIFIC_TABLEAU_ONCE,
+    SPECIFIC_TABLEAU_PER_DAY,
+    EXTRA_ANY_ONCE,
+    EXTRA_ANY_PER_DAY
 }

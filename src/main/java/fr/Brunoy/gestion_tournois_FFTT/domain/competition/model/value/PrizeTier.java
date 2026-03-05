@@ -1,6 +1,9 @@
 package fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value;
 
-import fr.Brunoy.gestion_tournois_FFTT.common.exception.*;
+import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
+import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
+
+import java.util.Objects;
 
 public final class PrizeTier {
 
@@ -10,8 +13,7 @@ public final class PrizeTier {
 
     public PrizeTier(int fromRank, int toRank, int amount) {
         if (fromRank <= 0 || toRank <= 0 || fromRank > toRank) {
-            throw new BusinessException(ErrorCode.TABLEAU_PRIZE_NEGATIVE); // ou crée un code PRIZE_TIER_INVALID si tu
-                                                                           // veux être plus précis
+            throw new BusinessException(ErrorCode.TABLEAU_PRIZE_TIER_INVALID);
         }
         if (amount < 0) {
             throw new BusinessException(ErrorCode.TABLEAU_PRIZE_NEGATIVE);
@@ -35,5 +37,24 @@ public final class PrizeTier {
 
     public boolean covers(int rank) {
         return rank >= fromRank && rank <= toRank;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof PrizeTier that))
+            return false;
+        return fromRank == that.fromRank && toRank == that.toRank && amount == that.amount;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(fromRank, toRank, amount);
+    }
+
+    @Override
+    public String toString() {
+        return fromRank + "-" + toRank + " => " + amount + "€";
     }
 }

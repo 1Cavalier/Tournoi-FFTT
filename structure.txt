@@ -30,7 +30,9 @@ C:\USERS\SOUME\ONEDRIVE\DESKTOP\TOURNOI-FFTT\SRC\MAIN\JAVA\FR
         |   |   |   |       TournamentLevel.java
         |   |   |   |       
         |   |   |   \---value
+        |   |   |           AgeCategoryPolicy.java
         |   |   |           JudgeRefereeAssignment.java
+        |   |   |           ParticipantEligibilityPolicy.java
         |   |   |           PlayingAreaSpec.java
         |   |   |           PrizeDistribution.java
         |   |   |           PrizeTier.java
@@ -43,7 +45,12 @@ C:\USERS\SOUME\ONEDRIVE\DESKTOP\TOURNOI-FFTT\SRC\MAIN\JAVA\FR
         |   |           TournamentRegulationInfoDefaults.java
         |   |           
         |   +---identity
+        |   |       FfttParticipant.java
+        |   |       ForeignFederationInfo.java
+        |   |       ForeignParticipant.java
+        |   |       GuestParticipant.java
         |   |       OfficialQualification.java
+        |   |       Participant.java
         |   |       Player.java
         |   |       
         |   +---organization

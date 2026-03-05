@@ -2,6 +2,10 @@ package fr.Brunoy.gestion_tournois_FFTT.common.exception;
 
 public enum ErrorCode {
 
+    // ========================================================================
+    // REF DATA / ORGANIZATION (référentiel)
+    // ========================================================================
+
     // -------- REGION --------
     REGION_CODE_REQUIRED,
     REGION_NAME_REQUIRED,
@@ -18,6 +22,10 @@ public enum ErrorCode {
     CLUB_DEPARTEMENT_REQUIRED,
     CLUB_GEO_COORDINATES_INCOMPLETE,
     CLUB_GEO_COORDINATES_INVALID,
+
+    // ========================================================================
+    // IDENTITY (personnes / qualifications)
+    // ========================================================================
 
     // -------- OFFICIAL / QUALIFICATION --------
     OFFICIAL_ROLE_REQUIRED,
@@ -38,6 +46,21 @@ public enum ErrorCode {
     PLAYER_POINTS_NEGATIVE,
     PLAYER_QUALIFICATION_REQUIRED,
 
+    // -------- PARTICIPANT (abstraction Player/Foreign/Guest) --------
+    PARTICIPANT_REQUIRED,
+    PARTICIPANT_ID_REQUIRED,
+    PARTICIPANT_NAME_REQUIRED,
+    PARTICIPANT_GENDER_REQUIRED,
+    PARTICIPANT_NATIONALITY_REQUIRED,
+    PARTICIPANT_AGE_CATEGORY_REQUIRED,
+    PARTICIPANT_MEDICAL_CERT_REQUIRED,
+    PARTICIPANT_POINTS_NEGATIVE,
+    PARTICIPANT_FOREIGN_FEDERATION_REQUIRED,
+
+    // ========================================================================
+    // COMPETITION - TABLEAU (définition / paramétrage)
+    // ========================================================================
+
     // -------- TABLEAU (DEFINITION) --------
     TABLEAU_CODE_REQUIRED,
     TABLEAU_DESIGNATION_REQUIRED,
@@ -45,6 +68,7 @@ public enum ErrorCode {
     TABLEAU_GENDER_POLICY_REQUIRED,
     TABLEAU_POINTS_RULE_TYPE_REQUIRED,
 
+    // ---- points min/max ----
     TABLEAU_MIN_POINTS_REQUIRED,
     TABLEAU_MAX_POINTS_REQUIRED,
     TABLEAU_MIN_POINTS_NEGATIVE,
@@ -52,21 +76,33 @@ public enum ErrorCode {
     TABLEAU_MIN_GREATER_THAN_MAX,
     TABLEAU_POINTS_RULE_INCONSISTENT,
 
+    // ---- frais / dotations ----
     TABLEAU_FEE_REQUIRED,
     TABLEAU_FEE_NEGATIVE,
+    TABLEAU_PRIZE_REQUIRED,
+    TABLEAU_PRIZE_NEGATIVE,
+    TABLEAU_PRIZE_TIER_INVALID,
+    TABLEAU_PRIZE_INCONSISTENT,
 
+    // ---- horaires ----
     TABLEAU_CHECKIN_TIME_REQUIRED,
     TABLEAU_START_TIME_REQUIRED,
     TABLEAU_CHECKIN_AFTER_START,
 
-    TABLEAU_PRIZE_REQUIRED,
-    TABLEAU_PRIZE_NEGATIVE,
-
-    // -------- TABLEAU (CAPACITE / INSCRIPTION) --------
+    // ---- capacité / file d'attente ----
     TABLEAU_MAX_PLAYERS_INVALID,
     TABLEAU_FULL,
+    TABLEAU_WAITLIST_CAPACITY_INVALID,
+    TABLEAU_WAITLIST_FULL,
 
-    // -------- TOURNAMENT --------
+    // ---- catégories d'âge ----
+    TABLEAU_AGE_POLICY_INVALID,
+
+    // ========================================================================
+    // COMPETITION - TOURNAMENT (agrégat principal)
+    // ========================================================================
+
+    // -------- TOURNAMENT (base) --------
     TOURNAMENT_REQUIRED,
     TOURNAMENT_NAME_REQUIRED,
     TOURNAMENT_ORGANIZING_CLUB_REQUIRED,
@@ -74,41 +110,65 @@ public enum ErrorCode {
     TOURNAMENT_RANKING_PHASE_REQUIRED,
     TOURNAMENT_DAYS_REQUIRED,
 
+    // -------- TOURNAMENT (tableaux) --------
     TOURNAMENT_TABLEAU_REQUIRED,
     TOURNAMENT_TABLEAU_CODE_DUPLICATE,
     TOURNAMENT_TABLEAU_DATE_NOT_IN_TOURNAMENT_DAYS,
+
+    // -------- TOURNAMENT (règle féminine) --------
     TOURNAMENT_FEMALE_EXTRA_RULE_REQUIRED,
     TOURNAMENT_FEMALE_EXTRA_TABLEAU_CODE_REQUIRED,
 
-    // -------- TOURNAMENT (REGLES D’INSCRIPTION) --------
+    // -------- TOURNAMENT (règles d’inscription) --------
     TOURNAMENT_REGISTRATION_POLICY_REQUIRED,
     TOURNAMENT_MAX_TABLEAUX_PER_DAY_INVALID,
     TOURNAMENT_MAX_TOTAL_TABLEAUX_INVALID,
     TOURNAMENT_MAX_TOTAL_TABLEAUX_TOO_LOW,
 
-    // -------- REGISTRATION --------
+    // -------- TOURNAMENT (policy participants) --------
+    TOURNAMENT_PARTICIPANT_POLICY_REQUIRED,
+
+    // ========================================================================
+    // COMPETITION - REGISTRATION (inscriptions)
+    // ========================================================================
+
+    // -------- REGISTRATION (base) --------
     REGISTRATION_REQUIRED,
     REGISTRATION_INVALID,
     REGISTRATION_TABLEAU_NOT_FOUND,
     REGISTRATION_ALREADY_REGISTERED,
     REGISTRATION_NOT_ELIGIBLE,
 
-    // -------- REGISTRATION (MULTI) --------
+    // -------- REGISTRATION (multi / limites) --------
     REGISTRATION_MAX_TOTAL_TABLEAUX_EXCEEDED,
     REGISTRATION_MAX_TABLEAUX_PER_DAY_EXCEEDED,
     REGISTRATION_TOO_MANY_FEMALE_ONLY_TABLEAUX_PER_DAY,
+
+    // -------- REGISTRATION (santé) --------
     REGISTRATION_MEDICAL_CERT_INVALID,
 
+    // -------- REGISTRATION (paiement / statut / batch) --------
     REGISTRATION_PAYMENT_MODE_REQUIRED,
     REGISTRATION_STATUS_REQUIRED,
     REGISTRATION_BATCH_ID_REQUIRED,
     REGISTRATION_BATCH_NOT_FOUND,
     REGISTRATION_RESERVATION_EXPIRED,
 
+    // -------- REGISTRATION (restrictions par niveau) --------
     REGISTRATION_PLAYER_NOT_IN_DEPARTEMENT,
     REGISTRATION_PLAYER_NOT_IN_REGION,
     REGISTRATION_LEVEL_INTERNATIONAL_NOT_SUPPORTED,
 
+    // -------- REGISTRATION (eligibility / policy) --------
+    REGISTRATION_GUEST_NOT_ALLOWED,
+    REGISTRATION_FOREIGN_NOT_ALLOWED,
+    REGISTRATION_FOREIGN_COUNTRY_NOT_ALLOWED,
+
+    // ========================================================================
+    // REGULATION / PUBLICATION (règlement officiel)
+    // ========================================================================
+
+    TOURNAMENT_REGULATION_INFO_REQUIRED,
     TOURNAMENT_HOMOLOGATION_REQUIRED_FOR_PUBLICATION,
 
     TOURNAMENT_ORGANIZER_CONTACT_REQUIRED,
@@ -117,6 +177,7 @@ public enum ErrorCode {
 
     TOURNAMENT_PLAYING_AREA_REQUIRED,
     TOURNAMENT_PLAYING_AREA_INCOMPATIBLE_LEVEL,
+    TOURNAMENT_PLAYING_AREA_NOT_COMPLIANT,
     TOURNAMENT_PLAYING_AREA_CUSTOM_INFO_REQUIRED,
     TOURNAMENT_PLAYING_AREA_DIMENSIONS_INCOMPLETE,
     TOURNAMENT_PLAYING_AREA_DIMENSIONS_INVALID,
@@ -129,33 +190,13 @@ public enum ErrorCode {
     TOURNAMENT_TIMELINE_INCONSISTENT,
 
     TOURNAMENT_EXPECTED_END_TIME_REQUIRED,
-    TOURNAMENT_REGULATION_INFO_REQUIRED,
 
-    TABLEAU_WAITLIST_CAPACITY_INVALID,
-    TABLEAU_WAITLIST_FULL,
+    // ========================================================================
+    // JA / ARBITRAGE
+    // ========================================================================
 
-    // -------- TOURNAMENT (JA / ARBITRAGE) --------
     TOURNAMENT_JA_REQUIRED,
     TOURNAMENT_JA_DUPLICATE,
     TOURNAMENT_JA_GRADE_REQUIRED,
-    TOURNAMENT_JA_GRADE_TOO_LOW_FOR_LEVEL,
-
-    TABLEAU_AGE_POLICY_INVALID,
-
-    // -------- PARTICIPANT --------
-    PARTICIPANT_REQUIRED,
-    PARTICIPANT_ID_REQUIRED,
-    PARTICIPANT_NAME_REQUIRED,
-    PARTICIPANT_GENDER_REQUIRED,
-    PARTICIPANT_NATIONALITY_REQUIRED,
-    PARTICIPANT_AGE_CATEGORY_REQUIRED,
-    PARTICIPANT_MEDICAL_CERT_REQUIRED,
-    PARTICIPANT_POINTS_NEGATIVE,
-    PARTICIPANT_FOREIGN_FEDERATION_REQUIRED,
-
-    // -------- REGISTRATION (ELIGIBILITY / POLICY) --------
-    REGISTRATION_GUEST_NOT_ALLOWED,
-    REGISTRATION_FOREIGN_NOT_ALLOWED,
-    REGISTRATION_FOREIGN_COUNTRY_NOT_ALLOWED,
-    TOURNAMENT_PARTICIPANT_POLICY_REQUIRED
+    TOURNAMENT_JA_GRADE_TOO_LOW_FOR_LEVEL
 }

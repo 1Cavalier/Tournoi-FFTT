@@ -6,16 +6,17 @@ import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.entity.Tableau;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.FemaleExtraRuleType;
 import fr.Brunoy.gestion_tournois_FFTT.domain.identity.Participant;
 
-import java.util.List;
+import java.util.Locale;
 
 public final class TournamentRegistrationPolicy {
 
     private final int maxTableauxPerDay;
     private final int maxTotalTableaux;
+
     private final ParticipantEligibilityPolicy participantEligibilityPolicy;
 
     private final FemaleExtraRuleType femaleExtraRuleType;
-    private final String femaleExtraTableauCode; // utilisé si SPECIFIC_TABLEAU_CODE
+    private final String femaleExtraTableauCode; // requis uniquement pour SPECIFIC_*
 
     public TournamentRegistrationPolicy(
             int maxTableauxPerDay,
@@ -39,18 +40,20 @@ public final class TournamentRegistrationPolicy {
         if (participantEligibilityPolicy == null)
             throw new BusinessException(ErrorCode.TOURNAMENT_PARTICIPANT_POLICY_REQUIRED);
 
-        if (femaleExtraRuleType == FemaleExtraRuleType.SPECIFIC_TABLEAU_CODE) {
-            if (femaleExtraTableauCode == null || femaleExtraTableauCode.isBlank()) {
+        String normalized = normalizeCode(femaleExtraTableauCode);
+
+        if (femaleExtraRuleType == FemaleExtraRuleType.SPECIFIC_TABLEAU_ONCE
+                || femaleExtraRuleType == FemaleExtraRuleType.SPECIFIC_TABLEAU_PER_DAY) {
+            if (normalized == null) {
                 throw new BusinessException(ErrorCode.TOURNAMENT_FEMALE_EXTRA_TABLEAU_CODE_REQUIRED);
             }
-
         }
 
         this.maxTableauxPerDay = maxTableauxPerDay;
         this.maxTotalTableaux = maxTotalTableaux;
         this.femaleExtraRuleType = femaleExtraRuleType;
+        this.femaleExtraTableauCode = normalized;
         this.participantEligibilityPolicy = participantEligibilityPolicy;
-        this.femaleExtraTableauCode = normalizeCode(femaleExtraTableauCode);
     }
 
     public int maxTableauxPerDay() {
@@ -73,42 +76,99 @@ public final class TournamentRegistrationPolicy {
         return participantEligibilityPolicy;
     }
 
-    /**
-     * Nombre autorisé de tableaux pour ce jour (max/jour + bonus féminin éventuel).
-     */
-    public int allowedTableauxPerDay(Participant participant, List<Tableau> selectedForThatDay) {
-        return maxTableauxPerDay + femaleDailyBonus(participant, selectedForThatDay);
+    // -------------------------------------------------------------------------
+    // LIMITS (pro) — déterministes
+    // -------------------------------------------------------------------------
+
+    public int allowedTableauxPerDay(Participant participant, Tableau targetTableau, boolean onceAlreadyUsed) {
+        return maxTableauxPerDay + femaleDailyBonus(participant, targetTableau, onceAlreadyUsed);
     }
 
-    public int femaleDailyBonus(Participant participant, List<Tableau> selectedForThatDay) {
+    public int allowedTotalTableaux(Participant participant, Tableau targetTableau, int tournamentDaysCount,
+            boolean onceAlreadyUsed) {
+        return maxTotalTableaux + femaleTotalBonus(participant, targetTableau, tournamentDaysCount, onceAlreadyUsed);
+    }
+
+    /**
+     * Indique si la règle "féminin" est de type ONCE (une fois sur tout le
+     * tournoi).
+     */
+    public boolean isFemaleExtraOnceRule() {
+        return femaleExtraRuleType == FemaleExtraRuleType.EXTRA_ANY_ONCE
+                || femaleExtraRuleType == FemaleExtraRuleType.SPECIFIC_TABLEAU_ONCE;
+    }
+
+    /**
+     * Indique si le tableau cible peut déclencher le bonus (utile pour savoir si on
+     * consomme le ONCE).
+     */
+    public boolean targetQualifiesForFemaleExtra(Participant participant, Tableau targetTableau) {
+        if (participant == null || !participant.isFemale())
+            return false;
+        return switch (femaleExtraRuleType) {
+            case NONE -> false;
+            case EXTRA_ANY_ONCE, EXTRA_ANY_PER_DAY -> true;
+            case SPECIFIC_TABLEAU_ONCE, SPECIFIC_TABLEAU_PER_DAY -> isTargetSpecific(targetTableau);
+        };
+    }
+
+    // -------------------------------------------------------------------------
+    // BONUS
+    // -------------------------------------------------------------------------
+
+    private int femaleDailyBonus(Participant participant, Tableau targetTableau, boolean onceAlreadyUsed) {
         if (participant == null || !participant.isFemale())
             return 0;
 
         return switch (femaleExtraRuleType) {
             case NONE -> 0;
-            case ANY_TABLEAU -> 1;
-            case SPECIFIC_TABLEAU_CODE -> hasSpecificTableau(selectedForThatDay) ? 1 : 0;
+
+            case EXTRA_ANY_PER_DAY -> 1;
+
+            case EXTRA_ANY_ONCE -> onceAlreadyUsed ? 0 : 1;
+
+            case SPECIFIC_TABLEAU_PER_DAY -> isTargetSpecific(targetTableau) ? 1 : 0;
+
+            case SPECIFIC_TABLEAU_ONCE -> {
+                if (!isTargetSpecific(targetTableau))
+                    yield 0;
+                yield onceAlreadyUsed ? 0 : 1;
+            }
         };
     }
 
-    private boolean hasSpecificTableau(List<Tableau> selectedForThatDay) {
-        if (femaleExtraTableauCode == null)
-            return false;
-        if (selectedForThatDay == null || selectedForThatDay.isEmpty())
-            return false;
+    private int femaleTotalBonus(Participant participant, Tableau targetTableau, int tournamentDaysCount,
+            boolean onceAlreadyUsed) {
+        if (participant == null || !participant.isFemale())
+            return 0;
 
-        for (Tableau t : selectedForThatDay) {
-            if (t != null && femaleExtraTableauCode.equalsIgnoreCase(t.code())) {
-                return true;
+        return switch (femaleExtraRuleType) {
+            case NONE -> 0;
+
+            case EXTRA_ANY_ONCE -> onceAlreadyUsed ? 0 : 1;
+
+            case EXTRA_ANY_PER_DAY -> Math.max(0, tournamentDaysCount);
+
+            case SPECIFIC_TABLEAU_ONCE -> {
+                if (!isTargetSpecific(targetTableau))
+                    yield 0;
+                yield onceAlreadyUsed ? 0 : 1;
             }
-        }
-        return false;
+
+            case SPECIFIC_TABLEAU_PER_DAY -> Math.max(0, tournamentDaysCount);
+        };
     }
 
-    private String normalizeCode(String code) {
+    private boolean isTargetSpecific(Tableau target) {
+        return target != null
+                && femaleExtraTableauCode != null
+                && femaleExtraTableauCode.equalsIgnoreCase(target.code());
+    }
+
+    private static String normalizeCode(String code) {
         if (code == null)
             return null;
-        String t = code.trim().toUpperCase();
+        String t = code.trim().toUpperCase(Locale.ROOT);
         return t.isEmpty() ? null : t;
     }
 }

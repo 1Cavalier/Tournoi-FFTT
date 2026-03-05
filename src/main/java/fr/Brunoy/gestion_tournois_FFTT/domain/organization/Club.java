@@ -5,7 +5,7 @@ import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
 
 import java.util.Objects;
 
-public class Club {
+public final class Club {
 
     private final String number; // ex: "08911132"
     private final String name; // ex: "Brunoy CTT"
@@ -13,13 +13,11 @@ public class Club {
 
     private final String city; // ex: "Brunoy"
 
-    // Ancien champ "address" remplacé par address1/address2
-    private final String address1; // ex: "Gymnase Dupont" / "12 rue ..."
-    private final String address2; // ex: "Bâtiment B, entrée arrière" (optionnel)
+    private final String address1; // optionnel
+    private final String address2; // optionnel
 
-    // Optionnel
-    private final Double latitude; // ex: 48.695
-    private final Double longitude; // ex: 2.492
+    private final Double latitude; // optionnel
+    private final Double longitude; // optionnel
 
     public Club(
             String number,
@@ -30,17 +28,21 @@ public class Club {
             String address2,
             Double latitude,
             Double longitude) {
-        if (number == null || number.isBlank())
-            throw new BusinessException(ErrorCode.CLUB_NUMBER_REQUIRED);
 
-        if (name == null || name.isBlank())
-            throw new BusinessException(ErrorCode.CLUB_NAME_REQUIRED);
+        String n = normalizeRequired(number, ErrorCode.CLUB_NUMBER_REQUIRED);
+        if (!looksLikeClubNumber(n)) {
+            // Option A (pro) : créer CLUB_NUMBER_INVALID
+            throw new BusinessException(ErrorCode.CLUB_NUMBER_REQUIRED);
+        }
+
+        this.number = n;
+        this.name = normalizeRequiredKeepCase(name, ErrorCode.CLUB_NAME_REQUIRED);
 
         if (departement == null)
             throw new BusinessException(ErrorCode.CLUB_DEPARTEMENT_REQUIRED);
+        this.departement = departement;
 
-        if (city == null || city.isBlank())
-            throw new BusinessException(ErrorCode.CLUB_CITY_REQUIRED);
+        this.city = normalizeRequiredKeepCase(city, ErrorCode.CLUB_CITY_REQUIRED);
 
         // lat/lon : soit les deux null, soit les deux renseignés
         boolean hasLat = latitude != null;
@@ -49,7 +51,6 @@ public class Club {
             throw new BusinessException(ErrorCode.CLUB_GEO_COORDINATES_INCOMPLETE);
         }
 
-        // bornes classiques
         if (latitude != null) {
             boolean latInvalid = latitude < -90.0 || latitude > 90.0;
             boolean lonInvalid = longitude < -180.0 || longitude > 180.0;
@@ -58,23 +59,11 @@ public class Club {
             }
         }
 
-        this.number = number.trim();
-        this.name = name.trim();
-        this.departement = departement;
-        this.city = city.trim();
-
         this.address1 = normalizeOptional(address1);
         this.address2 = normalizeOptional(address2);
 
         this.latitude = latitude;
         this.longitude = longitude;
-    }
-
-    private String normalizeOptional(String s) {
-        if (s == null)
-            return null;
-        String t = s.trim();
-        return t.isEmpty() ? null : t;
     }
 
     public String getNumber() {
@@ -126,5 +115,37 @@ public class Club {
     @Override
     public int hashCode() {
         return Objects.hash(number);
+    }
+
+    // ---------------- UTIL ----------------
+
+    private static boolean looksLikeClubNumber(String number) {
+        // FFTT: souvent 8 chiffres. On reste permissif: 6..10 chiffres.
+        if (number.length() < 6 || number.length() > 10)
+            return false;
+        for (int i = 0; i < number.length(); i++) {
+            if (!Character.isDigit(number.charAt(i)))
+                return false;
+        }
+        return true;
+    }
+
+    private static String normalizeRequired(String s, ErrorCode errorIfBlank) {
+        if (s == null || s.isBlank())
+            throw new BusinessException(errorIfBlank);
+        return s.trim();
+    }
+
+    private static String normalizeRequiredKeepCase(String s, ErrorCode errorIfBlank) {
+        if (s == null || s.isBlank())
+            throw new BusinessException(errorIfBlank);
+        return s.trim();
+    }
+
+    private static String normalizeOptional(String s) {
+        if (s == null)
+            return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
     }
 }

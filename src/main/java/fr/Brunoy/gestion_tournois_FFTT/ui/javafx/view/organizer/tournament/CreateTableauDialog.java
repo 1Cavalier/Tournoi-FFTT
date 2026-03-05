@@ -3,6 +3,7 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.tournament;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.entity.Tableau;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.GenderPolicy;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.TableauPointsRuleType;
+import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.AgeCategoryPolicy;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.PrizeDistribution;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.PrizeTier;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.RegistrationFee;
@@ -351,11 +352,12 @@ public final class CreateTableauDialog extends Dialog<Tableau> {
                         d,
                         dt,
                         gp,
+                        AgeCategoryPolicy.any(), // <-- ajouté (ou ta policy UI)
                         pr,
                         min,
                         max,
                         cap,
-                        waitCap, // ← nouveau paramètre
+                        waitCap,
                         fee,
                         checkInEnd,
                         start,

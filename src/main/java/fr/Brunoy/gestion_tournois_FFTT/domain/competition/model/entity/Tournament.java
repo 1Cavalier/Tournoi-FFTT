@@ -29,10 +29,12 @@ import java.util.*;
  * - Capacité tableau + file d'attente
  * - Promotion FIFO de la file d'attente quand une place se libère
  * - Validation règlement "officielle" via TournamentRegulationInfo
- *
- * (Le format sportif / rencontres / sets viendra plus tard.)
  */
 public final class Tournament {
+
+    // -------------------------------------------------------------------------
+    // FIELDS (core)
+    // -------------------------------------------------------------------------
 
     private final String name;
     private final Club organizingClub;
@@ -40,7 +42,6 @@ public final class Tournament {
     private final RankingPhase rankingPhase;
 
     private final Set<LocalDate> days;
-    private final List<Tableau> tableaux;
 
     private final TournamentRegistrationPolicy registrationPolicy;
 
@@ -56,10 +57,25 @@ public final class Tournament {
      */
     private final List<JudgeRefereeAssignment> judgeReferees = new ArrayList<>();
 
-    /**
-     * Inscriptions indexées par code tableau (normalisé en upper case).
-     */
+    // -------------------------------------------------------------------------
+    // FIELDS (tableaux + inscriptions)
+    // -------------------------------------------------------------------------
+
+    /** Liste conservée pour l'ordre d'affichage. */
+    private final List<Tableau> tableaux = new ArrayList<>();
+
+    /** Index pro : lookup O(1). */
+    private final Map<String, Tableau> tableauxByCode = new HashMap<>();
+
+    /** Inscriptions indexées par code tableau normalisé. */
     private final Map<String, List<Registration>> registrationsByTableauCode = new HashMap<>();
+
+    /**
+     * BONUS FEMININ "ONCE" : mémorise les participantes ayant déjà consommé le
+     * bonus.
+     * (Choix pro : le bonus reste consommé même si la joueuse annule ensuite.)
+     */
+    private final Set<String> femaleExtraOnceUsedParticipantIds = new HashSet<>();
 
     // -------------------------------------------------------------------------
     // CONSTRUCTOR
@@ -74,29 +90,27 @@ public final class Tournament {
             TournamentRegistrationPolicy registrationPolicy,
             TournamentRegulationInfo regulationInfo) {
 
-        if (name == null || name.isBlank())
+        if (name == null || name.isBlank()) {
             throw new BusinessException(ErrorCode.TOURNAMENT_NAME_REQUIRED);
-
-        if (organizingClub == null)
+        }
+        if (organizingClub == null) {
             throw new BusinessException(ErrorCode.TOURNAMENT_ORGANIZING_CLUB_REQUIRED);
-
-        if (level == null)
+        }
+        if (level == null) {
             throw new BusinessException(ErrorCode.TOURNAMENT_LEVEL_REQUIRED);
-
-        if (rankingPhase == null)
+        }
+        if (rankingPhase == null) {
             throw new BusinessException(ErrorCode.TOURNAMENT_RANKING_PHASE_REQUIRED);
-
-        if (days == null || days.isEmpty())
+        }
+        if (days == null || days.isEmpty() || days.stream().anyMatch(Objects::isNull)) {
             throw new BusinessException(ErrorCode.TOURNAMENT_DAYS_REQUIRED);
-
-        if (days.stream().anyMatch(Objects::isNull))
-            throw new BusinessException(ErrorCode.TOURNAMENT_DAYS_REQUIRED);
-
-        if (registrationPolicy == null)
+        }
+        if (registrationPolicy == null) {
             throw new BusinessException(ErrorCode.TOURNAMENT_REGISTRATION_POLICY_REQUIRED);
-
-        if (regulationInfo == null)
+        }
+        if (regulationInfo == null) {
             throw new BusinessException(ErrorCode.TOURNAMENT_REGULATION_INFO_REQUIRED);
+        }
 
         this.name = name.trim();
         this.organizingClub = organizingClub;
@@ -104,7 +118,6 @@ public final class Tournament {
         this.rankingPhase = rankingPhase;
 
         this.days = Collections.unmodifiableSet(new TreeSet<>(days));
-        this.tableaux = new ArrayList<>();
         this.registrationPolicy = registrationPolicy;
 
         // IMPORTANT : pas de validation "complète" ici -> tournoi peut être en DRAFT.
@@ -116,20 +129,23 @@ public final class Tournament {
     // -------------------------------------------------------------------------
 
     public void addTableau(Tableau tableau) {
-        if (tableau == null)
+        if (tableau == null) {
             throw new BusinessException(ErrorCode.TOURNAMENT_TABLEAU_REQUIRED);
+        }
 
-        if (!days.contains(tableau.date()))
+        if (!days.contains(tableau.date())) {
             throw new BusinessException(ErrorCode.TOURNAMENT_TABLEAU_DATE_NOT_IN_TOURNAMENT_DAYS);
+        }
 
-        boolean duplicateCode = tableaux.stream()
-                .anyMatch(t -> t.code().equalsIgnoreCase(tableau.code()));
+        String key = normalizeRequiredCode(tableau.code(), ErrorCode.TABLEAU_CODE_REQUIRED);
 
-        if (duplicateCode)
+        if (tableauxByCode.containsKey(key)) {
             throw new BusinessException(ErrorCode.TOURNAMENT_TABLEAU_CODE_DUPLICATE);
+        }
 
         tableaux.add(tableau);
-        registrationsByTableauCode.put(normalizeCode(tableau.code()), new ArrayList<>());
+        tableauxByCode.put(key, tableau);
+        registrationsByTableauCode.put(key, new ArrayList<>());
     }
 
     // -------------------------------------------------------------------------
@@ -140,11 +156,11 @@ public final class Tournament {
      * Lecture seule. Ne crée jamais une liste “dans le vide”.
      */
     public List<Registration> registrationsFor(String tableauCode) {
-        String key = normalizeCode(tableauCode);
+        String key = normalizeForLookup(tableauCode);
         List<Registration> regs = registrationsByTableauCode.get(key);
-        if (regs == null)
+        if (regs == null) {
             throw new BusinessException(ErrorCode.REGISTRATION_TABLEAU_NOT_FOUND);
-
+        }
         return Collections.unmodifiableList(regs);
     }
 
@@ -154,23 +170,24 @@ public final class Tournament {
 
     public void addRegistration(Registration registration, Instant now) {
 
-        if (registration == null)
+        if (registration == null) {
             throw new BusinessException(ErrorCode.REGISTRATION_REQUIRED);
+        }
 
-        final Instant at = (now != null) ? now : Instant.now();
+        final Instant at = nowOrNow(now);
 
-        String key = normalizeCode(registration.tableauCode());
-        Tableau tableau = findTableauByNormalizedCode(key);
-        if (tableau == null)
-            throw new BusinessException(ErrorCode.REGISTRATION_TABLEAU_NOT_FOUND);
-
-        List<Registration> regs = registrationsByTableauCode.get(key);
-        if (regs == null)
-            throw new BusinessException(ErrorCode.REGISTRATION_TABLEAU_NOT_FOUND);
+        String key = normalizeForLookup(registration.tableauCode());
+        Tableau tableau = getTableauOrThrow(key);
+        List<Registration> regs = getRegsOrThrow(key);
 
         Participant participant = registration.participant();
-        if (participant == null)
+        if (participant == null) {
             throw new BusinessException(ErrorCode.PARTICIPANT_REQUIRED);
+        }
+
+        // Pro : purge inactifs (CANCELLED + RESERVED expirées) pour éviter que les
+        // listes gonflent.
+        purgeInactive(regs, at);
 
         // 0) Éligibilité tableau (points + genre + âge)
         int points = participant.pointsFor(rankingPhase);
@@ -182,17 +199,15 @@ public final class Tournament {
         boolean alreadyActive = regs.stream()
                 .anyMatch(r -> sameParticipant(r, participant) && r.isActiveAt(at));
 
-        if (alreadyActive)
+        if (alreadyActive) {
             throw new BusinessException(ErrorCode.REGISTRATION_ALREADY_REGISTERED);
+        }
 
-        // 2) Policy tournoi : max total / max par jour (+ bonus féminin)
-        enforceRegistrationPolicy(participant, tableau, at);
+        // 2) Policy tournoi : max total / max par jour (+ règles féminines)
+        boolean consumesFemaleExtraOnce = enforceRegistrationPolicy(participant, tableau, at);
 
         // 3) Capacité tableau : spots (RESERVED/CONFIRMED) + file d'attente
-        long spotCount = regs.stream()
-                .filter(r -> r.isActiveAt(at))
-                .filter(r -> r.status().blocksSpot())
-                .count();
+        long spotCount = countSpots(regs, at);
 
         // Place dispo -> CONFIRMED
         if (spotCount < tableau.maxPlayers()) {
@@ -200,45 +215,51 @@ public final class Tournament {
                 registration.confirm();
             }
             regs.add(registration);
+
+            if (consumesFemaleExtraOnce) {
+                markFemaleExtraOnceUsed(participant);
+            }
             return;
         }
 
         // Tableau complet -> waitlist si possible
         int waitCap = tableau.waitlistCapacity();
-        if (waitCap <= 0)
+        if (waitCap <= 0) {
             throw new BusinessException(ErrorCode.TABLEAU_FULL);
+        }
 
-        long waitCount = regs.stream()
-                .filter(r -> r.isActiveAt(at))
-                .filter(r -> r.status() == RegistrationStatus.WAITLISTED)
-                .count();
-
-        if (waitCount >= waitCap)
+        long waitCount = countWaitlisted(regs, at);
+        if (waitCount >= waitCap) {
             throw new BusinessException(ErrorCode.TABLEAU_WAITLIST_FULL);
+        }
 
         if (registration.status() != RegistrationStatus.WAITLISTED) {
             registration.waitlist();
         }
 
         regs.add(registration);
+
+        if (consumesFemaleExtraOnce) {
+            markFemaleExtraOnceUsed(participant);
+        }
     }
 
     /**
-     * Annulation métier (V1) : permet de déclencher la promotion FIFO de la file
-     * d'attente.
-     * (Participant-compatible : works for FFTT/guest/foreign)
+     * Annulation métier (V1) : déclenche la promotion FIFO de la file d'attente.
      */
     public void cancelRegistration(String tableauCode, String participantId, Instant now) {
 
-        if (participantId == null || participantId.isBlank())
+        if (participantId == null || participantId.isBlank()) {
             throw new BusinessException(ErrorCode.PARTICIPANT_ID_REQUIRED);
+        }
 
-        final Instant at = (now != null) ? now : Instant.now();
+        final Instant at = nowOrNow(now);
+        String key = normalizeForLookup(tableauCode);
 
-        String key = normalizeCode(tableauCode);
-        List<Registration> regs = registrationsByTableauCode.get(key);
-        if (regs == null)
-            throw new BusinessException(ErrorCode.REGISTRATION_TABLEAU_NOT_FOUND);
+        List<Registration> regs = getRegsOrThrow(key);
+
+        // Pro : purge avant recherche (évite de matcher sur des inactifs).
+        purgeInactive(regs, at);
 
         Registration reg = regs.stream()
                 .filter(r -> r.participant() != null)
@@ -249,7 +270,10 @@ public final class Tournament {
 
         reg.cancel();
 
-        // Une place peut se libérer => promotion FIFO
+        // Pro : purge après annulation (CANCELLED -> inactif).
+        purgeInactive(regs, at);
+
+        // Une place peut se libérer => promotion FIFO (peut promouvoir plusieurs)
         promoteWaitlistIfPossible(key, at);
     }
 
@@ -257,33 +281,37 @@ public final class Tournament {
      * Backward helper (si tu as encore du code UI qui n'a que Player).
      */
     public void cancelRegistration(String tableauCode, Player player, Instant now) {
-        if (player == null)
+        if (player == null) {
             throw new BusinessException(ErrorCode.PLAYER_REQUIRED);
+        }
         cancelRegistration(tableauCode, player.getLicenseNumber(), now);
     }
 
     /**
-     * Option utile : à appeler périodiquement (ou à l'ouverture d'écran) pour
-     * nettoyer les réservations expirées et promouvoir la waitlist si possible.
+     * À appeler périodiquement (ou à l'ouverture d'écran) pour :
+     * - purger les réservations expirées / annulations
+     * - promouvoir la waitlist si possible
      */
     public void refreshTableauQueue(String tableauCode, Instant now) {
-        final Instant at = (now != null) ? now : Instant.now();
-        String key = normalizeCode(tableauCode);
+        final Instant at = nowOrNow(now);
+        String key = normalizeForLookup(tableauCode);
 
-        if (!registrationsByTableauCode.containsKey(key))
-            throw new BusinessException(ErrorCode.REGISTRATION_TABLEAU_NOT_FOUND);
-
+        List<Registration> regs = getRegsOrThrow(key);
+        purgeInactive(regs, at);
         promoteWaitlistIfPossible(key, at);
+        purgeInactive(regs, at);
     }
 
+    /**
+     * Compte “actifs” (CONFIRMED/WAITLISTED/RESERVED non expirée).
+     */
     public long activeRegistrationsCount(String tableauCode, Instant now) {
-        final Instant at = (now != null) ? now : Instant.now();
+        final Instant at = nowOrNow(now);
 
-        String key = normalizeCode(tableauCode);
-        List<Registration> regs = registrationsByTableauCode.get(key);
+        String key = normalizeForLookup(tableauCode);
+        List<Registration> regs = getRegsOrThrow(key);
 
-        if (regs == null)
-            throw new BusinessException(ErrorCode.REGISTRATION_TABLEAU_NOT_FOUND);
+        purgeInactive(regs, at);
 
         return regs.stream()
                 .filter(r -> r.isActiveAt(at))
@@ -294,60 +322,79 @@ public final class Tournament {
     // POLICY
     // -------------------------------------------------------------------------
 
-    private void enforceRegistrationPolicy(Participant participant, Tableau targetTableau, Instant at) {
+    /**
+     * @return true si l'inscription consommme le bonus féminin "ONCE" (si règle
+     *         ONCE active).
+     */
+    private boolean enforceRegistrationPolicy(Participant participant, Tableau targetTableau, Instant at) {
 
         // A) toutes les inscriptions actives du participant (tous tableaux)
         List<Registration> activeRegs = allActiveRegistrationsOf(participant, at);
 
-        // B) Max total
-        if (activeRegs.size() + 1 > registrationPolicy.maxTotalTableaux()) {
+        // état ONCE déjà consommé ?
+        String pidKey = normalizeParticipantId(participant.participantId());
+        boolean onceAlreadyUsed = femaleExtraOnceUsedParticipantIds.contains(pidKey);
+
+        int baseTotal = registrationPolicy.maxTotalTableaux();
+        int basePerDay = registrationPolicy.maxTableauxPerDay();
+
+        // B) limite totale (max total + bonus féminin)
+        int allowedTotal = registrationPolicy.allowedTotalTableaux(
+                participant,
+                targetTableau,
+                days.size(),
+                onceAlreadyUsed);
+        if (activeRegs.size() + 1 > allowedTotal) {
             throw new BusinessException(ErrorCode.REGISTRATION_MAX_TOTAL_TABLEAUX_EXCEEDED);
         }
 
-        // C) Max / jour (+ bonus féminin)
+        // C) inscriptions du jour
         LocalDate day = targetTableau.date();
-
         List<Tableau> selectedThatDay = new ArrayList<>();
+
         for (Registration r : activeRegs) {
-            Tableau t = findTableauByCode(r.tableauCode());
+            // IMPORTANT : r.tableauCode() est déjà normalisé par Registration (trim+upper)
+            Tableau t = tableauxByCode.get(r.tableauCode()); // point B : plus de normalizeForLookup ici
             if (t != null && day.equals(t.date())) {
                 selectedThatDay.add(t);
             }
         }
 
-        int allowedThatDay = registrationPolicy.allowedTableauxPerDay(participant, selectedThatDay);
+        // D) limite par jour (max/jour + bonus féminin)
+        int allowedThatDay = registrationPolicy.allowedTableauxPerDay(
+                participant,
+                targetTableau,
+                onceAlreadyUsed);
         if (selectedThatDay.size() + 1 > allowedThatDay) {
             throw new BusinessException(ErrorCode.REGISTRATION_MAX_TABLEAUX_PER_DAY_EXCEEDED);
         }
 
-        // D) Garde-fou actuel : 1 seul tableau féminin-only / jour (si tu conserves
-        // cette règle)
-        if (participant.isFemale()) {
-            int femaleOnlyCount = countFemaleOnlyTableaux(selectedThatDay);
-            if (targetTableau.genderPolicy().isFemaleOnly()) {
-                femaleOnlyCount++;
-            }
-            if (femaleOnlyCount > 1) {
-                throw new BusinessException(ErrorCode.REGISTRATION_TOO_MANY_FEMALE_ONLY_TABLEAUX_PER_DAY);
-            }
+        // E) Consommation du bonus "ONCE"
+        if (!registrationPolicy.isFemaleExtraOnceRule()) {
+            return false;
         }
-    }
+        if (onceAlreadyUsed) {
+            return false;
+        }
+        if (!registrationPolicy.targetQualifiesForFemaleExtra(participant, targetTableau)) {
+            return false;
+        }
 
-    private int countFemaleOnlyTableaux(List<Tableau> selectedThatDay) {
-        int c = 0;
-        for (Tableau t : selectedThatDay) {
-            if (t != null && t.genderPolicy().isFemaleOnly())
-                c++;
-        }
-        return c;
+        boolean exceedsBaseTotal = (activeRegs.size() + 1 > baseTotal);
+        boolean exceedsBaseDay = (selectedThatDay.size() + 1 > basePerDay);
+
+        return exceedsBaseTotal || exceedsBaseDay;
     }
 
     private List<Registration> allActiveRegistrationsOf(Participant participant, Instant at) {
         List<Registration> out = new ArrayList<>();
+        String pid = participant.participantId();
+
         for (List<Registration> regs : registrationsByTableauCode.values()) {
             for (Registration r : regs) {
-                if (r.participant() != null
-                        && participant.participantId().equalsIgnoreCase(r.participant().participantId())
+                if (r != null
+                        && r.participant() != null
+                        && pid.equalsIgnoreCase(r.participant().participantId())
                         && r.isActiveAt(at)) {
                     out.add(r);
                 }
@@ -356,91 +403,80 @@ public final class Tournament {
         return out;
     }
 
+    private void markFemaleExtraOnceUsed(Participant participant) {
+        String pidKey = normalizeParticipantId(participant.participantId());
+        femaleExtraOnceUsedParticipantIds.add(pidKey);
+    }
+
+    private static String normalizeParticipantId(String participantId) {
+        return participantId == null ? "" : participantId.trim().toUpperCase(Locale.ROOT);
+    }
+
     // -------------------------------------------------------------------------
     // WAITLIST PROMOTION (FIFO)
     // -------------------------------------------------------------------------
 
+    /**
+     * Pro : peut promouvoir plusieurs personnes si plusieurs places sont libres.
+     */
     private void promoteWaitlistIfPossible(String normalizedTableauCode, Instant at) {
 
-        Tableau tableau = findTableauByNormalizedCode(normalizedTableauCode);
-        if (tableau == null)
+        Tableau tableau = tableauxByCode.get(normalizedTableauCode);
+        if (tableau == null) {
             return;
+        }
 
         List<Registration> regs = registrationsByTableauCode.get(normalizedTableauCode);
-        if (regs == null)
+        if (regs == null) {
             return;
+        }
 
-        long spotCount = regs.stream()
-                .filter(r -> r.isActiveAt(at))
-                .filter(r -> r.status().blocksSpot())
-                .count();
+        purgeInactive(regs, at);
 
-        if (spotCount >= tableau.maxPlayers())
-            return;
+        while (true) {
+            long spotCount = countSpots(regs, at);
+            if (spotCount >= tableau.maxPlayers()) {
+                return;
+            }
 
-        Registration next = regs.stream()
-                .filter(r -> r.isActiveAt(at))
-                .filter(r -> r.status() == RegistrationStatus.WAITLISTED)
-                .min(Comparator.comparing(Registration::registeredAt)) // FIFO
-                .orElse(null);
+            Registration next = regs.stream()
+                    .filter(r -> r.isActiveAt(at))
+                    .filter(r -> r.status() == RegistrationStatus.WAITLISTED)
+                    .min(Comparator.comparing(Registration::registeredAt)) // FIFO
+                    .orElse(null);
 
-        if (next == null)
-            return;
+            if (next == null) {
+                return;
+            }
 
-        next.confirm();
+            next.confirm();
+            // boucle : si plusieurs spots, on continue
+        }
     }
 
     /**
-     * Option B : rafraîchit toutes les files (expiration RESERVED + promotion
-     * FIFO).
+     * Option : rafraîchit toutes les files (purge + promotion FIFO).
      */
     public void refreshAllQueues(Instant now) {
-        final Instant at = (now != null) ? now : Instant.now();
+        final Instant at = nowOrNow(now);
 
         for (Tableau t : tableaux) {
-            if (t == null)
+            if (t == null) {
                 continue;
-            String key = normalizeCode(t.code());
-            if (!registrationsByTableauCode.containsKey(key))
+            }
+            String key = normalizeForLookup(t.code());
+            List<Registration> regs = registrationsByTableauCode.get(key);
+            if (regs == null) {
                 continue;
-
+            }
+            purgeInactive(regs, at);
             promoteWaitlistIfPossible(key, at);
+            purgeInactive(regs, at);
         }
     }
 
     // -------------------------------------------------------------------------
-    // LOOKUPS / HELPERS
-    // -------------------------------------------------------------------------
-
-    private static boolean sameParticipant(Registration r, Participant p) {
-        return r != null
-                && r.participant() != null
-                && p != null
-                && r.participant().participantId().equalsIgnoreCase(p.participantId());
-    }
-
-    private Tableau findTableauByNormalizedCode(String normalizedCode) {
-        return tableaux.stream()
-                .filter(t -> normalizeCode(t.code()).equals(normalizedCode))
-                .findFirst()
-                .orElse(null);
-    }
-
-    private Tableau findTableauByCode(String tableauCode) {
-        String key = normalizeCode(tableauCode);
-        for (Tableau t : tableaux) {
-            if (normalizeCode(t.code()).equals(key))
-                return t;
-        }
-        return null;
-    }
-
-    private static String normalizeCode(String code) {
-        return code == null ? "" : code.trim().toUpperCase();
-    }
-
-    // -------------------------------------------------------------------------
-    // REGLEMENT FFTT
+    // REGULATION / PUBLICATION
     // -------------------------------------------------------------------------
 
     public void validateForOfficialPublication() {
@@ -466,14 +502,16 @@ public final class Tournament {
     }
 
     public void addJudgeReferee(JudgeRefereeAssignment assignment) {
-        if (assignment == null)
+        if (assignment == null) {
             throw new BusinessException(ErrorCode.TOURNAMENT_JA_REQUIRED);
+        }
 
         boolean duplicate = judgeReferees.stream()
                 .anyMatch(a -> a.judgeReferee().getLicenseNumber()
                         .equalsIgnoreCase(assignment.judgeReferee().getLicenseNumber()));
-        if (duplicate)
+        if (duplicate) {
             throw new BusinessException(ErrorCode.TOURNAMENT_JA_DUPLICATE);
+        }
 
         judgeReferees.add(assignment);
     }
@@ -483,8 +521,9 @@ public final class Tournament {
     }
 
     public void updateRegulationInfo(TournamentRegulationInfo newInfo) {
-        if (newInfo == null)
+        if (newInfo == null) {
             throw new BusinessException(ErrorCode.TOURNAMENT_REGULATION_INFO_REQUIRED);
+        }
         this.regulationInfo = newInfo;
     }
 
@@ -584,5 +623,79 @@ public final class Tournament {
 
     public TournamentRegulationInfo regulationInfo() {
         return regulationInfo;
+    }
+
+    // -------------------------------------------------------------------------
+    // INTERNAL HELPERS
+    // -------------------------------------------------------------------------
+
+    private static Instant nowOrNow(Instant now) {
+        return (now != null) ? now : Instant.now();
+    }
+
+    private Tableau getTableauOrThrow(String normalizedTableauCode) {
+        Tableau t = tableauxByCode.get(normalizedTableauCode);
+        if (t == null) {
+            throw new BusinessException(ErrorCode.REGISTRATION_TABLEAU_NOT_FOUND);
+        }
+        return t;
+    }
+
+    private List<Registration> getRegsOrThrow(String normalizedTableauCode) {
+        List<Registration> regs = registrationsByTableauCode.get(normalizedTableauCode);
+        if (regs == null) {
+            throw new BusinessException(ErrorCode.REGISTRATION_TABLEAU_NOT_FOUND);
+        }
+        return regs;
+    }
+
+    private static long countSpots(List<Registration> regs, Instant at) {
+        return regs.stream()
+                .filter(r -> r.isActiveAt(at))
+                .filter(r -> r.status().blocksSpot())
+                .count();
+    }
+
+    private static long countWaitlisted(List<Registration> regs, Instant at) {
+        return regs.stream()
+                .filter(r -> r.isActiveAt(at))
+                .filter(r -> r.status() == RegistrationStatus.WAITLISTED)
+                .count();
+    }
+
+    /**
+     * Pro : supprime les inscriptions inactives.
+     * - CANCELLED => inactif
+     * - RESERVED expirée => inactif
+     *
+     * Si un jour tu veux conserver l'historique complet, tu désactives ce nettoyage
+     * et tu relies l'historique à un export / audit.
+     */
+    private static void purgeInactive(List<Registration> regs, Instant at) {
+        regs.removeIf(r -> r == null || !r.isActiveAt(at));
+    }
+
+    private static boolean sameParticipant(Registration r, Participant p) {
+        return r != null
+                && r.participant() != null
+                && p != null
+                && r.participant().participantId().equalsIgnoreCase(p.participantId());
+    }
+
+    /**
+     * Normalisation stricte pour lookup (inputs externes : UI/API).
+     */
+    private static String normalizeForLookup(String code) {
+        if (code == null || code.isBlank()) {
+            throw new BusinessException(ErrorCode.REGISTRATION_TABLEAU_NOT_FOUND);
+        }
+        return code.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private static String normalizeRequiredCode(String code, ErrorCode errorIfBlank) {
+        if (code == null || code.isBlank()) {
+            throw new BusinessException(errorIfBlank);
+        }
+        return code.trim().toUpperCase(Locale.ROOT);
     }
 }

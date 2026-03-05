@@ -1,6 +1,7 @@
 package fr.Brunoy.gestion_tournois_FFTT.domain.refdata;
 
 public enum AgeCategory {
+
     POUSSIN,
     BENJAMIN_1,
     BENJAMIN_2,
@@ -23,5 +24,33 @@ public enum AgeCategory {
     VETERAN_75,
     VETERAN_80,
     VETERAN_85,
-    VETERAN_90
+    VETERAN_90;
+
+    public boolean isVeteran() {
+        return name().startsWith("VETERAN_");
+    }
+
+    public boolean isSenior() {
+        return this == SENIOR;
+    }
+
+    public boolean isJunior() {
+        return name().startsWith("JUNIOR_");
+    }
+
+    public boolean isCadet() {
+        return name().startsWith("CADET_");
+    }
+
+    public boolean isMinime() {
+        return name().startsWith("MINIME_");
+    }
+
+    public boolean isBenjamin() {
+        return name().startsWith("BENJAMIN_");
+    }
+
+    public boolean isPoussin() {
+        return this == POUSSIN;
+    }
 }

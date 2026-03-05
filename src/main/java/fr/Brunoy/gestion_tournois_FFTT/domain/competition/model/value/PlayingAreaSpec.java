@@ -1,21 +1,26 @@
 package fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value;
 
-import java.io.Serializable;
-import java.util.Objects;
-
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.PlayingAreaPreset;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.TournamentLevel;
 
+import java.io.Serial;
+import java.io.Serializable;
+import java.util.Objects;
+
 /**
  * Spécification "aire de jeu" pour le règlement.
- * - Standard selon niveau (départemental -> international)
- * - Mode CUSTOM possible si besoin
- * - Objectif : afficher une info claire dans le règlement, sans complexité
- * inutile.
+ * - Standard selon niveau
+ * - Mode CUSTOM possible
+ *
+ * Pro :
+ * - si compliant=false => publication officielle impossible
  */
 public final class PlayingAreaSpec implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     private final PlayingAreaPreset preset;
     private final String infoText;
@@ -24,6 +29,10 @@ public final class PlayingAreaSpec implements Serializable {
     private final Integer lengthMeters;
     private final Integer widthMeters;
 
+    /**
+     * Indique si l'aire de jeu est déclarée conforme.
+     * Si false => règlement officiel impossible.
+     */
     private final boolean compliant;
 
     private PlayingAreaSpec(
@@ -32,16 +41,21 @@ public final class PlayingAreaSpec implements Serializable {
             Integer lengthMeters,
             Integer widthMeters,
             boolean compliant) {
+
         this.preset = Objects.requireNonNull(preset, "preset obligatoire");
         this.infoText = normalize(infoText);
+
         this.lengthMeters = lengthMeters;
         this.widthMeters = widthMeters;
+
         this.compliant = compliant;
 
         validateSelf();
     }
 
-    // ---------- FACTORIES ----------
+    // -------------------------------------------------------------------------
+    // FACTORIES
+    // -------------------------------------------------------------------------
 
     public static PlayingAreaSpec standardFor(TournamentLevel level) {
         Objects.requireNonNull(level, "level obligatoire");
@@ -69,10 +83,11 @@ public final class PlayingAreaSpec implements Serializable {
         return new PlayingAreaSpec(PlayingAreaPreset.CUSTOM, infoText, lengthMeters, widthMeters, compliant);
     }
 
-    // ---------- RULES ----------
+    // -------------------------------------------------------------------------
+    // RULES
+    // -------------------------------------------------------------------------
 
     private static PlayingAreaPreset mapPreset(TournamentLevel level) {
-        // ⚠️ Ajuste ce mapping si ton enum TournamentLevel a d'autres valeurs exactes.
         return switch (level) {
             case DEPARTEMENTAL -> PlayingAreaPreset.DEPARTEMENTAL_STANDARD;
             case REGIONAL -> PlayingAreaPreset.REGIONAL_STANDARD;
@@ -83,12 +98,15 @@ public final class PlayingAreaSpec implements Serializable {
 
     private void validateSelf() {
         if (preset == PlayingAreaPreset.CUSTOM) {
+
             if (isBlank(infoText)) {
                 throw new BusinessException(ErrorCode.TOURNAMENT_PLAYING_AREA_CUSTOM_INFO_REQUIRED);
             }
+
             if ((lengthMeters == null) != (widthMeters == null)) {
                 throw new BusinessException(ErrorCode.TOURNAMENT_PLAYING_AREA_DIMENSIONS_INCOMPLETE);
             }
+
             if (lengthMeters != null && (lengthMeters <= 0 || widthMeters <= 0)) {
                 throw new BusinessException(ErrorCode.TOURNAMENT_PLAYING_AREA_DIMENSIONS_INVALID);
             }
@@ -97,14 +115,22 @@ public final class PlayingAreaSpec implements Serializable {
 
     /**
      * Contrôle de cohérence preset <-> niveau tournoi.
-     * Règle proposée :
+     *
+     * Règle :
      * - DEPARTEMENTAL : dep/reg/custom OK
      * - REGIONAL : reg/nat/custom OK
      * - NATIONAL(*) : nat/int/custom OK
      * - INTERNATIONAL : int/custom OK
+     *
+     * Pro :
+     * - compliant=false => publication officielle impossible
      */
     public void validateCompatibleWith(TournamentLevel level) {
         Objects.requireNonNull(level, "level obligatoire");
+
+        if (!compliant) {
+            throw new BusinessException(ErrorCode.TOURNAMENT_PLAYING_AREA_NOT_COMPLIANT);
+        }
 
         boolean ok = switch (level) {
             case DEPARTEMENTAL ->
@@ -132,7 +158,9 @@ public final class PlayingAreaSpec implements Serializable {
         }
     }
 
-    // ---------- GETTERS ----------
+    // -------------------------------------------------------------------------
+    // GETTERS
+    // -------------------------------------------------------------------------
 
     public PlayingAreaPreset preset() {
         return preset;
@@ -154,7 +182,9 @@ public final class PlayingAreaSpec implements Serializable {
         return compliant;
     }
 
-    // ---------- VALUE OBJECT ----------
+    // -------------------------------------------------------------------------
+    // VALUE OBJECT
+    // -------------------------------------------------------------------------
 
     @Override
     public boolean equals(Object o) {
@@ -176,16 +206,15 @@ public final class PlayingAreaSpec implements Serializable {
 
     @Override
     public String toString() {
-        return "PlayingAreaSpec{" +
-                "preset=" + preset +
-                ", infoText='" + infoText + '\'' +
-                ", lengthMeters=" + lengthMeters +
-                ", widthMeters=" + widthMeters +
-                ", compliant=" + compliant +
-                '}';
+        String dims = (lengthMeters == null) ? "" : (" - " + lengthMeters + "m x " + widthMeters + "m");
+        String compliantText = compliant ? "conforme" : "non conforme";
+        String base = preset + dims + " (" + compliantText + ")";
+        return (infoText == null) ? base : base + " - " + infoText;
     }
 
-    // ---------- UTIL ----------
+    // -------------------------------------------------------------------------
+    // UTIL
+    // -------------------------------------------------------------------------
 
     private static String normalize(String s) {
         if (s == null)

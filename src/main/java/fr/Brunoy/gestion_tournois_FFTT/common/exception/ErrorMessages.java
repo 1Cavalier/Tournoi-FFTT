@@ -8,6 +8,10 @@ public final class ErrorMessages {
     public static String message(ErrorCode code) {
         return switch (code) {
 
+            // ========================================================================
+            // REF DATA / ORGANIZATION
+            // ========================================================================
+
             // -------- REGION --------
             case REGION_CODE_REQUIRED ->
                 "Le code de la région est obligatoire";
@@ -31,6 +35,14 @@ public final class ErrorMessages {
                 "La ville du club est obligatoire";
             case CLUB_DEPARTEMENT_REQUIRED ->
                 "Le club doit être rattaché à un département";
+            case CLUB_GEO_COORDINATES_INCOMPLETE ->
+                "Latitude et longitude doivent être renseignées ensemble (ou toutes les deux null).";
+            case CLUB_GEO_COORDINATES_INVALID ->
+                "Coordonnées géographiques invalides : latitude doit être entre -90 et 90, longitude entre -180 et 180.";
+
+            // ========================================================================
+            // IDENTITY
+            // ========================================================================
 
             // -------- OFFICIAL / QUALIFICATION --------
             case OFFICIAL_ROLE_REQUIRED ->
@@ -66,208 +78,6 @@ public final class ErrorMessages {
             case PLAYER_QUALIFICATION_REQUIRED ->
                 "La qualification officielle du joueur est obligatoire";
 
-            // -------- TABLEAU --------
-            case TABLEAU_CODE_REQUIRED ->
-                "Le code du tableau est obligatoire";
-            case TABLEAU_DESIGNATION_REQUIRED ->
-                "La désignation du tableau est obligatoire";
-            case TABLEAU_DATE_REQUIRED ->
-                "La date du tableau est obligatoire";
-            case TABLEAU_GENDER_POLICY_REQUIRED ->
-                "La règle de genre du tableau est obligatoire";
-            case TABLEAU_POINTS_RULE_TYPE_REQUIRED ->
-                "Le type de règle de points du tableau est obligatoire";
-            case TABLEAU_MIN_POINTS_REQUIRED ->
-                "Le nombre minimum de points est obligatoire";
-            case TABLEAU_MAX_POINTS_REQUIRED ->
-                "Le nombre maximum de points est obligatoire";
-            case TABLEAU_MIN_POINTS_NEGATIVE ->
-                "Le nombre minimum de points ne peut pas être négatif";
-            case TABLEAU_MAX_POINTS_NEGATIVE ->
-                "Le nombre maximum de points ne peut pas être négatif";
-            case TABLEAU_MIN_GREATER_THAN_MAX ->
-                "Le nombre minimum de points ne peut pas être supérieur au maximum";
-            case TABLEAU_POINTS_RULE_INCONSISTENT ->
-                "Les règles de points du tableau sont incohérentes";
-            case TABLEAU_FEE_REQUIRED ->
-                "Les droits d'inscription du tableau sont obligatoires";
-            case TABLEAU_FEE_NEGATIVE ->
-                "Les droits d'inscription ne peuvent pas être négatifs";
-            case TABLEAU_CHECKIN_TIME_REQUIRED ->
-                "L'heure de fin de pointage est obligatoire";
-            case TABLEAU_START_TIME_REQUIRED ->
-                "L'heure de début du tableau est obligatoire";
-            case TABLEAU_CHECKIN_AFTER_START ->
-                "La fin du pointage doit être antérieure au début du tableau";
-            case TABLEAU_PRIZE_REQUIRED ->
-                "La répartition des récompenses est obligatoire";
-            case TABLEAU_PRIZE_NEGATIVE ->
-                "Les récompenses ne peuvent pas être négatives";
-
-            // -------- TABLEAU (CAPACITE / INSCRIPTION) --------
-            case TABLEAU_MAX_PLAYERS_INVALID ->
-                "Le nombre maximum de joueurs du tableau doit être strictement positif";
-            case TABLEAU_FULL ->
-                "Le tableau est complet";
-
-            // -------- TOURNAMENT --------
-            case TOURNAMENT_REQUIRED ->
-                "Le tournoi est obligatoire";
-            case TOURNAMENT_NAME_REQUIRED ->
-                "Le nom du tournoi est obligatoire";
-            case TOURNAMENT_ORGANIZING_CLUB_REQUIRED ->
-                "Le club organisateur du tournoi est obligatoire";
-            case TOURNAMENT_LEVEL_REQUIRED ->
-                "Le niveau du tournoi est obligatoire";
-            case TOURNAMENT_RANKING_PHASE_REQUIRED ->
-                "La phase de classement du tournoi est obligatoire";
-            case TOURNAMENT_DAYS_REQUIRED ->
-                "Le tournoi doit se dérouler sur au moins un jour";
-            case TOURNAMENT_TABLEAU_REQUIRED ->
-                "Un tableau est obligatoire pour l'ajouter au tournoi";
-            case TOURNAMENT_TABLEAU_CODE_DUPLICATE ->
-                "Un tableau avec ce code existe déjà dans le tournoi";
-            case TOURNAMENT_TABLEAU_DATE_NOT_IN_TOURNAMENT_DAYS ->
-                "La date du tableau ne fait pas partie des jours du tournoi";
-            case TOURNAMENT_FEMALE_EXTRA_RULE_REQUIRED ->
-                "La règle d'inscription supplémentaire féminine du tournoi est obligatoire";
-            case TOURNAMENT_FEMALE_EXTRA_TABLEAU_CODE_REQUIRED ->
-                "Le code du tableau féminin supplémentaire est obligatoire lorsque la règle est spécifique";
-
-            // -------- TOURNAMENT (REGLES D’INSCRIPTION) --------
-            case TOURNAMENT_REGISTRATION_POLICY_REQUIRED ->
-                "La politique d'inscription du tournoi est obligatoire";
-            case TOURNAMENT_MAX_TABLEAUX_PER_DAY_INVALID ->
-                "Le nombre maximum de tableaux par jour doit être strictement positif";
-            case TOURNAMENT_MAX_TOTAL_TABLEAUX_INVALID ->
-                "Le nombre maximum total de tableaux doit être strictement positif";
-            case TOURNAMENT_MAX_TOTAL_TABLEAUX_TOO_LOW ->
-                "Le nombre maximum total de tableaux doit être supérieur ou égal au maximum par jour";
-
-            // -------- REGISTRATION --------
-            case REGISTRATION_REQUIRED ->
-                "La demande d'inscription est obligatoire";
-            case REGISTRATION_INVALID ->
-                "La demande d'inscription n'est pas valide";
-            case REGISTRATION_TABLEAU_NOT_FOUND ->
-                "Le tableau demandé est introuvable";
-            case REGISTRATION_ALREADY_REGISTERED ->
-                "Le joueur est déjà inscrit à ce tableau";
-            case REGISTRATION_NOT_ELIGIBLE ->
-                "Le joueur n'est pas éligible pour ce tableau";
-
-            // -------- REGISTRATION (MULTI) --------
-            case REGISTRATION_MAX_TOTAL_TABLEAUX_EXCEEDED ->
-                "Le nombre total de tableaux sélectionnés dépasse la limite autorisée par le tournoi";
-
-            case REGISTRATION_MAX_TABLEAUX_PER_DAY_EXCEEDED ->
-                "Le nombre de tableaux sélectionnés sur un même jour dépasse la limite autorisée par le tournoi";
-
-            case REGISTRATION_TOO_MANY_FEMALE_ONLY_TABLEAUX_PER_DAY ->
-                "Un seul tableau féminin supplémentaire est autorisé par jour";
-
-            case REGISTRATION_MEDICAL_CERT_INVALID ->
-                "Le certificat médical du joueur n'est pas valide";
-
-            case REGISTRATION_PAYMENT_MODE_REQUIRED ->
-                "Le mode de paiement est obligatoire";
-
-            case REGISTRATION_STATUS_REQUIRED ->
-                "Le statut d'inscription est obligatoire";
-
-            case REGISTRATION_BATCH_ID_REQUIRED ->
-                "L'identifiant d'inscription est obligatoire";
-
-            case REGISTRATION_BATCH_NOT_FOUND ->
-                "Aucune inscription correspondante n'a été trouvée";
-
-            case REGISTRATION_RESERVATION_EXPIRED ->
-                "Le délai de paiement a expiré : l'inscription a été annulée, veuillez recommencer";
-
-            case REGISTRATION_PLAYER_NOT_IN_DEPARTEMENT ->
-                "Inscription impossible : tournoi départemental réservé aux joueurs du même département que le club organisateur.";
-
-            case REGISTRATION_PLAYER_NOT_IN_REGION ->
-                "Inscription impossible : tournoi régional réservé aux joueurs de la même région que le club organisateur.";
-
-            case REGISTRATION_LEVEL_INTERNATIONAL_NOT_SUPPORTED ->
-                "Inscription impossible : la gestion des tournois internationaux n'est pas encore supportée.";
-
-            case TOURNAMENT_HOMOLOGATION_REQUIRED_FOR_PUBLICATION ->
-                "Impossible de publier / générer un règlement conforme : le numéro d'homologation est manquant";
-
-            case TOURNAMENT_ORGANIZER_CONTACT_REQUIRED ->
-                "Les coordonnées de l'organisateur (au minimum l'email) sont obligatoires pour le règlement";
-
-            case TOURNAMENT_VENUE_REQUIRED ->
-                "La salle (nom du gymnase) est obligatoire pour le règlement";
-
-            case TOURNAMENT_TABLE_COUNT_INVALID ->
-                "Le nombre de tables doit être strictement positif";
-
-            case TOURNAMENT_PLAYING_AREA_REQUIRED ->
-                "Les informations d'aires de jeu sont obligatoires pour le règlement";
-
-            case TOURNAMENT_PLAYING_AREA_INCOMPATIBLE_LEVEL ->
-                "L'aire de jeu choisie n'est pas compatible avec le niveau du tournoi";
-
-            case TOURNAMENT_PLAYING_AREA_CUSTOM_INFO_REQUIRED ->
-                "En configuration personnalisée, la description des aires de jeu est obligatoire";
-
-            case TOURNAMENT_PLAYING_AREA_DIMENSIONS_INCOMPLETE ->
-                "Les dimensions d'aire de jeu doivent être renseignées complètement (longueur et largeur)";
-
-            case TOURNAMENT_PLAYING_AREA_DIMENSIONS_INVALID ->
-                "Les dimensions d'aire de jeu doivent être strictement positives";
-
-            case TOURNAMENT_BALL_INFO_REQUIRED ->
-                "Les informations sur les balles (marque/type + fourniture) sont obligatoires pour le règlement";
-
-            case TOURNAMENT_REGISTRATION_DEADLINE_REQUIRED ->
-                "La date limite d'engagement est obligatoire";
-
-            case TOURNAMENT_CHECKIN_DEADLINE_REQUIRED ->
-                "La fin du pointage est obligatoire";
-
-            case TOURNAMENT_FIRST_MATCH_START_REQUIRED ->
-                "L'heure de début des matchs est obligatoire";
-
-            case TOURNAMENT_TIMELINE_INCONSISTENT ->
-                "Les dates/horaires du règlement sont incohérents (deadline, pointage, début)";
-
-            case TOURNAMENT_EXPECTED_END_TIME_REQUIRED ->
-                "L'horaire de fin prévisionnel est obligatoire";
-
-            case TOURNAMENT_REGULATION_INFO_REQUIRED ->
-                "Les informations de règlement du tournoi sont obligatoires.";
-
-            case CLUB_GEO_COORDINATES_INCOMPLETE ->
-                "Latitude et longitude doivent être renseignées ensemble (ou toutes les deux null).";
-
-            case CLUB_GEO_COORDINATES_INVALID ->
-                "Coordonnées géographiques invalides : latitude doit être entre -90 et 90, longitude entre -180 et 180.";
-
-            case TABLEAU_WAITLIST_CAPACITY_INVALID ->
-                "La capacité de la file d'attente du tableau ne peut pas être négative";
-
-            case TABLEAU_WAITLIST_FULL ->
-                "Le tableau est complet et la file d'attente est pleine";
-
-            case TOURNAMENT_JA_REQUIRED ->
-                "Au moins un juge-arbitre (JA) doit être désigné pour publier officiellement le tournoi";
-
-            case TOURNAMENT_JA_DUPLICATE ->
-                "Ce juge-arbitre (JA) est déjà affecté au tournoi";
-
-            case TOURNAMENT_JA_GRADE_REQUIRED ->
-                "Le grade du juge-arbitre (JA) est obligatoire";
-
-            case TOURNAMENT_JA_GRADE_TOO_LOW_FOR_LEVEL ->
-                "Aucun juge-arbitre désigné n'a le grade requis pour le niveau du tournoi";
-
-            case TABLEAU_AGE_POLICY_INVALID ->
-                "La restriction de catégorie d'âge du tableau est invalide";
-
             // -------- PARTICIPANT --------
             case PARTICIPANT_REQUIRED ->
                 "Le participant est obligatoire";
@@ -288,15 +98,230 @@ public final class ErrorMessages {
             case PARTICIPANT_FOREIGN_FEDERATION_REQUIRED ->
                 "Les informations de fédération étrangère sont obligatoires";
 
-            // -------- REGISTRATION (ELIGIBILITY / POLICY) --------
+            // ========================================================================
+            // TABLEAU
+            // ========================================================================
+
+            // -------- TABLEAU (DEFINITION) --------
+            case TABLEAU_CODE_REQUIRED ->
+                "Le code du tableau est obligatoire";
+            case TABLEAU_DESIGNATION_REQUIRED ->
+                "La désignation du tableau est obligatoire";
+            case TABLEAU_DATE_REQUIRED ->
+                "La date du tableau est obligatoire";
+            case TABLEAU_GENDER_POLICY_REQUIRED ->
+                "La règle de genre du tableau est obligatoire";
+            case TABLEAU_POINTS_RULE_TYPE_REQUIRED ->
+                "Le type de règle de points du tableau est obligatoire";
+
+            // ---- points min/max ----
+            case TABLEAU_MIN_POINTS_REQUIRED ->
+                "Le nombre minimum de points est obligatoire";
+            case TABLEAU_MAX_POINTS_REQUIRED ->
+                "Le nombre maximum de points est obligatoire";
+            case TABLEAU_MIN_POINTS_NEGATIVE ->
+                "Le nombre minimum de points ne peut pas être négatif";
+            case TABLEAU_MAX_POINTS_NEGATIVE ->
+                "Le nombre maximum de points ne peut pas être négatif";
+            case TABLEAU_MIN_GREATER_THAN_MAX ->
+                "Le nombre minimum de points ne peut pas être supérieur au maximum";
+            case TABLEAU_POINTS_RULE_INCONSISTENT ->
+                "Les règles de points du tableau sont incohérentes";
+
+            // ---- frais / dotations ----
+            case TABLEAU_FEE_REQUIRED ->
+                "Les droits d'inscription du tableau sont obligatoires";
+            case TABLEAU_FEE_NEGATIVE ->
+                "Les droits d'inscription ne peuvent pas être négatifs";
+            case TABLEAU_PRIZE_REQUIRED ->
+                "La répartition des récompenses est obligatoire";
+            case TABLEAU_PRIZE_NEGATIVE ->
+                "Les récompenses ne peuvent pas être négatives";
+            case TABLEAU_PRIZE_TIER_INVALID ->
+                "Répartition des lots invalide : la plage de classement est incorrecte (ex : 1-2, 3-4, etc.).";
+            case TABLEAU_PRIZE_INCONSISTENT ->
+                "Répartition des lots incohérente : les plages se chevauchent ou contiennent une valeur invalide.";
+
+            // ---- horaires ----
+            case TABLEAU_CHECKIN_TIME_REQUIRED ->
+                "L'heure de fin de pointage est obligatoire";
+            case TABLEAU_START_TIME_REQUIRED ->
+                "L'heure de début du tableau est obligatoire";
+            case TABLEAU_CHECKIN_AFTER_START ->
+                "La fin du pointage doit être antérieure au début du tableau";
+
+            // ---- capacité / file d'attente ----
+            case TABLEAU_MAX_PLAYERS_INVALID ->
+                "Le nombre maximum de joueurs du tableau doit être strictement positif";
+            case TABLEAU_FULL ->
+                "Le tableau est complet";
+            case TABLEAU_WAITLIST_CAPACITY_INVALID ->
+                "La capacité de la file d'attente du tableau ne peut pas être négative";
+            case TABLEAU_WAITLIST_FULL ->
+                "Le tableau est complet et la file d'attente est pleine";
+
+            // ---- catégories d'âge ----
+            case TABLEAU_AGE_POLICY_INVALID ->
+                "La restriction de catégorie d'âge du tableau est invalide";
+
+            // ========================================================================
+            // TOURNAMENT
+            // ========================================================================
+
+            // -------- TOURNAMENT (base) --------
+            case TOURNAMENT_REQUIRED ->
+                "Le tournoi est obligatoire";
+            case TOURNAMENT_NAME_REQUIRED ->
+                "Le nom du tournoi est obligatoire";
+            case TOURNAMENT_ORGANIZING_CLUB_REQUIRED ->
+                "Le club organisateur du tournoi est obligatoire";
+            case TOURNAMENT_LEVEL_REQUIRED ->
+                "Le niveau du tournoi est obligatoire";
+            case TOURNAMENT_RANKING_PHASE_REQUIRED ->
+                "La phase de classement du tournoi est obligatoire";
+            case TOURNAMENT_DAYS_REQUIRED ->
+                "Le tournoi doit se dérouler sur au moins un jour";
+
+            // -------- TOURNAMENT (tableaux) --------
+            case TOURNAMENT_TABLEAU_REQUIRED ->
+                "Un tableau est obligatoire pour l'ajouter au tournoi";
+            case TOURNAMENT_TABLEAU_CODE_DUPLICATE ->
+                "Un tableau avec ce code existe déjà dans le tournoi";
+            case TOURNAMENT_TABLEAU_DATE_NOT_IN_TOURNAMENT_DAYS ->
+                "La date du tableau ne fait pas partie des jours du tournoi";
+
+            // -------- TOURNAMENT (règle féminine) --------
+            case TOURNAMENT_FEMALE_EXTRA_RULE_REQUIRED ->
+                "La règle d'inscription supplémentaire féminine du tournoi est obligatoire";
+            case TOURNAMENT_FEMALE_EXTRA_TABLEAU_CODE_REQUIRED ->
+                "Le code du tableau féminin supplémentaire est obligatoire lorsque la règle est spécifique";
+
+            // -------- TOURNAMENT (règles d’inscription) --------
+            case TOURNAMENT_REGISTRATION_POLICY_REQUIRED ->
+                "La politique d'inscription du tournoi est obligatoire";
+            case TOURNAMENT_MAX_TABLEAUX_PER_DAY_INVALID ->
+                "Le nombre maximum de tableaux par jour doit être strictement positif";
+            case TOURNAMENT_MAX_TOTAL_TABLEAUX_INVALID ->
+                "Le nombre maximum total de tableaux doit être strictement positif";
+            case TOURNAMENT_MAX_TOTAL_TABLEAUX_TOO_LOW ->
+                "Le nombre maximum total de tableaux doit être supérieur ou égal au maximum par jour";
+
+            // -------- TOURNAMENT (policy participants) --------
+            case TOURNAMENT_PARTICIPANT_POLICY_REQUIRED ->
+                "La politique de participants du tournoi est obligatoire";
+
+            // ========================================================================
+            // REGISTRATION
+            // ========================================================================
+
+            // -------- REGISTRATION (base) --------
+            case REGISTRATION_REQUIRED ->
+                "La demande d'inscription est obligatoire";
+            case REGISTRATION_INVALID ->
+                "La demande d'inscription n'est pas valide";
+            case REGISTRATION_TABLEAU_NOT_FOUND ->
+                "Le tableau demandé est introuvable";
+            case REGISTRATION_ALREADY_REGISTERED ->
+                "Le joueur est déjà inscrit à ce tableau";
+            case REGISTRATION_NOT_ELIGIBLE ->
+                "Le joueur n'est pas éligible pour ce tableau";
+
+            // -------- REGISTRATION (multi / limites) --------
+            case REGISTRATION_MAX_TOTAL_TABLEAUX_EXCEEDED ->
+                "Le nombre total de tableaux sélectionnés dépasse la limite autorisée par le tournoi";
+            case REGISTRATION_MAX_TABLEAUX_PER_DAY_EXCEEDED ->
+                "Le nombre de tableaux sélectionnés sur un même jour dépasse la limite autorisée par le tournoi";
+            case REGISTRATION_TOO_MANY_FEMALE_ONLY_TABLEAUX_PER_DAY ->
+                "Un seul tableau féminin supplémentaire est autorisé par jour";
+
+            // -------- REGISTRATION (santé) --------
+            case REGISTRATION_MEDICAL_CERT_INVALID ->
+                "Le certificat médical du joueur n'est pas valide";
+
+            // -------- REGISTRATION (paiement / statut / batch) --------
+            case REGISTRATION_PAYMENT_MODE_REQUIRED ->
+                "Le mode de paiement est obligatoire";
+            case REGISTRATION_STATUS_REQUIRED ->
+                "Le statut d'inscription est obligatoire";
+            case REGISTRATION_BATCH_ID_REQUIRED ->
+                "L'identifiant d'inscription est obligatoire";
+            case REGISTRATION_BATCH_NOT_FOUND ->
+                "Aucune inscription correspondante n'a été trouvée";
+            case REGISTRATION_RESERVATION_EXPIRED ->
+                "Le délai de paiement a expiré : l'inscription a été annulée, veuillez recommencer";
+
+            // -------- REGISTRATION (restrictions par niveau) --------
+            case REGISTRATION_PLAYER_NOT_IN_DEPARTEMENT ->
+                "Inscription impossible : tournoi départemental réservé aux joueurs du même département que le club organisateur.";
+            case REGISTRATION_PLAYER_NOT_IN_REGION ->
+                "Inscription impossible : tournoi régional réservé aux joueurs de la même région que le club organisateur.";
+            case REGISTRATION_LEVEL_INTERNATIONAL_NOT_SUPPORTED ->
+                "Inscription impossible : la gestion des tournois internationaux n'est pas encore supportée.";
+
+            // -------- REGISTRATION (eligibility / policy) --------
             case REGISTRATION_GUEST_NOT_ALLOWED ->
                 "Inscription impossible : les non-licenciés ne sont pas autorisés pour ce tournoi";
             case REGISTRATION_FOREIGN_NOT_ALLOWED ->
                 "Inscription impossible : les joueurs étrangers ne sont pas autorisés pour ce tournoi";
             case REGISTRATION_FOREIGN_COUNTRY_NOT_ALLOWED ->
                 "Inscription impossible : ce pays n'est pas autorisé pour les joueurs étrangers sur ce tournoi";
-            case TOURNAMENT_PARTICIPANT_POLICY_REQUIRED ->
-                "a";
+
+            // ========================================================================
+            // REGULATION / PUBLICATION
+            // ========================================================================
+
+            case TOURNAMENT_REGULATION_INFO_REQUIRED ->
+                "Les informations de règlement du tournoi sont obligatoires.";
+            case TOURNAMENT_HOMOLOGATION_REQUIRED_FOR_PUBLICATION ->
+                "Impossible de publier / générer un règlement conforme : le numéro d'homologation est manquant";
+
+            case TOURNAMENT_ORGANIZER_CONTACT_REQUIRED ->
+                "Les coordonnées de l'organisateur (au minimum l'email) sont obligatoires pour le règlement";
+            case TOURNAMENT_VENUE_REQUIRED ->
+                "La salle (nom du gymnase) est obligatoire pour le règlement";
+            case TOURNAMENT_TABLE_COUNT_INVALID ->
+                "Le nombre de tables doit être strictement positif";
+
+            case TOURNAMENT_PLAYING_AREA_REQUIRED ->
+                "Les informations d'aires de jeu sont obligatoires pour le règlement";
+            case TOURNAMENT_PLAYING_AREA_INCOMPATIBLE_LEVEL ->
+                "L'aire de jeu choisie n'est pas compatible avec le niveau du tournoi";
+            case TOURNAMENT_PLAYING_AREA_CUSTOM_INFO_REQUIRED ->
+                "En configuration personnalisée, la description des aires de jeu est obligatoire";
+            case TOURNAMENT_PLAYING_AREA_DIMENSIONS_INCOMPLETE ->
+                "Les dimensions d'aire de jeu doivent être renseignées complètement (longueur et largeur)";
+            case TOURNAMENT_PLAYING_AREA_DIMENSIONS_INVALID ->
+                "Les dimensions d'aire de jeu doivent être strictement positives";
+            case TOURNAMENT_PLAYING_AREA_NOT_COMPLIANT ->
+                "Impossible de publier : les aires de jeu sont déclarées non conformes à la réglementation.";
+
+            case TOURNAMENT_BALL_INFO_REQUIRED ->
+                "Les informations sur les balles (marque/type + fourniture) sont obligatoires pour le règlement";
+
+            case TOURNAMENT_REGISTRATION_DEADLINE_REQUIRED ->
+                "La date limite d'engagement est obligatoire";
+            case TOURNAMENT_CHECKIN_DEADLINE_REQUIRED ->
+                "La fin du pointage est obligatoire";
+            case TOURNAMENT_FIRST_MATCH_START_REQUIRED ->
+                "L'heure de début des matchs est obligatoire";
+            case TOURNAMENT_TIMELINE_INCONSISTENT ->
+                "Les dates/horaires du règlement sont incohérents (deadline, pointage, début)";
+
+            case TOURNAMENT_EXPECTED_END_TIME_REQUIRED ->
+                "L'horaire de fin prévisionnel est obligatoire";
+
+            // ========================================================================
+            // JA / ARBITRAGE
+            // ========================================================================
+
+            case TOURNAMENT_JA_REQUIRED ->
+                "Au moins un juge-arbitre (JA) doit être désigné pour publier officiellement le tournoi";
+            case TOURNAMENT_JA_DUPLICATE ->
+                "Ce juge-arbitre (JA) est déjà affecté au tournoi";
+            case TOURNAMENT_JA_GRADE_REQUIRED ->
+                "Le grade du juge-arbitre (JA) est obligatoire";
+            case TOURNAMENT_JA_GRADE_TOO_LOW_FOR_LEVEL ->
+                "Aucun juge-arbitre désigné n'a le grade requis pour le niveau du tournoi";
         };
     }
 }

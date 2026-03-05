@@ -2,6 +2,7 @@ package fr.Brunoy.gestion_tournois_FFTT.domain.identity;
 
 import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.*;
 
+import java.util.Locale;
 import java.util.Objects;
 
 public final class FfttParticipant implements Participant {
@@ -18,7 +19,8 @@ public final class FfttParticipant implements Participant {
 
     @Override
     public String participantId() {
-        return player.getLicenseNumber();
+        // pro : clé stable
+        return player.getLicenseNumber().trim().toUpperCase(Locale.ROOT);
     }
 
     @Override
@@ -60,13 +62,18 @@ public final class FfttParticipant implements Participant {
     public boolean equals(Object o) {
         if (this == o)
             return true;
-        if (!(o instanceof Participant p))
+        if (!(o instanceof FfttParticipant that))
             return false;
-        return participantId().equals(p.participantId());
+        return participantId().equals(that.participantId());
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(participantId());
+    }
+
+    @Override
+    public String toString() {
+        return fullName() + " (FFTT " + participantId() + ")";
     }
 }

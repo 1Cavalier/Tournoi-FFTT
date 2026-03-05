@@ -64,10 +64,14 @@ public class CreateTournamentDialog extends Stage {
         femaleCode.setDisable(true);
 
         femaleRule.valueProperty().addListener((obs, oldV, newV) -> {
-            boolean needsCode = newV == FemaleExtraRuleType.SPECIFIC_TABLEAU_CODE;
+            boolean needsCode = newV == FemaleExtraRuleType.SPECIFIC_TABLEAU_ONCE
+                    || newV == FemaleExtraRuleType.SPECIFIC_TABLEAU_PER_DAY;
+
             femaleCode.setDisable(!needsCode);
-            if (!needsCode)
+
+            if (!needsCode) {
                 femaleCode.clear();
+            }
         });
 
         // Petit "i" info à côté de règle féminine
@@ -479,9 +483,11 @@ public class CreateTournamentDialog extends Stage {
         if (femaleRule == null)
             return "Règle féminine obligatoire.";
 
-        if (femaleRule == FemaleExtraRuleType.SPECIFIC_TABLEAU_CODE) {
-            if (femaleCode == null || femaleCode.isBlank())
-                return "Code tableau obligatoire si règle SPECIFIC_TABLEAU_CODE.";
+        if (femaleRule == FemaleExtraRuleType.SPECIFIC_TABLEAU_ONCE
+                || femaleRule == FemaleExtraRuleType.SPECIFIC_TABLEAU_PER_DAY) {
+            if (femaleCode == null || femaleCode.isBlank()) {
+                return "Code tableau obligatoire si règle SPECIFIC_TABLEAU_*.";
+            }
         }
 
         // sécurité : normalement impossible car on shift/clear, mais on garde un filet
@@ -505,11 +511,12 @@ public class CreateTournamentDialog extends Stage {
                 tb.designation(),
                 newDate,
                 tb.genderPolicy(),
+                tb.ageCategoryPolicy(), // <-- ajouté
                 tb.pointsRuleType(),
                 tb.minPoints(),
                 tb.maxPoints(),
                 tb.maxPlayers(),
-                tb.waitlistCapacity(), // ← ajouté
+                tb.waitlistCapacity(),
                 tb.fee(),
                 tb.checkInEnd(),
                 tb.startTime(),

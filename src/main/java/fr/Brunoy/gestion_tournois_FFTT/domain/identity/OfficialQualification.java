@@ -2,14 +2,11 @@ package fr.Brunoy.gestion_tournois_FFTT.domain.identity;
 
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
-import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.JudgeRefereeGrade;
-import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.OfficialRoleType;
-import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.RefereeGrade;
-import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.TechnicalGrade;
+import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.*;
 
 import java.util.Objects;
 
-public class OfficialQualification {
+public final class OfficialQualification {
 
     private final OfficialRoleType roleType;
 
@@ -22,10 +19,36 @@ public class OfficialQualification {
             RefereeGrade refereeGrade,
             JudgeRefereeGrade judgeRefereeGrade,
             TechnicalGrade technicalGrade) {
+
+        if (roleType == null) {
+            throw new BusinessException(ErrorCode.OFFICIAL_ROLE_REQUIRED);
+        }
         this.roleType = roleType;
         this.refereeGrade = refereeGrade;
         this.judgeRefereeGrade = judgeRefereeGrade;
         this.technicalGrade = technicalGrade;
+
+        validateInvariants();
+    }
+
+    private void validateInvariants() {
+        switch (roleType) {
+            case ARBITRE -> {
+                if (refereeGrade == null || judgeRefereeGrade != null || technicalGrade != null) {
+                    throw new BusinessException(ErrorCode.OFFICIAL_INCONSISTENT_GRADE);
+                }
+            }
+            case JUGE_ARBITRE -> {
+                if (judgeRefereeGrade == null || refereeGrade != null || technicalGrade != null) {
+                    throw new BusinessException(ErrorCode.OFFICIAL_INCONSISTENT_GRADE);
+                }
+            }
+            case TECHNIQUE -> {
+                if (technicalGrade == null || refereeGrade != null || judgeRefereeGrade != null) {
+                    throw new BusinessException(ErrorCode.OFFICIAL_INCONSISTENT_GRADE);
+                }
+            }
+        }
     }
 
     // ---------- Factories ----------
@@ -33,34 +56,19 @@ public class OfficialQualification {
     public static OfficialQualification referee(RefereeGrade grade) {
         if (grade == null)
             throw new BusinessException(ErrorCode.OFFICIAL_GRADE_REQUIRED);
-
-        return new OfficialQualification(
-                OfficialRoleType.ARBITRE,
-                grade,
-                null,
-                null);
+        return new OfficialQualification(OfficialRoleType.ARBITRE, grade, null, null);
     }
 
     public static OfficialQualification judgeReferee(JudgeRefereeGrade grade) {
         if (grade == null)
             throw new BusinessException(ErrorCode.OFFICIAL_GRADE_REQUIRED);
-
-        return new OfficialQualification(
-                OfficialRoleType.JUGE_ARBITRE,
-                null,
-                grade,
-                null);
+        return new OfficialQualification(OfficialRoleType.JUGE_ARBITRE, null, grade, null);
     }
 
     public static OfficialQualification technical(TechnicalGrade grade) {
         if (grade == null)
             throw new BusinessException(ErrorCode.OFFICIAL_GRADE_REQUIRED);
-
-        return new OfficialQualification(
-                OfficialRoleType.TECHNIQUE,
-                null,
-                null,
-                grade);
+        return new OfficialQualification(OfficialRoleType.TECHNIQUE, null, null, grade);
     }
 
     // ---------- Getters ----------

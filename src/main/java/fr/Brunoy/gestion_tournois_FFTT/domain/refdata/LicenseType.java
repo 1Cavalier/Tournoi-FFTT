@@ -12,9 +12,6 @@ public enum LicenseType {
     EVENEMENTIELLE,
     LIBERTE;
 
-    /**
-     * Indique si la licence permet de participer à une compétition FFTT.
-     */
     public boolean allowsCompetition() {
         return this == COMPETITION;
     }

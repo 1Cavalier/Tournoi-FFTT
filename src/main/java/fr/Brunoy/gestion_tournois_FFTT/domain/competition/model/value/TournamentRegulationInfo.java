@@ -1,47 +1,68 @@
 package fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value;
 
-import java.io.Serializable;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.Objects;
-
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.BallProvisionPolicy;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.TournamentLevel;
 
+import java.io.Serial;
+import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.Objects;
+
 /**
  * Snapshot d'infos nécessaires pour générer un règlement FFTT conforme.
- * (Rempli par défaut depuis le club/organisateur, mais modifiable pour ce
- * tournoi)
+ * Rempli par défaut depuis le club/organisateur, mais modifiable pour ce
+ * tournoi.
+ *
+ * - Draft : validation légère (ne bloque pas tant que le tournoi n'est pas
+ * "publiable")
+ * - Publication : validation stricte via validateCompleteForRegulation(...)
  */
 public final class TournamentRegulationInfo implements Serializable {
 
-    // Homologation (nullable tant que pas validé par comité/fédé)
+    @Serial
+    private static final long serialVersionUID = 1L;
+
+    // -------------------------------------------------------------------------
+    // HOMOLOGATION
+    // -------------------------------------------------------------------------
+
+    /** Nullable tant que pas validé / pas attribué. */
     private final String homologationNumber;
 
-    // Organisateur (snapshot)
+    // -------------------------------------------------------------------------
+    // ORGANISATEUR (snapshot)
+    // -------------------------------------------------------------------------
+
     private final String organizerContactName; // optionnel
     private final String organizerEmail; // requis pour règlement complet
     private final String organizerPhone; // optionnel
 
-    // Salle (snapshot)
+    // -------------------------------------------------------------------------
+    // SALLE (snapshot)
+    // -------------------------------------------------------------------------
+
     private final String venueName; // requis pour règlement complet
     private final String venueStreet; // optionnel
     private final String venueZip; // optionnel
     private final String venueCity; // optionnel
 
-    // Matériel
-    private final int numberOfTables; // requis (>0) pour règlement complet
+    // -------------------------------------------------------------------------
+    // MATERIEL / AIRE / BALLES
+    // -------------------------------------------------------------------------
 
-    // Aires de jeu
+    private final int numberOfTables; // requis (>0) pour règlement complet
     private final PlayingAreaSpec playingArea; // requis pour règlement complet
 
-    // Balles
     private final String ballBrandAndType; // requis pour règlement complet
     private final BallProvisionPolicy ballProvisionPolicy; // requis
 
-    // Dates clés
+    // -------------------------------------------------------------------------
+    // DATES CLES
+    // -------------------------------------------------------------------------
+
     private final LocalDateTime registrationDeadline; // requis
     private final LocalDateTime checkInDeadline; // requis (fin pointage)
     private final LocalDateTime firstMatchesStart; // requis (début matchs)
@@ -66,6 +87,7 @@ public final class TournamentRegulationInfo implements Serializable {
             LocalDateTime checkInDeadline,
             LocalDateTime firstMatchesStart,
             LocalTime expectedEndTime) {
+
         this.homologationNumber = normalize(homologationNumber);
 
         this.organizerContactName = normalize(organizerContactName);
@@ -92,7 +114,9 @@ public final class TournamentRegulationInfo implements Serializable {
         validateDraftRules();
     }
 
-    // ---------- FACTORY ----------
+    // -------------------------------------------------------------------------
+    // FACTORY
+    // -------------------------------------------------------------------------
 
     public static TournamentRegulationInfo draft(
             String homologationNumber,
@@ -111,6 +135,7 @@ public final class TournamentRegulationInfo implements Serializable {
             LocalDateTime checkInDeadline,
             LocalDateTime firstMatchesStart,
             LocalTime expectedEndTime) {
+
         return new TournamentRegulationInfo(
                 homologationNumber,
                 organizerContactName,
@@ -130,11 +155,13 @@ public final class TournamentRegulationInfo implements Serializable {
                 expectedEndTime);
     }
 
-    // ---------- VALIDATION ----------
+    // -------------------------------------------------------------------------
+    // VALIDATION
+    // -------------------------------------------------------------------------
 
     /**
-     * Validation légère (DRAFT) : on évite de tout bloquer tant que le tournoi est
-     * en construction.
+     * Validation légère (DRAFT) : on évite de tout bloquer tant que le tournoi
+     * est en construction.
      */
     private void validateDraftRules() {
         if (numberOfTables < 0) {
@@ -143,6 +170,13 @@ public final class TournamentRegulationInfo implements Serializable {
         validateTimelineIfPresent();
     }
 
+    /**
+     * Vérifie uniquement ce qui est présent (null-safe).
+     *
+     * Règles (si dates présentes) :
+     * - registrationDeadline < checkInDeadline
+     * - checkInDeadline < firstMatchesStart
+     */
     private void validateTimelineIfPresent() {
         if (registrationDeadline != null && checkInDeadline != null) {
             if (!registrationDeadline.isBefore(checkInDeadline)) {
@@ -150,7 +184,7 @@ public final class TournamentRegulationInfo implements Serializable {
             }
         }
         if (checkInDeadline != null && firstMatchesStart != null) {
-            if (checkInDeadline.isAfter(firstMatchesStart)) {
+            if (!checkInDeadline.isBefore(firstMatchesStart)) {
                 throw new BusinessException(ErrorCode.TOURNAMENT_TIMELINE_INCONSISTENT);
             }
         }
@@ -158,7 +192,7 @@ public final class TournamentRegulationInfo implements Serializable {
 
     /**
      * Validation stricte : à appeler pour générer un règlement conforme / publier.
-     * 
+     *
      * @param homologationRequired true si tu veux interdire publication/export sans
      *                             numéro.
      */
@@ -197,6 +231,8 @@ public final class TournamentRegulationInfo implements Serializable {
         if (firstMatchesStart == null) {
             throw new BusinessException(ErrorCode.TOURNAMENT_FIRST_MATCH_START_REQUIRED);
         }
+
+        // stricte timeline
         validateTimelineIfPresent();
 
         if (expectedEndTime == null) {
@@ -204,7 +240,9 @@ public final class TournamentRegulationInfo implements Serializable {
         }
     }
 
-    // ---------- GETTERS ----------
+    // -------------------------------------------------------------------------
+    // GETTERS
+    // -------------------------------------------------------------------------
 
     public String homologationNumber() {
         return homologationNumber;
@@ -270,7 +308,9 @@ public final class TournamentRegulationInfo implements Serializable {
         return expectedEndTime;
     }
 
-    // ---------- VALUE OBJECT ----------
+    // -------------------------------------------------------------------------
+    // VALUE OBJECT
+    // -------------------------------------------------------------------------
 
     @Override
     public boolean equals(Object o) {
@@ -333,7 +373,9 @@ public final class TournamentRegulationInfo implements Serializable {
                 '}';
     }
 
-    // ---------- UTIL ----------
+    // -------------------------------------------------------------------------
+    // UTIL
+    // -------------------------------------------------------------------------
 
     private static String normalize(String s) {
         if (s == null)

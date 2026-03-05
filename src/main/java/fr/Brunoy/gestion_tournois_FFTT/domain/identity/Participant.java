@@ -7,25 +7,28 @@ import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.RankingPhase;
 
 public interface Participant {
 
-    /** Identifiant stable dans le tournoi (licence FFTT ou id invité). */
+    /**
+     * Identifiant stable dans le tournoi.
+     * - FFTT : numéro de licence
+     * - Guest : id généré
+     * - Foreign : id fédération étrangère / passeport / etc.
+     *
+     * Recommandation : trim + upper-case pour servir de clé.
+     */
     String participantId();
-
     String fullName();
-
     Gender gender();
 
     default boolean isFemale() {
         return gender() == Gender.FEMALE;
     }
 
-    /** ISO country code conseillé ("FR", "BE", ...). */
+    /** Code pays conseillé (ISO-2 "FR", "BE", ...). */
     String nationalityCode();
-
-    AgeCategory ageCategory(); // obligatoire pour l’éligibilité catégorie
+    AgeCategory ageCategory();
 
     /** Points si dispo (FFTT), sinon 0 par défaut (invités). */
     int pointsFor(RankingPhase phase);
-
     MedicalCertificateStatus medicalCertificateStatus();
 
     default boolean hasValidMedicalCertificate() {

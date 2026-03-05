@@ -3,22 +3,25 @@ package fr.Brunoy.gestion_tournois_FFTT.domain.identity;
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
 
+import java.util.Locale;
 import java.util.Objects;
 
 public final class ForeignFederationInfo {
 
-    private final String countryCode; // ex: "BE"
+    private final String countryCode; // ISO-2 ex: "BE"
     private final String federationName; // ex: "AFTT"
-    private final String foreignLicenseId; // ex: licence du pays (optionnel mais conseillé)
+    private final String foreignLicenseId; // optionnel
 
     private ForeignFederationInfo(String countryCode, String federationName, String foreignLicenseId) {
-        if (countryCode == null || countryCode.isBlank())
+        String cc = normalizeRequired(countryCode, ErrorCode.PARTICIPANT_NATIONALITY_REQUIRED);
+        if (cc.length() != 2) {
             throw new BusinessException(ErrorCode.PARTICIPANT_NATIONALITY_REQUIRED);
-        if (federationName == null || federationName.isBlank())
-            throw new BusinessException(ErrorCode.PARTICIPANT_FOREIGN_FEDERATION_REQUIRED);
+        }
 
-        this.countryCode = countryCode.trim().toUpperCase();
-        this.federationName = federationName.trim();
+        String fed = normalizeRequiredKeepCase(federationName, ErrorCode.PARTICIPANT_FOREIGN_FEDERATION_REQUIRED);
+
+        this.countryCode = cc;
+        this.federationName = fed;
         this.foreignLicenseId = normalizeOptional(foreignLicenseId);
     }
 
@@ -38,13 +41,6 @@ public final class ForeignFederationInfo {
         return foreignLicenseId;
     }
 
-    private static String normalizeOptional(String s) {
-        if (s == null)
-            return null;
-        String t = s.trim();
-        return t.isEmpty() ? null : t;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o)
@@ -59,5 +55,32 @@ public final class ForeignFederationInfo {
     @Override
     public int hashCode() {
         return Objects.hash(countryCode, federationName, foreignLicenseId);
+    }
+
+    @Override
+    public String toString() {
+        return federationName + " (" + countryCode + ")"
+                + (foreignLicenseId == null ? "" : " - licence=" + foreignLicenseId);
+    }
+
+    // ---------------- UTIL ----------------
+
+    private static String normalizeRequired(String s, ErrorCode errorIfBlank) {
+        if (s == null || s.isBlank())
+            throw new BusinessException(errorIfBlank);
+        return s.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private static String normalizeRequiredKeepCase(String s, ErrorCode errorIfBlank) {
+        if (s == null || s.isBlank())
+            throw new BusinessException(errorIfBlank);
+        return s.trim();
+    }
+
+    private static String normalizeOptional(String s) {
+        if (s == null)
+            return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
     }
 }

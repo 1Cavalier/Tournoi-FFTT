@@ -8,6 +8,7 @@ import fr.Brunoy.gestion_tournois_FFTT.domain.identity.Participant;
 import fr.Brunoy.gestion_tournois_FFTT.domain.identity.Player;
 
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -24,9 +25,13 @@ import java.util.Objects;
  */
 public final class Registration {
 
+    // -------------------------------------------------------------------------
+    // FIELDS
+    // -------------------------------------------------------------------------
+
     private final String batchId; // optionnel (multi-tableaux plus tard)
-    private final Participant participant;
-    private final String tableauCode;
+    private final Participant participant; // FFTT/guest/foreign
+    private final String tableauCode; // normalisé (trim + upper)
 
     private final Instant registeredAt;
 
@@ -35,6 +40,10 @@ public final class Registration {
 
     private Instant reservedUntil; // uniquement si RESERVED
     private RegistrationStatus status; // WAITLISTED / RESERVED / CONFIRMED / CANCELLED
+
+    // -------------------------------------------------------------------------
+    // CONSTRUCTOR (private)
+    // -------------------------------------------------------------------------
 
     private Registration(
             String batchId,
@@ -47,8 +56,10 @@ public final class Registration {
             Instant registeredAt) {
 
         this.batchId = normalizeOptional(batchId);
+
         this.participant = Objects.requireNonNull(participant, "participant");
-        this.tableauCode = Objects.requireNonNull(tableauCode, "tableauCode").trim().toUpperCase();
+
+        this.tableauCode = normalizeRequiredTableauCode(tableauCode);
 
         this.paymentMode = Objects.requireNonNull(paymentMode, "paymentMode");
         this.paymentStatus = Objects.requireNonNull(paymentStatus, "paymentStatus");
@@ -126,7 +137,11 @@ public final class Registration {
         return onSiteConfirmed(new FfttParticipant(player), tableauCode, now);
     }
 
-    public static Registration onlineReserved(Player player, String tableauCode, Instant reservedUntil, Instant now,
+    public static Registration onlineReserved(
+            Player player,
+            String tableauCode,
+            Instant reservedUntil,
+            Instant now,
             String batchId) {
         return onlineReserved(new FfttParticipant(player), tableauCode, reservedUntil, now, batchId);
     }
@@ -184,7 +199,7 @@ public final class Registration {
     }
 
     // -------------------------------------------------------------------------
-    // LOGIC
+    // BUSINESS RULES
     // -------------------------------------------------------------------------
 
     /**
@@ -194,11 +209,13 @@ public final class Registration {
     public boolean isActiveAt(Instant now) {
         Instant at = (now != null) ? now : Instant.now();
 
-        if (status == RegistrationStatus.CANCELLED)
+        if (status == RegistrationStatus.CANCELLED) {
             return false;
+        }
 
-        if (status == RegistrationStatus.CONFIRMED || status == RegistrationStatus.WAITLISTED)
+        if (status == RegistrationStatus.CONFIRMED || status == RegistrationStatus.WAITLISTED) {
             return true;
+        }
 
         // RESERVED
         return reservedUntil != null && at.isBefore(reservedUntil);
@@ -253,21 +270,36 @@ public final class Registration {
         // WAITLISTED/CONFIRMED/CANCELLED => reservedUntil doit être null
         if ((status == RegistrationStatus.WAITLISTED
                 || status == RegistrationStatus.CONFIRMED
-                || status == RegistrationStatus.CANCELLED) && reservedUntil != null) {
+                || status == RegistrationStatus.CANCELLED)
+                && reservedUntil != null) {
             throw new IllegalArgumentException("reservedUntil doit être null quand status=" + status);
         }
 
-        // petit garde-fou "pro" : ONLINE => réservé ou confirmé (pas waitlist)
-        // (optionnel)
-        // Si tu veux autoriser waitlist online plus tard, supprime ce bloc.
-        if (paymentMode == PaymentMode.ONLINE && status == RegistrationStatus.WAITLISTED) {
-            // on reste permissif en V1 : pas d'exception, mais tu peux durcir si tu veux
+        // Note : en V1, on reste permissif pour ONLINE + WAITLISTED (possible plus
+        // tard).
+        // Si tu veux durcir : lever une exception ici.
+    }
+
+    // -------------------------------------------------------------------------
+    // HELPERS
+    // -------------------------------------------------------------------------
+
+    private static String normalizeRequiredTableauCode(String tableauCode) {
+        String raw = Objects.requireNonNull(tableauCode, "tableauCode").trim();
+        if (raw.isEmpty()) {
+            // Ici je mets une IllegalArgumentException (pas BusinessException) car c'est un
+            // invariant "tech"
+            // Si tu veux être 100% métier, crée un ErrorCode TABLEAU_CODE_REQUIRED côté
+            // registration.
+            throw new IllegalArgumentException("tableauCode obligatoire");
         }
+        return raw.toUpperCase(Locale.ROOT);
     }
 
     private static String normalizeOptional(String s) {
-        if (s == null)
+        if (s == null) {
             return null;
+        }
         String t = s.trim();
         return t.isEmpty() ? null : t;
     }

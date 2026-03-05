@@ -4,20 +4,19 @@ import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
 import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
 import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.*;
 
+import java.util.Locale;
 import java.util.Objects;
 
 public final class ForeignParticipant implements Participant {
+
+    private static final String ID_PREFIX = "FOREIGN-";
 
     private final String foreignId; // ex: "FOREIGN-0001"
     private final String fullName;
     private final Gender gender;
     private final AgeCategory ageCategory;
-
     private final MedicalCertificateStatus medicalCertificateStatus;
-
     private final ForeignFederationInfo federationInfo;
-
-    /** Points FFTT utilisables pour l’éligibilité (déjà convertis/estimés). */
     private final int convertedPoints;
 
     public ForeignParticipant(
@@ -29,10 +28,14 @@ public final class ForeignParticipant implements Participant {
             ForeignFederationInfo federationInfo,
             int convertedPoints) {
 
-        if (foreignId == null || foreignId.isBlank())
+        String id = normalizeRequiredUpper(foreignId, ErrorCode.PARTICIPANT_ID_REQUIRED);
+        if (!id.startsWith(ID_PREFIX)) {
+            // Option A (recommandé) : créer PARTICIPANT_ID_INVALID
             throw new BusinessException(ErrorCode.PARTICIPANT_ID_REQUIRED);
-        if (fullName == null || fullName.isBlank())
-            throw new BusinessException(ErrorCode.PARTICIPANT_NAME_REQUIRED);
+        }
+
+        String name = normalizeRequiredKeepCase(fullName, ErrorCode.PARTICIPANT_NAME_REQUIRED);
+
         if (gender == null)
             throw new BusinessException(ErrorCode.PARTICIPANT_GENDER_REQUIRED);
         if (ageCategory == null)
@@ -44,8 +47,8 @@ public final class ForeignParticipant implements Participant {
         if (convertedPoints < 0)
             throw new BusinessException(ErrorCode.PARTICIPANT_POINTS_NEGATIVE);
 
-        this.foreignId = foreignId.trim().toUpperCase();
-        this.fullName = fullName.trim();
+        this.foreignId = id;
+        this.fullName = name;
         this.gender = gender;
         this.ageCategory = ageCategory;
         this.medicalCertificateStatus = medicalCertificateStatus;
@@ -85,7 +88,7 @@ public final class ForeignParticipant implements Participant {
 
     @Override
     public int pointsFor(RankingPhase phase) {
-        return convertedPoints; // V1 : mêmes points quel que soit la phase
+        return convertedPoints;
     }
 
     @Override
@@ -113,5 +116,24 @@ public final class ForeignParticipant implements Participant {
     @Override
     public int hashCode() {
         return Objects.hash(foreignId);
+    }
+
+    @Override
+    public String toString() {
+        return fullName + " (" + foreignId + ", " + nationalityCode() + ", pts=" + convertedPoints + ")";
+    }
+
+    // ---------------- UTIL ----------------
+
+    private static String normalizeRequiredUpper(String s, ErrorCode errorIfBlank) {
+        if (s == null || s.isBlank())
+            throw new BusinessException(errorIfBlank);
+        return s.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private static String normalizeRequiredKeepCase(String s, ErrorCode errorIfBlank) {
+        if (s == null || s.isBlank())
+            throw new BusinessException(errorIfBlank);
+        return s.trim();
     }
 }
