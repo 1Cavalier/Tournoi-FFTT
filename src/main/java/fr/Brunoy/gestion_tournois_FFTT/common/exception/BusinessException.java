@@ -7,21 +7,16 @@ public class BusinessException extends RuntimeException {
     private final ErrorCode code;
 
     public BusinessException(ErrorCode code) {
-        super(Objects.requireNonNull(code, "ErrorCode required").name());
-        this.code = code;
+        super(); // pas de message ici
+        this.code = Objects.requireNonNull(code, "code");
     }
 
     public BusinessException(ErrorCode code, Throwable cause) {
-        super(Objects.requireNonNull(code, "ErrorCode required").name(), cause);
-        this.code = code;
+        super(cause);
+        this.code = Objects.requireNonNull(code, "code");
     }
 
     public ErrorCode getCode() {
         return code;
-    }
-
-    @Override
-    public String toString() {
-        return "BusinessException{code=" + code + "}";
     }
 }

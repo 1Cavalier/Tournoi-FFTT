@@ -18,7 +18,7 @@ public final class AgeCategoryPolicy {
 
     private final Type type;
 
-    private final Set<AgeCategory> allowed;
+    private final Set<AgeCategory> allowed; // EnumSet immuable côté VO
     private final AgeCategory min;
     private final AgeCategory max;
 
@@ -29,24 +29,34 @@ public final class AgeCategoryPolicy {
             throw new BusinessException(ErrorCode.TABLEAU_AGE_POLICY_INVALID);
         }
 
+        // Copie défensive (si non null)
         this.allowed = (allowed == null) ? null : EnumSet.copyOf(allowed);
+
         this.min = min;
         this.max = max;
 
         validate();
     }
 
+    // ---------------- FACTORIES ----------------
+
     public static AgeCategoryPolicy any() {
         return new AgeCategoryPolicy(Type.ANY, null, null, null);
     }
 
     public static AgeCategoryPolicy allowed(Set<AgeCategory> allowed) {
+        if (allowed == null || allowed.isEmpty()) {
+            throw new BusinessException(ErrorCode.TABLEAU_AGE_POLICY_INVALID);
+        }
+        // on laisse le constructeur faire la copie défensive en EnumSet
         return new AgeCategoryPolicy(Type.ALLOWED_SET, allowed, null, null);
     }
 
     public static AgeCategoryPolicy range(AgeCategory min, AgeCategory max) {
         return new AgeCategoryPolicy(Type.RANGE, null, min, max);
     }
+
+    // ---------------- LOGIC ----------------
 
     public boolean accepts(AgeCategory category) {
         if (category == null)
@@ -66,6 +76,7 @@ public final class AgeCategoryPolicy {
     private void validate() {
         switch (type) {
             case ANY -> {
+                // ok
             }
             case ALLOWED_SET -> {
                 if (allowed == null || allowed.isEmpty()) {
@@ -82,6 +93,8 @@ public final class AgeCategoryPolicy {
             }
         }
     }
+
+    // ---------------- GETTERS ----------------
 
     public Type type() {
         return type;

@@ -71,9 +71,8 @@ public final class Tournament {
     private final Map<String, List<Registration>> registrationsByTableauCode = new HashMap<>();
 
     /**
-     * BONUS FEMININ "ONCE" : mémorise les participantes ayant déjà consommé le
-     * bonus.
-     * (Choix pro : le bonus reste consommé même si la joueuse annule ensuite.)
+     * BONUS FEMININ "ONCE" : mémorise les participantes ayant déjà consommé le bonus.
+     * Choix pro : le bonus reste consommé même si la joueuse annule ensuite.
      */
     private final Set<String> femaleExtraOnceUsedParticipantIds = new HashSet<>();
 
@@ -165,7 +164,7 @@ public final class Tournament {
     }
 
     // -------------------------------------------------------------------------
-    // REGISTRATIONS (WRITE) - V1 COMPLETE
+    // REGISTRATIONS (WRITE)
     // -------------------------------------------------------------------------
 
     public void addRegistration(Registration registration, Instant now) {
@@ -185,8 +184,10 @@ public final class Tournament {
             throw new BusinessException(ErrorCode.PARTICIPANT_REQUIRED);
         }
 
-        // Pro : purge inactifs (CANCELLED + RESERVED expirées) pour éviter que les
-        // listes gonflent.
+        // Policy "who is allowed to play" (guest/foreign/etc.)
+        registrationPolicy.participantEligibilityPolicy().assertEligible(participant);
+
+        // Pro : purge inactifs (CANCELLED + RESERVED expirées) pour éviter que les listes gonflent.
         purgeInactive(regs, at);
 
         // 0) Éligibilité tableau (points + genre + âge)
@@ -275,6 +276,9 @@ public final class Tournament {
 
         // Une place peut se libérer => promotion FIFO (peut promouvoir plusieurs)
         promoteWaitlistIfPossible(key, at);
+
+        // Pro : purge après promotion (optionnel)
+        purgeInactive(regs, at);
     }
 
     /**
@@ -323,8 +327,7 @@ public final class Tournament {
     // -------------------------------------------------------------------------
 
     /**
-     * @return true si l'inscription consommme le bonus féminin "ONCE" (si règle
-     *         ONCE active).
+     * @return true si l'inscription consomme le bonus féminin "ONCE" (si règle ONCE active).
      */
     private boolean enforceRegistrationPolicy(Participant participant, Tableau targetTableau, Instant at) {
 
@@ -344,19 +347,21 @@ public final class Tournament {
                 targetTableau,
                 days.size(),
                 onceAlreadyUsed);
+
         if (activeRegs.size() + 1 > allowedTotal) {
             throw new BusinessException(ErrorCode.REGISTRATION_MAX_TOTAL_TABLEAUX_EXCEEDED);
         }
 
         // C) inscriptions du jour
         LocalDate day = targetTableau.date();
-        List<Tableau> selectedThatDay = new ArrayList<>();
+        int selectedThatDayCount = 0;
 
         for (Registration r : activeRegs) {
-            // IMPORTANT : r.tableauCode() est déjà normalisé par Registration (trim+upper)
-            Tableau t = tableauxByCode.get(r.tableauCode()); // point B : plus de normalizeForLookup ici
+            // Important : on normalise quand même (safe) : tu ne veux pas dépendre d’un invariant "ailleurs".
+            String tKey = normalizeForLookup(r.tableauCode());
+            Tableau t = tableauxByCode.get(tKey);
             if (t != null && day.equals(t.date())) {
-                selectedThatDay.add(t);
+                selectedThatDayCount++;
             }
         }
 
@@ -365,11 +370,14 @@ public final class Tournament {
                 participant,
                 targetTableau,
                 onceAlreadyUsed);
-        if (selectedThatDay.size() + 1 > allowedThatDay) {
+
+        if (selectedThatDayCount + 1 > allowedThatDay) {
             throw new BusinessException(ErrorCode.REGISTRATION_MAX_TABLEAUX_PER_DAY_EXCEEDED);
         }
 
-        // E) Consommation du bonus "ONCE"
+        // E) Consommation du bonus "ONCE" :
+        // On le marque "utilisé" uniquement si cette inscription dépasse une limite de base,
+        // et si le tableau cible peut déclencher la règle.
         if (!registrationPolicy.isFemaleExtraOnceRule()) {
             return false;
         }
@@ -381,7 +389,7 @@ public final class Tournament {
         }
 
         boolean exceedsBaseTotal = (activeRegs.size() + 1 > baseTotal);
-        boolean exceedsBaseDay = (selectedThatDay.size() + 1 > basePerDay);
+        boolean exceedsBaseDay = (selectedThatDayCount + 1 > basePerDay);
 
         return exceedsBaseTotal || exceedsBaseDay;
     }
@@ -391,6 +399,9 @@ public final class Tournament {
         String pid = participant.participantId();
 
         for (List<Registration> regs : registrationsByTableauCode.values()) {
+            // Pro : purge local pour garder des listes petites
+            purgeInactive(regs, at);
+
             for (Registration r : regs) {
                 if (r != null
                         && r.participant() != null
@@ -440,7 +451,7 @@ public final class Tournament {
             }
 
             Registration next = regs.stream()
-                    .filter(r -> r.isActiveAt(at))
+                    .filter(r -> r != null && r.isActiveAt(at))
                     .filter(r -> r.status() == RegistrationStatus.WAITLISTED)
                     .min(Comparator.comparing(Registration::registeredAt)) // FIFO
                     .orElse(null);
@@ -651,14 +662,14 @@ public final class Tournament {
 
     private static long countSpots(List<Registration> regs, Instant at) {
         return regs.stream()
-                .filter(r -> r.isActiveAt(at))
+                .filter(r -> r != null && r.isActiveAt(at))
                 .filter(r -> r.status().blocksSpot())
                 .count();
     }
 
     private static long countWaitlisted(List<Registration> regs, Instant at) {
         return regs.stream()
-                .filter(r -> r.isActiveAt(at))
+                .filter(r -> r != null && r.isActiveAt(at))
                 .filter(r -> r.status() == RegistrationStatus.WAITLISTED)
                 .count();
     }
@@ -667,9 +678,6 @@ public final class Tournament {
      * Pro : supprime les inscriptions inactives.
      * - CANCELLED => inactif
      * - RESERVED expirée => inactif
-     *
-     * Si un jour tu veux conserver l'historique complet, tu désactives ce nettoyage
-     * et tu relies l'historique à un export / audit.
      */
     private static void purgeInactive(List<Registration> regs, Instant at) {
         regs.removeIf(r -> r == null || !r.isActiveAt(at));

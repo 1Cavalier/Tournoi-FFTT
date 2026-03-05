@@ -155,7 +155,11 @@ public final class TournamentRegistrationPolicy {
                 yield onceAlreadyUsed ? 0 : 1;
             }
 
-            case SPECIFIC_TABLEAU_PER_DAY -> Math.max(0, tournamentDaysCount);
+            case SPECIFIC_TABLEAU_PER_DAY -> {
+                if (!isTargetSpecific(targetTableau))
+                    yield 0;
+                yield Math.max(0, tournamentDaysCount);
+            }
         };
     }
 

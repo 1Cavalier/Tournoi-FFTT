@@ -1,6 +1,9 @@
-package fr.Brunoy.gestion_tournois_FFTT.common.exception;
+package fr.Brunoy.gestion_tournois_FFTT.exception;
 
 import org.junit.jupiter.api.Test;
+
+import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
+import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
 
 import static org.junit.jupiter.api.Assertions.*;
 
