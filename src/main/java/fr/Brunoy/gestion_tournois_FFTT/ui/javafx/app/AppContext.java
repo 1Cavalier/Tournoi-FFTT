@@ -17,13 +17,13 @@ import java.sql.Connection;
  * AppContext est responsable de l'initialisation technique :
  * - Bases SQLite
  * - Migrations SQL
+ * - Seed de données locales
  * - Repositories
  * - Services (auth, email)
  *
  * Objectif :
- * - Navigator ne fait plus l'initialisation (il ne fait que la navigation +
- * session).
- * - Les vues accèdent aux dépendances via Navigator -> AppContext.
+ * - Navigator ne fait plus l'initialisation
+ * - Les vues accèdent aux dépendances via Navigator -> AppContext
  */
 public final class AppContext {
 
@@ -46,20 +46,20 @@ public final class AppContext {
         Path clubDbFile = Path.of("data", "club.db");
         Path competitionDbFile = Path.of("data", "competition.db");
 
+        // Initialisation des accès DB
         this.clubDb = new SqliteDb(clubDbFile);
         this.competitionDb = new SqliteDb(competitionDbFile);
 
         // Migrations / schémas
-        applySchema(clubDb, "/db/Club.sql", "Club");
-        applySchema(competitionDb, "/db/Competition.sql", "Competition");
+        applySql(clubDb, "/db/Club.sql", "Club");
+        applySql(competitionDb, "/db/Competition.sql", "Competition");
+
+        // Données locales de référence (seed)
+        applySql(clubDb, "/db/SeedData.sql", "SeedData");
 
         // Repositories
         this.organizerAccountRepo = new SqliteOrganizerAccountRepository(clubDb);
         this.clubRepo = new SqliteClubRepository(clubDb);
-
-        // Ces repos sont encore dans view.Ancien chez toi : on les garde tels quels
-        // pour l'instant.
-        // Idéalement, tu les déplaceras dans ui.javafx.infra.repo plus tard.
         this.tournamentRepo = new SqliteTournamentRepository(competitionDb);
         this.tableauRepo = new SqliteTableauRepository(competitionDb);
 
@@ -74,7 +74,7 @@ public final class AppContext {
                 emailVerificationService);
     }
 
-    private void applySchema(SqliteDb db, String resourceSqlPath, String label) {
+    private void applySql(SqliteDb db, String resourceSqlPath, String label) {
         try (Connection c = db.openConnection()) {
             DbMigrations.applySchema(c, resourceSqlPath);
         } catch (Exception e) {
@@ -82,7 +82,7 @@ public final class AppContext {
         }
     }
 
-    // --------- Getters (dépendances exposées à Navigator) ---------
+    // --------- Getters ---------
 
     public OrganizerAuthService organizerAuthService() {
         return organizerAuthService;

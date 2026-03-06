@@ -9,37 +9,57 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
-import javafx.scene.layout.*;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
+
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class OrganizerLoginView extends BorderPane {
 
     private static final String ERROR_STYLE = "-fx-text-fill: #b00020; -fx-font-weight: 700;";
     private static final String SUCCESS_STYLE = "-fx-text-fill: #1b5e20; -fx-font-weight: 700;";
 
+    private final Navigator nav;
     private final Label messageLabel = new Label();
 
     public OrganizerLoginView(Navigator nav) {
+        this.nav = Objects.requireNonNull(nav, "nav must not be null");
+
         AppTheme.applyPage(this);
         setPadding(new Insets(AppTheme.PADDING_PAGE));
 
-        // Centre global
         VBox root = new VBox(AppTheme.SPACE_LG);
         root.setAlignment(Pos.TOP_CENTER);
 
-        // Header
+        VBox header = buildHeader();
+        VBox card = buildLoginCard();
+        HBox bottomActions = buildBottomActions();
+
+        root.getChildren().addAll(header, card, bottomActions);
+        setCenter(root);
+    }
+
+    private VBox buildHeader() {
         VBox header = new VBox(AppTheme.SPACE_SM);
         header.setAlignment(Pos.TOP_CENTER);
         header.setMaxWidth(720);
 
-        Label title = new Label("Connexion Organisateur");
+        Label title = new Label("Connexion organisateur");
         AppTheme.applyTitle(title);
 
-        Label subtitle = new Label("Accédez à l’espace club pour gérer inscriptions, tableaux, matchs et résultats.");
+        Label subtitle = new Label(
+                "Accédez à votre espace PingManager pour gérer vos tournois et inscriptions.");
         AppTheme.applySubtitle(subtitle);
 
         header.getChildren().addAll(title, subtitle);
+        return header;
+    }
 
-        // Form fields
+    private VBox buildLoginCard() {
         TextField emailField = new TextField();
         emailField.setPromptText("Adresse email");
         emailField.setMaxWidth(Double.MAX_VALUE);
@@ -48,26 +68,29 @@ public class OrganizerLoginView extends BorderPane {
         passwordField.setPromptText("Mot de passe");
         passwordField.setMaxWidth(Double.MAX_VALUE);
 
-        // Message label
         messageLabel.setManaged(false);
         messageLabel.setVisible(false);
-        messageLabel.setStyle(ERROR_STYLE);
         messageLabel.setWrapText(true);
+        messageLabel.setStyle(ERROR_STYLE);
 
-        // Action buttons
         Button loginButton = new Button("Se connecter");
         AppTheme.stylePrimary(loginButton);
 
-        Button forgotPasswordBtn = new Button("Mot de passe oublié");
-        AppTheme.styleLinkButton(forgotPasswordBtn);
+        Button forgotPasswordButton = new Button("Mot de passe oublié");
+        AppTheme.styleLinkButton(forgotPasswordButton);
 
         Region linksSpacer = new Region();
         HBox.setHgrow(linksSpacer, Priority.ALWAYS);
 
-        HBox linksRow = new HBox(12, linksSpacer, forgotPasswordBtn);
+        HBox linksRow = new HBox(12, linksSpacer, forgotPasswordButton);
         linksRow.setAlignment(Pos.CENTER_LEFT);
 
-        // Card container (pro)
+        loginButton.setOnAction(e -> doLogin(emailField, passwordField));
+        passwordField.setOnAction(e -> doLogin(emailField, passwordField));
+        emailField.setOnAction(e -> doLogin(emailField, passwordField));
+
+        forgotPasswordButton.setOnAction(e -> handleForgotPassword(emailField));
+
         VBox card = AppTheme.card(
                 sectionTitle("Connexion"),
                 emailField,
@@ -77,84 +100,95 @@ public class OrganizerLoginView extends BorderPane {
                 messageLabel);
         card.setMaxWidth(520);
 
-        // Bottom actions
+        emailField.requestFocus();
+        return card;
+    }
+
+    private HBox buildBottomActions() {
         Button registerButton = new Button("Créer un compte organisateur");
         AppTheme.styleSecondary(registerButton);
+        registerButton.setOnAction(e -> nav.showOrganizerRegister());
 
         Button backButton = new Button("Retour");
         AppTheme.styleSecondary(backButton);
+        backButton.setOnAction(e -> nav.showHome());
 
         HBox bottom = new HBox(12, backButton, registerButton);
         bottom.setAlignment(Pos.CENTER);
         bottom.setMaxWidth(520);
-
-        // Wiring actions
-        loginButton.setOnAction(e -> doLogin(nav, emailField, passwordField));
-        registerButton.setOnAction(e -> nav.showOrganizerRegister());
-        backButton.setOnAction(e -> nav.showHome());
-
-        // Placeholders (à relier à ton auth service quand prêt)
-        forgotPasswordBtn.setOnAction(e -> {
-            clearMessage();
-            String email = normalizeEmail(emailField.getText());
-            if (email.isBlank()) {
-                showError("Saisis ton email pour recevoir la procédure de réinitialisation.");
-                return;
-            }
-            // TODO: nav.organizerAuth().sendPasswordReset(email);
-            showSuccess("Fonction à venir : réinitialisation du mot de passe.");
-        });
-
-        root.getChildren().addAll(header, card, bottom);
-        setCenter(root);
+        return bottom;
     }
 
     private Label sectionTitle(String text) {
-        Label l = new Label(text);
-        AppTheme.applyCardTitle(l);
-        return l;
+        Label label = new Label(text);
+        AppTheme.applyCardTitle(label);
+        return label;
     }
 
-    private void doLogin(Navigator nav, TextField emailField, PasswordField passwordField) {
-        try {
-            clearMessage();
+    private void doLogin(TextField emailField, PasswordField passwordField) {
+        clearMessage();
 
+        try {
             String email = normalizeEmail(emailField.getText());
             String password = passwordField.getText();
 
             requireNotBlank(email, "Email obligatoire.");
             requireNotBlank(password, "Mot de passe obligatoire.");
 
-            // Étape 1 : mot de passe OK => envoi OTP
             nav.organizerAuth().loginStart(email, password);
 
-            // Étape 2 : saisie OTP => récupération OrganizerAccount
-            final OrganizerAccount[] holder = new OrganizerAccount[1];
+            OrganizerAccount organizer = requestOtpAndAuthenticate(email);
+            passwordField.clear();
 
-            CodeVerificationDialog dlg = new CodeVerificationDialog(
-                    "Code de connexion",
-                    "Un code de connexion a été envoyé à : " + email,
-                    code -> {
-                        try {
-                            holder[0] = nav.organizerAuth().verifyLoginOtpAndFinish(email, code);
-                            return true;
-                        } catch (IllegalArgumentException ex) {
-                            return false;
-                        }
-                    });
-
-            dlg.showAndWait();
-
-            if (dlg.isSuccess() && holder[0] != null) {
-                nav.setCurrentOrganizer(holder[0]);
-                nav.showOrganizerDashboard();
-            } else {
-                showError("Connexion annulée ou code incorrect.");
+            if (organizer == null) {
+                showError("Connexion interrompue avant validation du code.");
+                return;
             }
 
+            nav.setCurrentOrganizer(organizer);
+            nav.showOrganizerDashboard();
+
         } catch (IllegalArgumentException ex) {
+            passwordField.clear();
             showError(ex.getMessage());
         }
+    }
+
+    private OrganizerAccount requestOtpAndAuthenticate(String email) {
+        AtomicReference<OrganizerAccount> organizerRef = new AtomicReference<>();
+
+        CodeVerificationDialog dialog = new CodeVerificationDialog(
+                "Code de connexion",
+                "Un code de connexion a été envoyé à : " + email,
+                code -> {
+                    try {
+                        OrganizerAccount organizer = nav.organizerAuth().verifyLoginOtpAndFinish(email, code);
+                        organizerRef.set(organizer);
+                        return true;
+                    } catch (IllegalArgumentException ex) {
+                        return false;
+                    }
+                });
+
+        dialog.showAndWait();
+
+        if (!dialog.isSuccess()) {
+            return null;
+        }
+
+        return organizerRef.get();
+    }
+
+    private void handleForgotPassword(TextField emailField) {
+        clearMessage();
+
+        String email = normalizeEmail(emailField.getText());
+        if (email.isBlank()) {
+            showError("Saisis ton email pour la future procédure de réinitialisation.");
+            return;
+        }
+
+        showSuccess("Fonction bientôt disponible : réinitialisation du mot de passe.");
     }
 
     private void clearMessage() {
@@ -183,7 +217,8 @@ public class OrganizerLoginView extends BorderPane {
     }
 
     private static void requireNotBlank(String value, String message) {
-        if (value == null || value.isBlank())
+        if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(message);
+        }
     }
 }

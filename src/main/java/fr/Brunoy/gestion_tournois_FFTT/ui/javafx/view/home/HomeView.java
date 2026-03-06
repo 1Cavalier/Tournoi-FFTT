@@ -6,127 +6,145 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.*;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
+
+import java.util.Objects;
 
 public class HomeView extends BorderPane {
 
+    private static final double CARD_WIDTH = 420;
+
+    private final Navigator nav;
+
     public HomeView(Navigator nav) {
+        this.nav = Objects.requireNonNull(nav, "nav must not be null");
+
         AppTheme.applyPage(this);
         setPadding(new Insets(AppTheme.PADDING_PAGE));
 
-        // --- Top: logo (gauche) ---
-        HBox topBar = new HBox(12);
-        topBar.setAlignment(Pos.TOP_LEFT);
+        setTop(buildTopBar());
+        setCenter(buildCenterContent());
+    }
 
-        ImageView logo = tryLoadLogo(AppTheme.LOGO_RESOURCE);
+    private HBox buildTopBar() {
+        HBox topBar = new HBox(12);
+        topBar.setAlignment(Pos.CENTER_LEFT);
+
+        ImageView logo = AppTheme.logoView(44);
         if (logo != null) {
-            logo.setFitHeight(44);
-            logo.setPreserveRatio(true);
             topBar.getChildren().add(logo);
         } else {
-            // fallback propre si pas de fichier logo
-            Label logoFallback = new Label("PM");
-            logoFallback.setStyle(
+            Label fallback = new Label("PM");
+            fallback.setStyle(
                     "-fx-background-color: " + AppTheme.COLOR_PRIMARY + ";" +
                             "-fx-text-fill: white;" +
                             "-fx-font-weight: 900;" +
                             "-fx-padding: 10 12;" +
                             "-fx-background-radius: 10;");
-            topBar.getChildren().add(logoFallback);
+            topBar.getChildren().add(fallback);
         }
 
-        setTop(topBar);
+        Label appName = new Label("PingManager");
+        AppTheme.applyCardTitle(appName);
 
-        // --- Centre: texte + cartes ---
+        topBar.getChildren().add(appName);
+        return topBar;
+    }
+
+    private VBox buildCenterContent() {
         VBox center = new VBox(AppTheme.SPACE_LG);
-        center.setAlignment(Pos.TOP_CENTER);
-        center.setPadding(new Insets(10, 0, 0, 0));
+        center.setAlignment(Pos.CENTER);
+        center.setPadding(new Insets(10, 0, 10, 0));
 
-        // Bloc texte central
+        VBox hero = buildHeroSection();
+        HBox cards = buildCardsSection();
+
+        center.getChildren().addAll(hero, cards);
+        return center;
+    }
+
+    private VBox buildHeroSection() {
         VBox hero = new VBox(AppTheme.SPACE_SM);
-        hero.setAlignment(Pos.TOP_CENTER);
-        hero.setMaxWidth(720);
+        hero.setAlignment(Pos.CENTER);
+        hero.setMaxWidth(760);
 
-        Label title = new Label("PingManager");
+        Label title = new Label("Bienvenue sur PingManager");
         AppTheme.applyTitle(title);
 
         Label subtitle = new Label(
-                "Gérez vos tournois de tennis de table, de l'inscription à la remontée des résultats.");
+                "La solution desktop pour préparer, organiser et suivre vos tournois de tennis de table.");
         AppTheme.applySubtitle(subtitle);
 
-        Label hint = new Label("Choisissez votre espace : Organisateur (club) ou Joueur (inscription).");
+        Label hint = new Label(
+                "Choisissez votre espace pour accéder aux fonctionnalités adaptées à votre profil.");
         AppTheme.applyBody(hint);
 
         hero.getChildren().addAll(title, subtitle, hint);
-
-        // Cartes
-        HBox cards = new HBox(18);
-        cards.setAlignment(Pos.TOP_CENTER);
-        cards.setMaxWidth(900);
-
-        VBox organizerCard = buildOrganizerCard(nav);
-        VBox playerCard = buildPlayerCard(nav);
-
-        // largeur harmonisée
-        organizerCard.setPrefWidth(420);
-        playerCard.setPrefWidth(420);
-
-        cards.getChildren().addAll(organizerCard, playerCard);
-
-        center.getChildren().addAll(hero, cards);
-        setCenter(center);
+        return hero;
     }
 
-    private VBox buildOrganizerCard(Navigator nav) {
-        Label t = new Label("Club / Organisateur");
-        AppTheme.applyCardTitle(t);
+    private HBox buildCardsSection() {
+        HBox cards = new HBox(18);
+        cards.setAlignment(Pos.CENTER);
+        cards.setMaxWidth(920);
 
-        Label d = new Label(
-                "Créez un tournoi, gérez les inscriptions, générez les tableaux, " +
-                        "lancez les tours et exportez les résultats.");
-        AppTheme.applyBody(d);
+        VBox organizerCard = buildOrganizerCard();
+        VBox playerCard = buildPlayerCard();
 
-        Button b = new Button("Connexion Organisateur");
-        AppTheme.stylePrimary(b);
-        b.setOnAction(e -> nav.showOrganizerLogin());
+        organizerCard.setPrefWidth(CARD_WIDTH);
+        organizerCard.setMaxWidth(CARD_WIDTH);
 
-        VBox card = AppTheme.card(t, d, spacer(), b);
+        playerCard.setPrefWidth(CARD_WIDTH);
+        playerCard.setMaxWidth(CARD_WIDTH);
+
+        cards.getChildren().addAll(organizerCard, playerCard);
+        return cards;
+    }
+
+    private VBox buildOrganizerCard() {
+        Label title = new Label("Club / Organisateur");
+        AppTheme.applyCardTitle(title);
+
+        Label description = new Label(
+                "Créez vos tournois, configurez les tableaux, gérez les inscriptions "
+                        + "et pilotez l’organisation depuis un espace centralisé.");
+        AppTheme.applyBody(description);
+
+        Button button = new Button("Accéder à l’espace organisateur");
+        AppTheme.stylePrimary(button);
+        button.setOnAction(e -> nav.showOrganizerLogin());
+
+        VBox card = AppTheme.card(title, description, spacer(), button);
+        VBox.setVgrow(card, Priority.ALWAYS);
         return card;
     }
 
-    private VBox buildPlayerCard(Navigator nav) {
-        Label t = new Label("Joueur");
-        AppTheme.applyCardTitle(t);
+    private VBox buildPlayerCard() {
+        Label title = new Label("Joueur");
+        AppTheme.applyCardTitle(title);
 
-        Label d = new Label(
-                "Consultez les tournois disponibles et gérez vos inscriptions " +
-                        "selon les règles du tournoi.");
-        AppTheme.applyBody(d);
+        Label description = new Label(
+                "Consultez les tournois ouverts et suivez vos inscriptions. "
+                        + "Cet espace sera disponible dans une prochaine version.");
+        AppTheme.applyBody(description);
 
-        Button b = new Button("Connexion Joueur");
-        AppTheme.styleSecondary(b);
-        b.setOnAction(e -> {
-            // nav.showPlayerLogin(); // quand tu l'auras
-        });
+        Button button = new Button("Espace joueur bientôt disponible");
+        AppTheme.styleSecondary(button);
+        button.setDisable(true);
 
-        VBox card = AppTheme.card(t, d, spacer(), b);
+        VBox card = AppTheme.card(title, description, spacer(), button);
+        VBox.setVgrow(card, Priority.ALWAYS);
         return card;
     }
 
     private Region spacer() {
-        Region r = new Region();
-        VBox.setVgrow(r, Priority.ALWAYS);
-        return r;
-    }
-
-    private ImageView tryLoadLogo(String resourcePath) {
-        try {
-            Image img = new Image(getClass().getResourceAsStream(resourcePath));
-            return new ImageView(img);
-        } catch (Exception ignore) {
-            return null;
-        }
+        Region region = new Region();
+        VBox.setVgrow(region, Priority.ALWAYS);
+        return region;
     }
 }

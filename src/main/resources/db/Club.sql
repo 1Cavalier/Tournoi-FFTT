@@ -1,32 +1,43 @@
 PRAGMA foreign_keys = ON;
 
 -- =========================
--- CLUB (un club peut avoir plusieurs emails/comptes)
+-- CLUB
+-- Base locale de clubs de référence.
+-- Un club peut être rattaché à plusieurs comptes organisateurs.
 -- =========================
 CREATE TABLE IF NOT EXISTS club (
   id TEXT PRIMARY KEY,
 
-  club_number TEXT,
-  club_name   TEXT,
+  club_number TEXT NOT NULL,
+  club_name   TEXT NOT NULL,
 
-  departement_code TEXT,
-  city            TEXT,
+  departement_code TEXT NOT NULL,
+  city             TEXT NOT NULL,
   address1         TEXT,
   address2         TEXT,
 
   latitude  REAL,
   longitude REAL,
 
-  contact_first_name TEXT,
-  contact_last_name  TEXT,
+  contact_first_name    TEXT,
+  contact_last_name     TEXT,
+  official_contact_email TEXT,
 
   logo_path TEXT,
 
+  created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_club_club_number
+ON club(club_number);
+
+CREATE INDEX IF NOT EXISTS idx_club_club_name
+ON club(club_name);
+
 -- =========================
--- ORGANIZER ACCOUNT (compte organisme rattaché à un club)
+-- ORGANIZER ACCOUNT
+-- Compte organisateur rattaché à un club existant.
 -- =========================
 CREATE TABLE IF NOT EXISTS organizer_account (
   id TEXT PRIMARY KEY,

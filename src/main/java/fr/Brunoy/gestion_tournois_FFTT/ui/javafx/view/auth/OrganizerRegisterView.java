@@ -1,200 +1,247 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.auth;
 
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.Navigator;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.security.PasswordPolicy;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteClubRepository;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.security.PasswordPolicy;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
-import javafx.scene.control.*;
+import javafx.geometry.Pos;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.Separator;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
+import java.util.Objects;
 
-/**
- * Inscription organisme :
- * - Création compte + rattachement à un club (existant ou nouveau)
- * - Vérification email via CodeVerificationDialog
- */
-public class OrganizerRegisterView extends VBox {
+public class OrganizerRegisterView extends BorderPane {
 
-    private static final double FORM_SPACING = 12;
+    private static final String ERROR_STYLE = "-fx-text-fill: #b00020; -fx-font-weight: 700;";
+    private static final String SUCCESS_STYLE = "-fx-text-fill: #1b5e20; -fx-font-weight: 700;";
 
-    private static final String TITLE_STYLE = "-fx-font-size: 18px; -fx-font-weight: bold;";
-    private static final String RULES_STYLE = "-fx-opacity: 0.8; -fx-font-size: 12px;";
-    private static final String ERROR_STYLE = "-fx-text-fill: #b00020;";
-    private static final String SUCCESS_STYLE = "-fx-text-fill: #1b5e20;";
-
+    private final Navigator nav;
     private final Label messageLabel = new Label();
 
     public OrganizerRegisterView(Navigator nav) {
-        setPadding(new Insets(24));
-        setSpacing(FORM_SPACING);
+        this.nav = Objects.requireNonNull(nav, "nav must not be null");
 
-        Label title = new Label("Inscription Organisme");
-        title.setStyle(TITLE_STYLE);
+        AppTheme.applyPage(this);
+        setPadding(new Insets(AppTheme.PADDING_PAGE));
 
+        VBox root = new VBox(AppTheme.SPACE_LG);
+        root.setAlignment(Pos.TOP_CENTER);
+
+        VBox header = buildHeader();
+        VBox card = buildRegisterCard();
+        HBox bottomActions = buildBottomActions();
+
+        root.getChildren().addAll(header, card, bottomActions);
+        setCenter(root);
+    }
+
+    private VBox buildHeader() {
+        VBox header = new VBox(AppTheme.SPACE_SM);
+        header.setAlignment(Pos.TOP_CENTER);
+        header.setMaxWidth(760);
+
+        Label title = new Label("Inscription organisateur");
+        AppTheme.applyTitle(title);
+
+        Label subtitle = new Label(
+                "Créez votre compte PingManager et rattachez-le à un club existant.");
+        AppTheme.applySubtitle(subtitle);
+
+        header.getChildren().addAll(title, subtitle);
+        return header;
+    }
+
+    private VBox buildRegisterCard() {
         TextField emailField = new TextField();
-        emailField.setPromptText("Adresse mail");
+        emailField.setPromptText("Adresse email");
+        emailField.setMaxWidth(Double.MAX_VALUE);
 
         PasswordField passwordField = new PasswordField();
         passwordField.setPromptText("Mot de passe");
+        passwordField.setMaxWidth(Double.MAX_VALUE);
 
-        Label rules = new Label(PasswordPolicy.rulesText());
-        rules.setStyle(RULES_STYLE);
+        Label rulesLabel = new Label(PasswordPolicy.rulesText());
+        AppTheme.applyBody(rulesLabel);
 
-        // Choix : rejoindre un club existant ou créer un nouveau club
-        ToggleGroup clubChoiceGroup = new ToggleGroup();
+        Label clubSectionTitle = sectionTitle("Club");
+        Label clubSectionHint = new Label(
+                "Recherchez votre club par nom ou numéro FFTT, puis sélectionnez-le dans la liste.");
+        AppTheme.applyBody(clubSectionHint);
 
-        RadioButton joinExistingRadio = new RadioButton("Rejoindre un club existant");
-        joinExistingRadio.setToggleGroup(clubChoiceGroup);
-
-        RadioButton createNewRadio = new RadioButton("Créer un nouveau club");
-        createNewRadio.setToggleGroup(clubChoiceGroup);
-        createNewRadio.setSelected(true);
-
-        // Bloc "club existant" : recherche + résultats
         TextField searchField = new TextField();
         searchField.setPromptText("Recherche club (nom ou numéro)");
+        searchField.setMaxWidth(Double.MAX_VALUE);
 
         Button searchButton = new Button("Rechercher");
+        AppTheme.styleSecondary(searchButton);
 
         ListView<SqliteClubRepository.ClubRow> resultsList = new ListView<>();
-        resultsList.setPrefHeight(140);
+        resultsList.setPrefHeight(180);
         resultsList.setCellFactory(lv -> new ListCell<>() {
             @Override
             protected void updateItem(SqliteClubRepository.ClubRow item, boolean empty) {
                 super.updateItem(item, empty);
+
                 if (empty || item == null) {
                     setText(null);
                     return;
                 }
-                String num = isBlank(item.clubNumber()) ? "?" : item.clubNumber().trim();
-                String name = isBlank(item.clubName()) ? "(sans nom)" : item.clubName().trim();
-                setText(num + " — " + name);
+
+                String number = safeText(item.clubNumber(), "?");
+                String name = safeText(item.clubName(), "(sans nom)");
+                String city = safeText(item.city(), "ville inconnue");
+
+                setText(number + " — " + name + " — " + city);
             }
         });
 
-        searchButton.setOnAction(e -> {
-            clearMessage();
-            String query = safeTrim(searchField.getText());
+        HBox searchRow = new HBox(10, searchField, searchButton);
+        HBox.setHgrow(searchField, Priority.ALWAYS);
 
-            if (query.isEmpty()) {
-                resultsList.setItems(FXCollections.observableArrayList());
-                showError("Saisis un nom ou un numéro de club pour rechercher.");
-                return;
-            }
-
-            List<SqliteClubRepository.ClubRow> found = nav.clubRepo().search(query, 30);
-            resultsList.setItems(FXCollections.observableArrayList(found));
-
-            if (found.isEmpty()) {
-                showError("Aucun club trouvé.");
-            }
-        });
-
-        // Entrée dans le champ de recherche lance la recherche
-        searchField.setOnAction(e -> searchButton.fire());
-
-        VBox existingClubBox = new VBox(8, searchField, searchButton, resultsList);
-
-        // Bloc "nouveau club"
-        TextField newClubNameField = new TextField();
-        newClubNameField.setPromptText("Nom du club (recommandé)");
-
-        TextField newClubNumberField = new TextField();
-        newClubNumberField.setPromptText("Numéro club FFTT (optionnel)");
-
-        VBox newClubBox = new VBox(8, newClubNameField, newClubNumberField);
-
-        // Active/désactive les blocs selon le choix
-        existingClubBox.disableProperty().bind(createNewRadio.selectedProperty());
-        newClubBox.disableProperty().bind(joinExistingRadio.selectedProperty());
-
+        messageLabel.setManaged(false);
+        messageLabel.setVisible(false);
+        messageLabel.setWrapText(true);
         messageLabel.setStyle(ERROR_STYLE);
 
         Button createAccountButton = new Button("Créer le compte");
-        createAccountButton.setDefaultButton(true);
+        AppTheme.stylePrimary(createAccountButton);
 
-        createAccountButton.setOnAction(e -> {
-            try {
-                clearMessage();
+        searchButton.setOnAction(e -> performClubSearch(searchField, resultsList));
+        searchField.setOnAction(e -> performClubSearch(searchField, resultsList));
+        passwordField.setOnAction(e -> createAccount(emailField, passwordField, resultsList));
+        emailField.setOnAction(e -> createAccount(emailField, passwordField, resultsList));
+        createAccountButton.setOnAction(e -> createAccount(emailField, passwordField, resultsList));
 
-                String email = normalizeEmail(emailField.getText());
-                String password = passwordField.getText();
-
-                requireNotBlank(email, "Email obligatoire.");
-                requireNotBlank(password, "Mot de passe obligatoire.");
-
-                // Feedback immédiat côté UI (le service re-valide aussi)
-                PasswordPolicy.validateOrThrow(password);
-
-                String existingClubId = null;
-                String newClubName = null;
-
-                if (joinExistingRadio.isSelected()) {
-                    SqliteClubRepository.ClubRow selected = resultsList.getSelectionModel().getSelectedItem();
-                    if (selected == null) {
-                        throw new IllegalArgumentException("Sélectionne un club existant dans la liste.");
-                    }
-                    existingClubId = selected.id();
-                } else {
-                    newClubName = safeTrim(newClubNameField.getText());
-                    // newClubNumberField n'est pas encore utilisé par le service.
-                    // Soit on le masque, soit on implémente plus tard createClubWithNumber.
-                }
-
-                var account = nav.organizerAuth().register(email, password, existingClubId, newClubName);
-
-                // Vérification email via le dialog unique
-                CodeVerificationDialog dlg = new CodeVerificationDialog(
-                        "Vérification email",
-                        "Un code a été envoyé à : " + account.getEmail(),
-                        code -> nav.organizerAuth().verifyEmail(account.getEmail(), code));
-                dlg.showAndWait();
-
-                if (dlg.isSuccess()) {
-                    showSuccess("Email vérifié. Vous pouvez vous connecter.");
-                    nav.showOrganizerLogin();
-                } else {
-                    showError("Compte créé, mais email non vérifié (connexion impossible).");
-                }
-
-            } catch (IllegalArgumentException ex) {
-                showError(ex.getMessage());
-            }
-        });
-
-        Button backButton = new Button("Retour");
-        backButton.setOnAction(e -> nav.showOrganizerLogin());
-
-        getChildren().addAll(
-                title,
+        VBox card = AppTheme.card(
+                sectionTitle("Compte organisateur"),
                 emailField,
                 passwordField,
-                rules,
+                rulesLabel,
                 new Separator(),
-                new HBox(12, joinExistingRadio, createNewRadio),
-                existingClubBox,
-                newClubBox,
+                clubSectionTitle,
+                clubSectionHint,
+                searchRow,
+                resultsList,
                 createAccountButton,
-                backButton,
                 messageLabel);
+        card.setMaxWidth(640);
+
+        emailField.requestFocus();
+        return card;
+    }
+
+    private HBox buildBottomActions() {
+        Button backButton = new Button("Retour");
+        AppTheme.styleSecondary(backButton);
+        backButton.setOnAction(e -> nav.showOrganizerLogin());
+
+        HBox bottom = new HBox(12, backButton);
+        bottom.setAlignment(Pos.CENTER);
+        bottom.setMaxWidth(640);
+        return bottom;
+    }
+
+    private Label sectionTitle(String text) {
+        Label label = new Label(text);
+        AppTheme.applyCardTitle(label);
+        return label;
+    }
+
+    private void performClubSearch(TextField searchField, ListView<SqliteClubRepository.ClubRow> resultsList) {
+        clearMessage();
+
+        String query = safeTrim(searchField.getText());
+        if (query.isEmpty()) {
+            resultsList.setItems(FXCollections.observableArrayList());
+            showError("Saisis un nom ou un numéro de club pour rechercher.");
+            return;
+        }
+
+        List<SqliteClubRepository.ClubRow> found = nav.clubRepo().search(query, 30);
+        resultsList.setItems(FXCollections.observableArrayList(found));
+
+        if (found.isEmpty()) {
+            showError("Aucun club trouvé.");
+        }
+    }
+
+    private void createAccount(
+            TextField emailField,
+            PasswordField passwordField,
+            ListView<SqliteClubRepository.ClubRow> resultsList) {
+
+        clearMessage();
+
+        try {
+            String email = normalizeEmail(emailField.getText());
+            String password = passwordField.getText();
+
+            requireNotBlank(email, "Email obligatoire.");
+            requireNotBlank(password, "Mot de passe obligatoire.");
+
+            PasswordPolicy.validateOrThrow(password);
+
+            SqliteClubRepository.ClubRow selectedClub = resultsList.getSelectionModel().getSelectedItem();
+            if (selectedClub == null) {
+                throw new IllegalArgumentException("Sélectionne un club dans la liste.");
+            }
+
+            var account = nav.organizerAuth().register(email, password, selectedClub.id());
+
+            CodeVerificationDialog dialog = new CodeVerificationDialog(
+                    "Vérification email",
+                    "Un code a été envoyé à : " + account.getEmail(),
+                    code -> nav.organizerAuth().verifyEmail(account.getEmail(), code));
+
+            dialog.showAndWait();
+            passwordField.clear();
+
+            if (dialog.isSuccess()) {
+                showSuccess("Compte créé et email vérifié. Vous pouvez maintenant vous connecter.");
+                nav.showOrganizerLogin();
+            } else {
+                showError(
+                        "Compte créé, mais email non vérifié. La connexion reste bloquée tant que l'email n'est pas validé.");
+            }
+
+        } catch (IllegalArgumentException ex) {
+            passwordField.clear();
+            showError(ex.getMessage());
+        }
     }
 
     private void clearMessage() {
         messageLabel.setText("");
         messageLabel.setStyle(ERROR_STYLE);
+        messageLabel.setManaged(false);
+        messageLabel.setVisible(false);
     }
 
     private void showError(String text) {
         messageLabel.setStyle(ERROR_STYLE);
         messageLabel.setText(text);
+        messageLabel.setManaged(true);
+        messageLabel.setVisible(true);
     }
 
     private void showSuccess(String text) {
         messageLabel.setStyle(SUCCESS_STYLE);
         messageLabel.setText(text);
+        messageLabel.setManaged(true);
+        messageLabel.setVisible(true);
     }
 
     private static String normalizeEmail(String raw) {
@@ -205,8 +252,8 @@ public class OrganizerRegisterView extends VBox {
         return s == null ? "" : s.trim();
     }
 
-    private static boolean isBlank(String s) {
-        return s == null || s.isBlank();
+    private static String safeText(String s, String fallback) {
+        return (s == null || s.isBlank()) ? fallback : s.trim();
     }
 
     private static void requireNotBlank(String value, String message) {

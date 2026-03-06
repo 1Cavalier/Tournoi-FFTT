@@ -14,32 +14,39 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
+import java.util.Objects;
+
 /**
- * Navigator :
- * - Gère la navigation JavaFX (changement de Scene, ouverture des dialogs)
- * - Gère une session simple (organizer connecté)
- * - Expose AppContext aux vues via des getters
+ * Navigator centralise :
+ * - la navigation JavaFX (changement de scène, ouverture de dialogs)
+ * - la session organisateur en cours
+ * - l'accès aux dépendances applicatives utiles aux vues
  *
- * Important :
- * - Aucun code d'initialisation DB ici (c'est dans AppContext)
+ * Il ne contient :
+ * - aucune initialisation technique de base de données
+ * - aucune logique métier
  */
 public final class Navigator {
 
     private static final double DEFAULT_WIDTH = 900;
     private static final double DEFAULT_HEIGHT = 600;
 
+    private static final double DASHBOARD_WIDTH = 1200;
+    private static final double DASHBOARD_HEIGHT = 700;
+
     private final Stage stage;
     private final AppContext ctx;
 
-    // Session (simple)
     private OrganizerAccount currentOrganizer;
 
     public Navigator(Stage stage, AppContext ctx) {
-        this.stage = stage;
-        this.ctx = ctx;
+        this.stage = Objects.requireNonNull(stage, "stage must not be null");
+        this.ctx = Objects.requireNonNull(ctx, "app context must not be null");
     }
 
-    // --------- Accès aux services/repos (via AppContext) ---------
+    // -------------------------------------------------------------------------
+    // Accès aux services / repositories
+    // -------------------------------------------------------------------------
 
     public OrganizerAuthService organizerAuth() {
         return ctx.organizerAuthService();
@@ -57,54 +64,100 @@ public final class Navigator {
         return ctx.tableauRepo();
     }
 
-    // --------- Session ---------
+    // -------------------------------------------------------------------------
+    // Session organisateur
+    // -------------------------------------------------------------------------
 
     public OrganizerAccount getCurrentOrganizer() {
         return currentOrganizer;
     }
 
+    public boolean isOrganizerLoggedIn() {
+        return currentOrganizer != null;
+    }
+
     public void setCurrentOrganizer(OrganizerAccount organizer) {
-        this.currentOrganizer = organizer;
+        this.currentOrganizer = Objects.requireNonNull(organizer, "organizer must not be null");
+    }
+
+    public OrganizerAccount requireOrganizerSession() {
+        if (currentOrganizer == null) {
+            throw new IllegalStateException("Aucun organisateur connecté.");
+        }
+        return currentOrganizer;
     }
 
     public void logoutOrganizer() {
-        this.currentOrganizer = null;
+        currentOrganizer = null;
         showHome();
     }
 
-    // --------- Navigation ---------
+    // -------------------------------------------------------------------------
+    // Navigation principale
+    // -------------------------------------------------------------------------
 
     public void showHome() {
-        setScene(new HomeView(this), DEFAULT_WIDTH, DEFAULT_HEIGHT, "Tournoi FFTT — Accueil");
+        setScene(
+                new HomeView(this),
+                DEFAULT_WIDTH,
+                DEFAULT_HEIGHT,
+                "PingManager — Accueil");
     }
 
     public void showOrganizerLogin() {
-        setScene(new OrganizerLoginView(this), DEFAULT_WIDTH, DEFAULT_HEIGHT, "Tournoi FFTT — Connexion Organisme");
+        setScene(
+                new OrganizerLoginView(this),
+                DEFAULT_WIDTH,
+                DEFAULT_HEIGHT,
+                "PingManager — Connexion organisateur");
     }
 
     public void showOrganizerRegister() {
-        setScene(new OrganizerRegisterView(this), DEFAULT_WIDTH, DEFAULT_HEIGHT,
-                "Tournoi FFTT — Inscription Organisme");
+        setScene(
+                new OrganizerRegisterView(this),
+                DEFAULT_WIDTH,
+                DEFAULT_HEIGHT,
+                "PingManager — Inscription organisateur");
     }
 
     public void showOrganizerDashboard() {
-        setScene(new OrganizerDashboardView(this), 1200, 700, "Tournoi FFTT — Dashboard Organisme");
+        requireOrganizerSession();
+        setScene(
+                new OrganizerDashboardView(this),
+                DASHBOARD_WIDTH,
+                DASHBOARD_HEIGHT,
+                "PingManager — Tableau de bord organisateur");
     }
 
+    // -------------------------------------------------------------------------
+    // Dialogs organisateur
+    // -------------------------------------------------------------------------
+
     public void showOrganizerProfileDialog() {
+        requireOrganizerSession();
+
         OrganizerProfileDialog dialog = new OrganizerProfileDialog(this);
         dialog.showAndWait();
+
         showOrganizerDashboard();
     }
 
     public void showCreateTournamentDialog() {
+        requireOrganizerSession();
+
         CreateTournamentDialog dialog = new CreateTournamentDialog(this);
         dialog.showAndWait();
+
         showOrganizerDashboard();
     }
 
-    private void setScene(Parent root, double w, double h, String title) {
-        stage.setScene(new Scene(root, w, h));
+    // -------------------------------------------------------------------------
+    // Helpers UI
+    // -------------------------------------------------------------------------
+
+    private void setScene(Parent root, double width, double height, String title) {
+        Scene scene = new Scene(root, width, height);
+        stage.setScene(scene);
         stage.setTitle(title);
         stage.show();
     }

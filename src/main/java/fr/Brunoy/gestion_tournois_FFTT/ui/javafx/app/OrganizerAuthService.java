@@ -11,18 +11,6 @@ import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
-/**
- * Service d'authentification "organisateur".
- *
- * Inscription :
- * - Crée (ou rattache) un club
- * - Crée un compte
- * - Envoie un code de vérification email
- *
- * Connexion :
- * - Étape 1 : vérifie mot de passe + email vérifié, génère un OTP
- * - Étape 2 : vérifie OTP, retourne le compte final utilisable en session
- */
 public class OrganizerAuthService {
 
     private static final int OTP_DIGITS = 6;
@@ -47,45 +35,35 @@ public class OrganizerAuthService {
     // ---------------- INSCRIPTION ----------------
 
     /**
-     * Inscription :
-     * - Si existingClubIdOrNull est fourni => rattache à un club existant
-     * - Sinon => crée un club minimal (nom optionnel mais recommandé)
-     * - Crée le compte (password hash)
-     * - Envoie le code de vérification
+     * Inscription organisateur avec rattachement obligatoire à un club existant.
      */
-    public OrganizerAccount register(
-            String email,
-            String password,
-            String existingClubIdOrNull,
-            String newClubNameOrNull) {
-
+    public OrganizerAccount register(String email, String password, String clubId) {
         requireNotBlank(email, "Email obligatoire.");
         requireNotBlank(password, "Mot de passe obligatoire.");
+        requireNotBlank(clubId, "Club obligatoire.");
+
         PasswordPolicy.validateOrThrow(password);
 
         String cleanEmail = normalizeEmail(email);
-        String clubId = resolveClubId(existingClubIdOrNull, newClubNameOrNull);
+        String cleanClubId = clubId.trim();
+
+        clubRepo.findById(cleanClubId)
+                .orElseThrow(() -> new IllegalArgumentException("Club introuvable."));
 
         String passwordHash = HashUtils.hash(password);
-        OrganizerAccount account = organizerRepo.insert(clubId, cleanEmail, passwordHash);
+        OrganizerAccount account = organizerRepo.insert(cleanClubId, cleanEmail, passwordHash);
 
         emailVerification.sendVerificationCode(account.getId(), account.getEmail());
         return account;
     }
 
-    private String resolveClubId(String existingClubIdOrNull, String newClubNameOrNull) {
-        if (existingClubIdOrNull != null && !existingClubIdOrNull.isBlank()) {
-            return existingClubIdOrNull.trim();
-        }
-        String clubName = (newClubNameOrNull == null) ? null : newClubNameOrNull.trim();
-        return clubRepo.createClub(null, clubName);
-    }
-
     public boolean verifyEmail(String email, String code) {
-        if (email == null || email.isBlank())
+        if (email == null || email.isBlank()) {
             return false;
-        if (code == null || code.isBlank())
+        }
+        if (code == null || code.isBlank()) {
             return false;
+        }
         return emailVerification.verify(normalizeEmail(email), code.trim());
     }
 
@@ -104,15 +82,6 @@ public class OrganizerAuthService {
 
     // ---------------- CONNEXION - étape 1 ----------------
 
-    /**
-     * Étape 1 :
-     * - Vérifie le mot de passe
-     * - Refuse si email non vérifié
-     * - Génère OTP et l'enregistre (durée limitée)
-     * - Envoie OTP par email
-     *
-     * Important : ne pas ouvrir la session ici.
-     */
     public OrganizerAccount loginStart(String email, String password) {
         requireNotBlank(email, "Email obligatoire.");
         requireNotBlank(password, "Mot de passe obligatoire.");
@@ -137,18 +106,11 @@ public class OrganizerAuthService {
         organizerRepo.setLoginOtp(row.id(), otp, expiresAt);
         emailVerification.sendLoginOtp(row.email(), otp);
 
-        // Retour minimal : la session ne doit être ouverte qu'après
-        // verifyLoginOtpAndFinish
         return OrganizerAccount.fromDb(row.id(), "", row.email(), row.passwordHash(), true);
     }
 
     // ---------------- CONNEXION - étape 2 ----------------
 
-    /**
-     * Étape 2 :
-     * - Vérifie OTP en base (valide + non expiré)
-     * - Retourne le compte complet (pour session)
-     */
     public OrganizerAccount verifyLoginOtpAndFinish(String email, String otpCode) {
         requireNotBlank(email, "Email obligatoire.");
         requireNotBlank(otpCode, "Code OTP obligatoire.");
