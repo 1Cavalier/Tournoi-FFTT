@@ -4,29 +4,32 @@ import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteOrganizerAccou
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Objects;
 
-/**
- * Service d'envoi et validation des codes liés à l'email :
- * - code de vérification d'email à l'inscription
- * - envoi du code OTP de connexion (le stockage OTP est géré ailleurs)
- */
 public class EmailVerificationService {
 
     private final SqliteOrganizerAccountRepository repo;
     private final EmailSender sender;
 
-    public EmailVerificationService(SqliteOrganizerAccountRepository repo, EmailSender sender) {
-        this.repo = repo;
-        this.sender = sender;
+    public EmailVerificationService(
+            SqliteOrganizerAccountRepository repo,
+            EmailSender sender) {
+
+        this.repo = Objects.requireNonNull(repo);
+        this.sender = Objects.requireNonNull(sender);
     }
 
-    // ---------------- INSCRIPTION : vérification email ----------------
+    // -------------------------------------------------------------------------
+    // INSCRIPTION : vérification email
+    // -------------------------------------------------------------------------
 
     public void sendVerificationCode(String organizerId, String email) {
+
         requireNotBlank(organizerId, "OrganizerId obligatoire.");
-        requireNotBlank(email, "Email obligatoire.");
+        String normalizedEmail = normalizeEmail(email);
 
         String code = VerificationCodeGenerator.code6();
+
         String expiresAt = Instant.now()
                 .plus(EmailTemplates.EMAIL_VERIFICATION_TTL_MINUTES, ChronoUnit.MINUTES)
                 .toString();
@@ -34,29 +37,45 @@ public class EmailVerificationService {
         repo.setEmailVerification(organizerId, code, expiresAt);
 
         sender.send(
-                email,
+                normalizedEmail,
                 EmailTemplates.verificationSubject(),
                 EmailTemplates.verificationBody(code));
     }
 
     public boolean verify(String email, String code) {
+
         if (email == null || email.isBlank())
             return false;
         if (code == null || code.isBlank())
             return false;
-        return repo.verifyEmail(email.trim().toLowerCase(), code.trim());
+
+        return repo.verifyEmail(
+                normalizeEmail(email),
+                code.trim());
     }
 
-    // ---------------- CONNEXION : OTP ----------------
+    // -------------------------------------------------------------------------
+    // CONNEXION : OTP
+    // -------------------------------------------------------------------------
 
     public void sendLoginOtp(String email, String otp) {
-        requireNotBlank(email, "Email obligatoire.");
+
+        String normalizedEmail = normalizeEmail(email);
         requireNotBlank(otp, "OTP obligatoire.");
 
         sender.send(
-                email,
+                normalizedEmail,
                 EmailTemplates.loginOtpSubject(),
                 EmailTemplates.loginOtpBody(otp));
+    }
+
+    // -------------------------------------------------------------------------
+    // HELPERS
+    // -------------------------------------------------------------------------
+
+    private static String normalizeEmail(String email) {
+        requireNotBlank(email, "Email obligatoire.");
+        return email.trim().toLowerCase();
     }
 
     private static void requireNotBlank(String value, String message) {

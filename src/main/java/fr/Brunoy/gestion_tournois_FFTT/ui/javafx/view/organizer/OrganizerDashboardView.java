@@ -45,15 +45,17 @@ public class OrganizerDashboardView extends BorderPane {
             bar.getChildren().add(logo);
         }
 
-        Label appName = new Label("PingManager");
-        appName.setStyle(
-                "-fx-font-size: 16px;" +
+        Label appNameLabel = new Label("PingManager");
+        appNameLabel.setStyle(
+                "-fx-font-family: " + AppTheme.FONT_FAMILY + ";" +
+                        "-fx-font-size: 16px;" +
                         "-fx-font-weight: 900;" +
                         "-fx-text-fill: " + AppTheme.COLOR_TEXT + ";");
 
-        Label organizerLabel = new Label(buildOrganizerLabelText());
-        organizerLabel.setStyle(
-                "-fx-font-size: 13px;" +
+        Label clubLabel = new Label(buildClubLabelText());
+        clubLabel.setStyle(
+                "-fx-font-family: " + AppTheme.FONT_FAMILY + ";" +
+                        "-fx-font-size: 13px;" +
                         "-fx-text-fill: " + AppTheme.COLOR_TEXT_MUTED + ";");
 
         Region spacer = new Region();
@@ -67,7 +69,13 @@ public class OrganizerDashboardView extends BorderPane {
         logoutButton.setMaxWidth(Region.USE_PREF_SIZE);
         logoutButton.setOnAction(e -> nav.logoutOrganizer());
 
-        bar.getChildren().addAll(appName, organizerLabel, spacer, modeBadge, logoutButton);
+        bar.getChildren().addAll(
+                appNameLabel,
+                clubLabel,
+                spacer,
+                modeBadge,
+                logoutButton);
+
         return bar;
     }
 
@@ -81,12 +89,11 @@ public class OrganizerDashboardView extends BorderPane {
         return new OrganizerMainContent(nav, organizer);
     }
 
-    private String buildOrganizerLabelText() {
+    private String buildClubLabelText() {
         String clubName = safeTrim(organizer.getClubName());
-        if (clubName.isEmpty()) {
-            return "— Club non renseigné";
-        }
-        return "— " + clubName;
+        return clubName.isEmpty()
+                ? "— Club non renseigné"
+                : "— " + clubName;
     }
 
     private static String safeTrim(String value) {

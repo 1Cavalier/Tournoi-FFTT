@@ -9,9 +9,13 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.layout.*;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 
 import java.util.List;
+import java.util.Objects;
 
 public class OrganizerMainContent extends VBox {
 
@@ -19,95 +23,105 @@ public class OrganizerMainContent extends VBox {
     private final OrganizerAccount organizer;
 
     public OrganizerMainContent(Navigator nav, OrganizerAccount organizer) {
-        this.nav = nav;
-        this.organizer = organizer;
+        this.nav = Objects.requireNonNull(nav, "nav must not be null");
+        this.organizer = Objects.requireNonNull(organizer, "organizer must not be null");
         build();
     }
 
     private void build() {
         AppTheme.applyPage(this);
 
-        VBox root = new VBox(AppTheme.SPACE_LG);
-        root.setPadding(new Insets(18));
-        root.setMaxWidth(Double.MAX_VALUE);
+        VBox content = new VBox(AppTheme.SPACE_LG);
+        content.setPadding(new Insets(18));
+        content.setMaxWidth(Double.MAX_VALUE);
 
-        if (organizer == null) {
-            Label msg = new Label("Aucun organisme connecté.");
-            AppTheme.applySubtitle(msg);
-            root.getChildren().add(AppTheme.card(msg));
-            setChildrenAsScroll(root);
-            return;
-        }
+        content.getChildren().add(buildHeader());
+        content.getChildren().addAll(buildTournamentSections());
+        content.getChildren().add(buildCreateButtonRow());
 
-        // Header
+        setChildrenAsScroll(content);
+    }
+
+    private VBox buildHeader() {
         VBox header = new VBox(AppTheme.SPACE_SM);
-        Label h1 = new Label("Tableau de bord");
-        AppTheme.applyTitle(h1);
 
-        Label h2 = new Label("Gérez vos tournois : création, publication, inscriptions, tableaux et résultats.");
-        AppTheme.applySubtitle(h2);
+        Label title = new Label("Tableau de bord");
+        AppTheme.applyTitle(title);
 
-        header.getChildren().addAll(h1, h2);
+        Label subtitle = new Label(
+                "Gérez vos tournois, vos inscriptions et les principales actions d’organisation.");
+        AppTheme.applySubtitle(subtitle);
 
-        // Data
-        List<TournamentRow> active = nav.tournamentRepo().findActiveForOrganizer(organizer.getId());
-        List<TournamentRow> drafts = nav.tournamentRepo().findDraftForOrganizer(organizer.getId());
+        header.getChildren().addAll(title, subtitle);
+        return header;
+    }
 
-        VBox activeBlock = buildSection(
+    private List<VBox> buildTournamentSections() {
+        List<TournamentRow> activeTournaments = loadActiveTournaments();
+        List<TournamentRow> draftTournaments = loadDraftTournaments();
+
+        VBox activeSection = buildSection(
                 "Tournois actifs",
                 "OPEN / RUNNING",
-                active.isEmpty()
+                activeTournaments.isEmpty()
                         ? infoBanner("Aucun tournoi publié ou en cours.")
-                        : UiUtils.tournamentList(nav, active, TournamentCard.Mode.ACTIVE));
+                        : UiUtils.tournamentList(nav, activeTournaments, TournamentCard.Mode.ACTIVE));
 
-        VBox draftBlock = buildSection(
+        VBox draftSection = buildSection(
                 "Tournois en préparation",
                 "DRAFT",
-                drafts.isEmpty()
+                draftTournaments.isEmpty()
                         ? infoBanner("Aucun tournoi en brouillon.")
-                        : UiUtils.tournamentList(nav, drafts, TournamentCard.Mode.DRAFT));
+                        : UiUtils.tournamentList(nav, draftTournaments, TournamentCard.Mode.DRAFT));
 
-        // CTA
-        Button createBtn = new Button("Créer un tournoi");
-        AppTheme.stylePrimary(createBtn);
-        createBtn.setOnAction(e -> nav.showCreateTournamentDialog());
-        createBtn.setMaxWidth(260);
+        return List.of(activeSection, draftSection);
+    }
 
-        HBox cta = new HBox(createBtn);
-        cta.setAlignment(Pos.CENTER);
-        cta.setPadding(new Insets(4, 0, 0, 0));
+    private List<TournamentRow> loadActiveTournaments() {
+        return nav.tournamentRepo().findActiveForOrganizer(organizer.getId());
+    }
 
-        root.getChildren().addAll(header, activeBlock, draftBlock, cta);
-        setChildrenAsScroll(root);
+    private List<TournamentRow> loadDraftTournaments() {
+        return nav.tournamentRepo().findDraftForOrganizer(organizer.getId());
     }
 
     private VBox buildSection(String title, String badgeText, Region content) {
-        HBox head = new HBox(10);
-        head.setAlignment(Pos.CENTER_LEFT);
+        HBox header = new HBox(10);
+        header.setAlignment(Pos.CENTER_LEFT);
 
-        Label t = new Label(title);
-        AppTheme.applyCardTitle(t);
+        Label titleLabel = new Label(title);
+        AppTheme.applyCardTitle(titleLabel);
 
         Label badge = new Label(badgeText);
-        badge.setStyle(AppTheme.badgeStyle(AppTheme.COLOR_PRIMARY)); // bleu charte
+        badge.setStyle(AppTheme.badgeStyle(AppTheme.COLOR_PRIMARY));
 
-        head.getChildren().addAll(t, badge);
+        header.getChildren().addAll(titleLabel, badge);
 
-        VBox box = new VBox(AppTheme.SPACE_MD, head, content);
-        VBox card = AppTheme.card(box);
+        VBox inner = new VBox(AppTheme.SPACE_MD, header, content);
+        VBox card = AppTheme.card(inner);
         card.setMaxWidth(Double.MAX_VALUE);
+
         return card;
     }
 
-    /**
-     * Petit bandeau neutre quand une section est vide.
-     * (On évite UiUtils.infoBanner pour centraliser le style.)
-     */
-    private Region infoBanner(String text) {
-        Label l = new Label(text);
-        AppTheme.applyBody(l);
+    private HBox buildCreateButtonRow() {
+        Button createButton = new Button("Créer un tournoi");
+        AppTheme.stylePrimary(createButton);
+        createButton.setOnAction(e -> nav.showCreateTournamentDialog());
+        createButton.setMaxWidth(260);
 
-        VBox box = new VBox(l);
+        HBox actions = new HBox(createButton);
+        actions.setAlignment(Pos.CENTER);
+        actions.setPadding(new Insets(4, 0, 0, 0));
+
+        return actions;
+    }
+
+    private Region infoBanner(String text) {
+        Label label = new Label(text);
+        AppTheme.applyBody(label);
+
+        VBox box = new VBox(label);
         box.setPadding(new Insets(12));
         box.setStyle(
                 "-fx-background-color: " + AppTheme.COLOR_SURFACE + ";" +
@@ -115,18 +129,16 @@ public class OrganizerMainContent extends VBox {
                         "-fx-border-color: " + AppTheme.COLOR_BORDER + ";" +
                         "-fx-border-radius: " + AppTheme.RADIUS + ";");
 
-        // Option: tu peux retourner AppTheme.card(...) mais ça ferait “double card”.
-        // Ici on garde une banner simple.
         return box;
     }
 
-    private void setChildrenAsScroll(VBox root) {
-        ScrollPane sp = new ScrollPane(root);
-        sp.setFitToWidth(true);
-        sp.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        sp.setPadding(Insets.EMPTY);
+    private void setChildrenAsScroll(VBox content) {
+        ScrollPane scrollPane = new ScrollPane(content);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollPane.setPadding(Insets.EMPTY);
 
-        getChildren().setAll(sp);
-        VBox.setVgrow(sp, Priority.ALWAYS);
+        getChildren().setAll(scrollPane);
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
     }
 }

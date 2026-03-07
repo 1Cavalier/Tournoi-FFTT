@@ -31,8 +31,9 @@ public class SqliteClubRepository {
                        departement_code, city, address1, address2,
                        latitude, longitude,
                        contact_first_name, contact_last_name,
+                       official_contact_email,
                        logo_path,
-                       updated_at
+                       created_at, updated_at
                 FROM club
                 WHERE id = ?
                 """;
@@ -61,8 +62,9 @@ public class SqliteClubRepository {
                        c.departement_code, c.city, c.address1, c.address2,
                        c.latitude, c.longitude,
                        c.contact_first_name, c.contact_last_name,
+                       c.official_contact_email,
                        c.logo_path,
-                       c.updated_at
+                       c.created_at, c.updated_at
                 FROM organizer_account oa
                 JOIN club c ON c.id = oa.club_id
                 WHERE oa.id = ?
@@ -99,8 +101,9 @@ public class SqliteClubRepository {
                        departement_code, city, address1, address2,
                        latitude, longitude,
                        contact_first_name, contact_last_name,
+                       official_contact_email,
                        logo_path,
-                       updated_at
+                       created_at, updated_at
                 FROM club
                 WHERE upper(coalesce(club_name,'')) LIKE upper(?)
                    OR upper(coalesce(club_number,'')) LIKE upper(?)
@@ -153,6 +156,7 @@ public class SqliteClubRepository {
                     longitude = ?,
                     contact_first_name = ?,
                     contact_last_name = ?,
+                    official_contact_email = ?,
                     logo_path = ?,
                     updated_at = ?
                 WHERE id = ?
@@ -182,10 +186,10 @@ public class SqliteClubRepository {
 
             ps.setString(9, blankToNull(club.contactFirstName()));
             ps.setString(10, blankToNull(club.contactLastName()));
-            ps.setString(11, blankToNull(club.logoPath()));
-
-            ps.setString(12, now);
-            ps.setString(13, club.id());
+            ps.setString(11, blankToNull(club.officialContactEmail()));
+            ps.setString(12, blankToNull(club.logoPath()));
+            ps.setString(13, now);
+            ps.setString(14, club.id());
 
             ps.executeUpdate();
 
@@ -207,7 +211,9 @@ public class SqliteClubRepository {
                 (Double) rs.getObject("longitude"),
                 rs.getString("contact_first_name"),
                 rs.getString("contact_last_name"),
+                rs.getString("official_contact_email"),
                 rs.getString("logo_path"),
+                rs.getString("created_at"),
                 rs.getString("updated_at"));
     }
 
@@ -231,7 +237,9 @@ public class SqliteClubRepository {
             Double longitude,
             String contactFirstName,
             String contactLastName,
+            String officialContactEmail,
             String logoPath,
+            String createdAt,
             String updatedAt) {
     }
 }

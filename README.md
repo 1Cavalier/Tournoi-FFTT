@@ -146,6 +146,12 @@ Le domaine protège lui-même ses règles.
 
 ---
 
+## Écran d'inscription Organisme
+
+![Accueil](docs/screenshots/Inscription.png)
+
+---
+
 ## Dashboard Organisateur
 
 ![Dashboard](docs/screenshots/dashboard.png)

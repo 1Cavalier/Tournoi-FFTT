@@ -5,22 +5,28 @@ import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
 
 import java.sql.Connection;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 public class SqliteOrganizerAccountRepository {
 
     private final SqliteDb db;
 
     public SqliteOrganizerAccountRepository(SqliteDb db) {
-        this.db = db;
+        this.db = Objects.requireNonNull(db, "db must not be null");
     }
 
     /**
-     * Crée un compte ORGANISME rattaché à un club existant.
-     * email_verified=0 à la création.
+     * Crée un compte organisateur rattaché à un club existant.
+     * email_verified = 0 à la création.
      */
     public OrganizerAccount insert(String clubId, String email, String passwordHash) {
-        String id = "org-" + java.util.UUID.randomUUID();
+        requireNotBlank(clubId, "clubId obligatoire");
+        requireNotBlank(email, "email obligatoire");
+        requireNotBlank(passwordHash, "passwordHash obligatoire");
+
+        String id = "org-" + UUID.randomUUID();
         String now = Instant.now().toString();
 
         String sql = """
@@ -44,20 +50,20 @@ public class SqliteOrganizerAccountRepository {
 
             ps.executeUpdate();
 
-            // OrganizerAccount contient clubName dans ton modèle actuel.
-            // Ici on n’a pas le nom -> on met une valeur vide (tu peux charger via club
-            // repo plus tard)
-            return OrganizerAccount.fromDb(id, "", email, passwordHash, false);
-
         } catch (Exception e) {
             throw new RuntimeException("DB error insert(organizer_account)", e);
         }
+
+        return findById(id)
+                .orElseThrow(() -> new RuntimeException("Compte créé mais introuvable après insertion."));
     }
 
     /**
-     * Récupère le compte par email (sert au login, resend code, etc.)
+     * Lecture technique minimale pour auth / OTP / vérification email.
      */
     public Optional<AccountDbRow> findDbRowByEmail(String email) {
+        requireNotBlank(email, "email obligatoire");
+
         String sql = """
                 SELECT id, club_id, email, password_hash, email_verified
                 FROM organizer_account
@@ -70,8 +76,9 @@ public class SqliteOrganizerAccountRepository {
             ps.setString(1, email);
 
             try (var rs = ps.executeQuery()) {
-                if (!rs.next())
+                if (!rs.next()) {
                     return Optional.empty();
+                }
 
                 return Optional.of(new AccountDbRow(
                         rs.getString("id"),
@@ -87,17 +94,92 @@ public class SqliteOrganizerAccountRepository {
     }
 
     /**
-     * Compat : retourne OrganizerAccount (ton modèle UI).
-     * clubName est vide ici (à enrichir ensuite via join club si tu veux).
+     * Retourne le compte UI enrichi avec le nom du club.
      */
     public Optional<OrganizerAccount> findByEmail(String email) {
-        return findDbRowByEmail(email)
-                .map(r -> OrganizerAccount.fromDb(r.id(), "", r.email(), r.passwordHash(), r.emailVerified()));
+        requireNotBlank(email, "email obligatoire");
+
+        String sql = """
+                SELECT oa.id,
+                       oa.email,
+                       oa.password_hash,
+                       oa.email_verified,
+                       c.club_name
+                FROM organizer_account oa
+                JOIN club c ON c.id = oa.club_id
+                WHERE oa.email = ?
+                """;
+
+        try (Connection c = db.openConnection();
+                var ps = c.prepareStatement(sql)) {
+
+            ps.setString(1, email);
+
+            try (var rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return Optional.empty();
+                }
+
+                return Optional.of(OrganizerAccount.fromDb(
+                        rs.getString("id"),
+                        rs.getString("club_name"),
+                        rs.getString("email"),
+                        rs.getInt("email_verified") == 1));
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("DB error findByEmail", e);
+        }
     }
 
-    // ---------------- EMAIL VERIFICATION (inscription) ----------------
+    /**
+     * Retourne le compte UI enrichi avec le nom du club.
+     */
+    public Optional<OrganizerAccount> findById(String organizerId) {
+        requireNotBlank(organizerId, "organizerId obligatoire");
+
+        String sql = """
+                SELECT oa.id,
+                       oa.email,
+                       oa.password_hash,
+                       oa.email_verified,
+                       c.club_name
+                FROM organizer_account oa
+                JOIN club c ON c.id = oa.club_id
+                WHERE oa.id = ?
+                """;
+
+        try (Connection c = db.openConnection();
+                var ps = c.prepareStatement(sql)) {
+
+            ps.setString(1, organizerId);
+
+            try (var rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return Optional.empty();
+                }
+
+                return Optional.of(OrganizerAccount.fromDb(
+                        rs.getString("id"),
+                        rs.getString("club_name"),
+                        rs.getString("email"),
+                        rs.getInt("email_verified") == 1));
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("DB error findById", e);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // EMAIL VERIFICATION
+    // -------------------------------------------------------------------------
 
     public void setEmailVerification(String organizerId, String code, String expiresAt) {
+        requireNotBlank(organizerId, "organizerId obligatoire");
+        requireNotBlank(code, "code obligatoire");
+        requireNotBlank(expiresAt, "expiresAt obligatoire");
+
         String sql = """
                 UPDATE organizer_account
                 SET email_verification_code = ?,
@@ -124,6 +206,9 @@ public class SqliteOrganizerAccountRepository {
     }
 
     public boolean verifyEmail(String email, String code) {
+        requireNotBlank(email, "email obligatoire");
+        requireNotBlank(code, "code obligatoire");
+
         String sql = """
                 UPDATE organizer_account
                 SET email_verified = 1,
@@ -153,9 +238,15 @@ public class SqliteOrganizerAccountRepository {
         }
     }
 
-    // ---------------- LOGIN OTP (à chaque connexion) ----------------
+    // -------------------------------------------------------------------------
+    // LOGIN OTP
+    // -------------------------------------------------------------------------
 
     public void setLoginOtp(String organizerId, String otpCode, String expiresAt) {
+        requireNotBlank(organizerId, "organizerId obligatoire");
+        requireNotBlank(otpCode, "otpCode obligatoire");
+        requireNotBlank(expiresAt, "expiresAt obligatoire");
+
         String sql = """
                 UPDATE organizer_account
                 SET login_otp_code = ?,
@@ -182,6 +273,9 @@ public class SqliteOrganizerAccountRepository {
     }
 
     public boolean verifyLoginOtp(String email, String otpCode) {
+        requireNotBlank(email, "email obligatoire");
+        requireNotBlank(otpCode, "otpCode obligatoire");
+
         String sql = """
                 UPDATE organizer_account
                 SET login_otp_code = NULL,
@@ -210,7 +304,12 @@ public class SqliteOrganizerAccountRepository {
         }
     }
 
-    // DTO interne repo
+    private void requireNotBlank(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(message);
+        }
+    }
+
     public record AccountDbRow(
             String id,
             String clubId,

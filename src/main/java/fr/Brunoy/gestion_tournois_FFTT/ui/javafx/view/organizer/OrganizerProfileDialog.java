@@ -5,8 +5,16 @@ import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteClubRepository
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
-import javafx.scene.layout.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -15,7 +23,7 @@ import java.io.File;
 import java.util.Optional;
 
 /**
- * Edition du "profil club" associé à l'organisateur connecté.
+ * Édition du profil du club associé à l'organisateur connecté.
  *
  * Source de vérité : table club.
  * Récupération via organizer_account.club_id.
@@ -23,7 +31,7 @@ import java.util.Optional;
 public class OrganizerProfileDialog extends Stage {
 
     public OrganizerProfileDialog(Navigator nav) {
-        setTitle("Modifier le profil de l'organisme");
+        setTitle("Modifier le profil du club");
         initModality(Modality.APPLICATION_MODAL);
 
         OrganizerAccount org = nav.getCurrentOrganizer();
@@ -34,14 +42,13 @@ public class OrganizerProfileDialog extends Stage {
 
         Optional<SqliteClubRepository.ClubRow> clubOpt = nav.clubRepo().findByOrganizerId(org.getId());
         if (clubOpt.isEmpty()) {
-            showError("Club introuvable", "Aucun club n'est associé à cet organisme.");
+            showError("Club introuvable", "Aucun club n'est associé à cet organisateur.");
             close();
             return;
         }
 
         SqliteClubRepository.ClubRow existing = clubOpt.get();
 
-        // Champs
         TextField clubNumber = new TextField(nvl(existing.clubNumber()));
         TextField clubName = new TextField(nvl(existing.clubName()));
         TextField depCode = new TextField(nvl(existing.departementCode()));
@@ -50,6 +57,7 @@ public class OrganizerProfileDialog extends Stage {
         TextField address2 = new TextField(nvl(existing.address2()));
         TextField firstName = new TextField(nvl(existing.contactFirstName()));
         TextField lastName = new TextField(nvl(existing.contactLastName()));
+        TextField officialContactEmail = new TextField(nvl(existing.officialContactEmail()));
         TextField latitude = new TextField(existing.latitude() == null ? "" : String.valueOf(existing.latitude()));
         TextField longitude = new TextField(existing.longitude() == null ? "" : String.valueOf(existing.longitude()));
 
@@ -69,14 +77,13 @@ public class OrganizerProfileDialog extends Stage {
             }
         });
 
-        // Layout formulaire
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
         grid.setPadding(new Insets(18));
 
         int r = 0;
-        grid.add(label("Nom club"), 0, r);
+        grid.add(label("Nom du club"), 0, r);
         grid.add(clubName, 1, r++);
 
         grid.add(label("N° club FFTT"), 0, r);
@@ -106,18 +113,20 @@ public class OrganizerProfileDialog extends Stage {
         grid.add(label("Nom responsable"), 0, r);
         grid.add(lastName, 1, r++);
 
+        grid.add(label("Email officiel du club"), 0, r);
+        grid.add(officialContactEmail, 1, r++);
+
         HBox logoRow = new HBox(10, logoPath, chooseLogo);
         HBox.setHgrow(logoPath, Priority.ALWAYS);
         grid.add(label("Logo"), 0, r);
         grid.add(logoRow, 1, r++);
 
-        Label hint = new Label("Les coordonnées GPS doivent être renseignées ensemble (ou laissées vides).");
-        hint.setStyle("-fx-opacity:0.8;");
+        Label hint = new Label("Les coordonnées GPS doivent être renseignées ensemble, ou laissées vides.");
+        hint.setStyle("-fx-opacity: 0.8;");
 
         VBox center = new VBox(10, grid, hint);
         center.setPadding(new Insets(0, 18, 10, 18));
 
-        // Boutons
         Button cancel = new Button("Annuler");
         Button save = new Button("Enregistrer");
         save.setDefaultButton(true);
@@ -132,10 +141,9 @@ public class OrganizerProfileDialog extends Stage {
                 Double lat = parseNullableDouble(latitude.getText());
                 Double lon = parseNullableDouble(longitude.getText());
 
-                // règle: lat/lon ensemble
                 if ((lat == null) ^ (lon == null)) {
                     throw new IllegalArgumentException(
-                            "Latitude et longitude doivent être renseignées ensemble (ou vides).");
+                            "Latitude et longitude doivent être renseignées ensemble, ou laissées vides.");
                 }
 
                 SqliteClubRepository.ClubRow updated = new SqliteClubRepository.ClubRow(
@@ -150,9 +158,10 @@ public class OrganizerProfileDialog extends Stage {
                         lon,
                         blankToNull(firstName.getText()),
                         blankToNull(lastName.getText()),
+                        blankToNull(officialContactEmail.getText()),
                         blankToNull(logoPath.getText()),
-                        existing.updatedAt() // repo met updated_at à now de toute façon
-                );
+                        existing.createdAt(),
+                        existing.updatedAt());
 
                 nav.clubRepo().updateClubProfile(updated);
                 close();
@@ -171,11 +180,11 @@ public class OrganizerProfileDialog extends Stage {
         root.setCenter(center);
         root.setBottom(bottom);
 
-        setScene(new Scene(root, 720, 620));
+        setScene(new Scene(root, 760, 680));
     }
 
-    private static Label label(String s) {
-        Label l = new Label(s);
+    private static Label label(String text) {
+        Label l = new Label(text);
         l.setMinWidth(180);
         return l;
     }
@@ -185,18 +194,21 @@ public class OrganizerProfileDialog extends Stage {
     }
 
     private static String blankToNull(String s) {
-        if (s == null)
+        if (s == null) {
             return null;
+        }
         String t = s.trim();
         return t.isEmpty() ? null : t;
     }
 
     private static Double parseNullableDouble(String s) {
-        if (s == null)
+        if (s == null) {
             return null;
+        }
         String t = s.trim();
-        if (t.isEmpty())
+        if (t.isEmpty()) {
             return null;
+        }
         return Double.parseDouble(t.replace(',', '.'));
     }
 

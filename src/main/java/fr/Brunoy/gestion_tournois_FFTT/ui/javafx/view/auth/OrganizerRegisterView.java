@@ -7,7 +7,9 @@ import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
@@ -17,7 +19,6 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
@@ -199,7 +200,34 @@ public class OrganizerRegisterView extends BorderPane {
                 throw new IllegalArgumentException("Sélectionne un club dans la liste.");
             }
 
-            var account = nav.organizerAuth().register(email, password, selectedClub.id());
+            String clubName = safeText(selectedClub.clubName(), "Club inconnu");
+            String clubNumber = safeText(selectedClub.clubNumber(), "numéro inconnu");
+            String officialContactEmail = safeText(selectedClub.officialContactEmail(), "adresse inconnue");
+
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+            confirm.setTitle("Confirmation de la demande");
+            confirm.setHeaderText("Demande d'accès au club");
+
+            confirm.setContentText(
+                    "Vous êtes sur le point de créer un compte pour le club :\n\n"
+                            + clubName + "\n"
+                            + "Numéro FFTT : " + clubNumber + "\n\n"
+                            + "Un email de vérification sera envoyé à l'adresse suivante :\n"
+                            + officialContactEmail + "\n\n"
+                            + "Cette adresse est rattachée à votre club dans la base FFTT.\n"
+                            + "Êtes-vous sûr de vouloir continuer la démarche ?");
+
+            confirm.getButtonTypes().setAll(ButtonType.CANCEL, ButtonType.OK);
+
+            var result = confirm.showAndWait();
+            if (result.isEmpty() || result.get() != ButtonType.OK) {
+                return;
+            }
+
+            var account = nav.organizerAuth().register(
+                    email,
+                    password,
+                    selectedClub.id());
 
             CodeVerificationDialog dialog = new CodeVerificationDialog(
                     "Vérification email",
