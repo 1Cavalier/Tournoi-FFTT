@@ -1,10 +1,11 @@
-package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.components;
+package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.layout;
 
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.Navigator;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteClubRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.TournamentRow;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.components.UiUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;

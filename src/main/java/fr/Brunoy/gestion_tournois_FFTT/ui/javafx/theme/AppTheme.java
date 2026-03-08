@@ -155,9 +155,7 @@ public final class AppTheme {
                         "-fx-border-color: rgba(255,255,255,0.10);" +
                         "-fx-border-width: 0 0 1 0;";
 
-        public static final String SIDEBAR_STYLE = "-fx-background-color: " + COLOR_SIDEBAR_BG + ";" +
-                        "-fx-border-color: " + COLOR_SIDEBAR_BORDER + ";" +
-                        "-fx-border-width: 0 1 0 0;";
+        public static final String SIDEBAR_STYLE = "-fx-background-color: " + COLOR_SIDEBAR_BG + ";";
 
         public static final String SIDEBAR_PANEL_STYLE = "-fx-background-color: " + COLOR_SIDEBAR_PANEL + ";" +
                         "-fx-background-radius: " + RADIUS_LG + ";" +

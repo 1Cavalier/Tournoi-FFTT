@@ -1,6 +1,8 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.components;
 
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.Navigator;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerTournamentCardModel;
+import javafx.geometry.Insets;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
@@ -12,41 +14,53 @@ public final class UiUtils {
     private UiUtils() {
     }
 
-    public static String nvl(String s) {
-        return (s == null || s.isBlank()) ? "—" : s.trim();
+    public static VBox tournamentCardList(Navigator nav, List<OrganizerTournamentCardModel> tournaments) {
+        VBox box = new VBox(12);
+        box.setPadding(new Insets(0));
+
+        for (OrganizerTournamentCardModel t : tournaments) {
+            box.getChildren().add(new TournamentCard(nav, t));
+        }
+        return box;
     }
 
-    public static String safe(String s) {
-        return s == null ? "" : s.trim();
+    public static Label kv(String key, String value) {
+        return new Label(key + " : " + (value == null || value.isBlank() ? "—" : value));
+    }
+
+    public static String nvl(String value) {
+        return value == null || value.isBlank() ? "—" : value;
+    }
+
+    public static void info(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(title);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    public static String safe(String value) {
+        if (value == null) {
+            return "";
+        }
+        String v = value.trim();
+        return v.isEmpty() ? "" : v;
     }
 
     public static String fullNameOrDash(String firstName, String lastName) {
-        String fn = firstName == null ? "" : firstName.trim();
-        String ln = lastName == null ? "" : lastName.trim();
-        String full = (fn + " " + ln).trim();
-        return full.isEmpty() ? "—" : full;
-    }
+        String first = safe(firstName);
+        String last = safe(lastName);
 
-    public static Label kv(String k, String v) {
-        // Ici pas de style : le parent peut styler s'il veut
-        return new Label(k + " : " + (v == null || v.isBlank() ? "—" : v));
-    }
-
-    public static VBox tournamentList(Navigator nav,
-            List<fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.TournamentRow> tournaments,
-            TournamentCard.Mode mode) {
-        VBox list = new VBox(12);
-        for (var t : tournaments) {
-            list.getChildren().add(new TournamentCard(nav, t, mode));
+        if (first.isEmpty() && last.isEmpty()) {
+            return "—";
         }
-        return list;
-    }
-
-    public static void info(String title, String msg) {
-        Alert a = new Alert(Alert.AlertType.INFORMATION);
-        a.setTitle(title);
-        a.setHeaderText(null);
-        a.setContentText(msg);
-        a.showAndWait();
+        if (first.isEmpty()) {
+            return last;
+        }
+        if (last.isEmpty()) {
+            return first;
+        }
+        return first + " " + last;
     }
 }

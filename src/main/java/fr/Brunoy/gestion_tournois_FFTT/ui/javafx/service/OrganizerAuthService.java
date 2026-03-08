@@ -1,10 +1,10 @@
-package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app;
+package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service;
 
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.mail.EmailVerificationService;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteClubRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteOrganizerAccountRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.security.HashUtils;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.security.PasswordPolicy;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.mail.EmailVerificationService;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
 
 import java.security.SecureRandom;

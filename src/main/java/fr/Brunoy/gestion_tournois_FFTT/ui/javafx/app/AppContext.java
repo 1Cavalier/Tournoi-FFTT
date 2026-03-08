@@ -2,13 +2,14 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app;
 
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.db.DbMigrations;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.db.SqliteDb;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.mail.ConsoleEmailSender;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.mail.EmailSender;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.mail.EmailVerificationService;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteClubRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteOrganizerAccountRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteTableauRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteTournamentRepository;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.mail.ConsoleEmailSender;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.mail.EmailSender;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.mail.EmailVerificationService;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service.OrganizerAuthService;
 
 import java.nio.file.Path;
 import java.sql.Connection;

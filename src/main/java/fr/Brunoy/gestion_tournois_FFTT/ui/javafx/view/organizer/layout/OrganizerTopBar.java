@@ -1,4 +1,4 @@
-package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.components;
+package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.layout;
 
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.Navigator;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
@@ -15,7 +15,9 @@ import java.util.Objects;
 
 public class OrganizerTopBar extends HBox {
 
+    @SuppressWarnings("unused")
     private final Navigator nav;
+    @SuppressWarnings("unused")
     private final OrganizerAccount organizer;
 
     public OrganizerTopBar(Navigator nav, OrganizerAccount organizer) {

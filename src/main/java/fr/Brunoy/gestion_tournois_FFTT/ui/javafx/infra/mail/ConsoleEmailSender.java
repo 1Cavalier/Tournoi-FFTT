@@ -1,4 +1,4 @@
-package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.mail;
+package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.mail;
 
 /**
  * Implémentation dev : écrit les emails dans la console.

@@ -4,12 +4,13 @@ import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteClubRepository
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteTableauRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteTournamentRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service.OrganizerAuthService;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.auth.OrganizerLoginView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.auth.OrganizerRegisterView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.home.HomeView;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.OrganizerDashboardView;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.OrganizerProfileDialog;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.tournament.CreateTournamentDialog;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs.CreateTournamentDialog;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs.OrganizerProfileDialog;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.pages.OrganizerDashboardView;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
@@ -129,6 +130,17 @@ public final class Navigator {
                 "PingManager — Tableau de bord organisateur");
     }
 
+    public void showInfo(String title, String message) {
+
+        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
+                javafx.scene.control.Alert.AlertType.INFORMATION);
+
+        alert.setTitle(title);
+        alert.setHeaderText(title);
+        alert.setContentText(message);
+
+        alert.showAndWait();
+    }
     // -------------------------------------------------------------------------
     // Dialogs organisateur
     // -------------------------------------------------------------------------

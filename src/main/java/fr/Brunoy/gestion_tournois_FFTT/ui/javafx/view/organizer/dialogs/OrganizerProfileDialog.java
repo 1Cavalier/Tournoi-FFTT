@@ -1,4 +1,4 @@
-package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer;
+package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs;
 
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.Navigator;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteClubRepository;
