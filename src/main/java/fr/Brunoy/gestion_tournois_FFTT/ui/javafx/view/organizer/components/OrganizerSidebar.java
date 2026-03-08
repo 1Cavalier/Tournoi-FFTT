@@ -42,6 +42,7 @@ public class OrganizerSidebar extends VBox {
         content.setPadding(new Insets(18, 16, 18, 16));
 
         VBox profileSection = buildProfileSection(clubOpt);
+        Button homeButton = buildHomeButton();
         VBox tournamentsSection = buildTournamentsSection();
         VBox bottomSection = buildBottomSection();
 
@@ -50,6 +51,7 @@ public class OrganizerSidebar extends VBox {
 
         content.getChildren().addAll(
                 profileSection,
+                homeButton,
                 tournamentsSection,
                 spacer,
                 bottomSection);
@@ -99,6 +101,17 @@ public class OrganizerSidebar extends VBox {
 
         section.getChildren().add(profileCard);
         return section;
+    }
+
+    // -------------------------------------------------------------------------
+    // Accueil SECTION
+    // -------------------------------------------------------------------------
+
+    private Button buildHomeButton() {
+        Button homeButton = new Button("Accueil");
+        AppTheme.styleSidebarSecondaryButton(homeButton);
+        homeButton.setOnAction(e -> nav.showOrganizerDashboard());
+        return homeButton;
     }
 
     // -------------------------------------------------------------------------

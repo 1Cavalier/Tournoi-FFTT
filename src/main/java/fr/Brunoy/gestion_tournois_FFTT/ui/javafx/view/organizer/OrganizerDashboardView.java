@@ -5,15 +5,8 @@ import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.components.OrganizerMainContent;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.components.OrganizerSidebar;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.image.ImageView;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.components.OrganizerTopBar;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 
 import java.util.Objects;
 
@@ -33,70 +26,15 @@ public class OrganizerDashboardView extends BorderPane {
         setCenter(buildMainContent());
     }
 
-    private HBox buildTopBar() {
-        HBox bar = new HBox(12);
-        bar.setAlignment(Pos.CENTER_LEFT);
-        bar.setPadding(new Insets(10, 16, 10, 16));
-        bar.setMinHeight(AppTheme.TOPBAR_HEIGHT);
-        bar.setStyle(AppTheme.TOPBAR_STYLE);
-
-        ImageView logo = AppTheme.logoView(26);
-        if (logo != null) {
-            bar.getChildren().add(logo);
-        }
-
-        Label appNameLabel = new Label("PingManager");
-        appNameLabel.setStyle(
-                "-fx-font-family: " + AppTheme.FONT_FAMILY + ";" +
-                        "-fx-font-size: 16px;" +
-                        "-fx-font-weight: 900;" +
-                        "-fx-text-fill: " + AppTheme.COLOR_TEXT + ";");
-
-        Label clubLabel = new Label(buildClubLabelText());
-        clubLabel.setStyle(
-                "-fx-font-family: " + AppTheme.FONT_FAMILY + ";" +
-                        "-fx-font-size: 13px;" +
-                        "-fx-text-fill: " + AppTheme.COLOR_TEXT_MUTED + ";");
-
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
-        Label modeBadge = new Label("OFFLINE");
-        modeBadge.setStyle(AppTheme.badgeStyle("#64748B"));
-
-        Button logoutButton = new Button("Déconnexion");
-        AppTheme.styleSecondary(logoutButton);
-        logoutButton.setMaxWidth(Region.USE_PREF_SIZE);
-        logoutButton.setOnAction(e -> nav.logoutOrganizer());
-
-        bar.getChildren().addAll(
-                appNameLabel,
-                clubLabel,
-                spacer,
-                modeBadge,
-                logoutButton);
-
-        return bar;
+    private OrganizerTopBar buildTopBar() {
+        return new OrganizerTopBar(nav, organizer);
     }
 
     private OrganizerSidebar buildSidebar() {
-        OrganizerSidebar sidebar = new OrganizerSidebar(nav, organizer);
-        sidebar.setStyle(AppTheme.SIDEBAR_STYLE);
-        return sidebar;
+        return new OrganizerSidebar(nav, organizer);
     }
 
     private OrganizerMainContent buildMainContent() {
         return new OrganizerMainContent(nav, organizer);
-    }
-
-    private String buildClubLabelText() {
-        String clubName = safeTrim(organizer.getClubName());
-        return clubName.isEmpty()
-                ? "— Club non renseigné"
-                : "— " + clubName;
-    }
-
-    private static String safeTrim(String value) {
-        return value == null ? "" : value.trim();
     }
 }
