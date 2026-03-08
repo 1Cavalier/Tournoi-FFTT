@@ -90,11 +90,10 @@ C:\USERS\SOUME\ONEDRIVE\DESKTOP\TOURNOI-FFTT\SRC\MAIN\JAVA\FR
                 |   |       SqliteTableauRepository.java
                 |   |       SqliteTournamentRepository.java
                 |   |       
-                |   +---security
-                |   |       HashUtils.java
-                |   |       PasswordPolicy.java
-                |   |       
-                |   \---splite
+                |   \---security
+                |           HashUtils.java
+                |           PasswordPolicy.java
+                |           
                 +---mail
                 |       ConsoleEmailSender.java
                 |       EmailSender.java
@@ -124,11 +123,12 @@ C:\USERS\SOUME\ONEDRIVE\DESKTOP\TOURNOI-FFTT\SRC\MAIN\JAVA\FR
                     |       
                     +---organizer
                     |   |   OrganizerDashboardView.java
+                    |   |   OrganizerHomeView.java
                     |   |   OrganizerProfileDialog.java
+                    |   |   OrganizerSidebar.java
+                    |   |   OrganizerTopBar.java
                     |   |   
                     |   +---components
-                    |   |       OrganizerMainContent.java
-                    |   |       OrganizerSidebar.java
                     |   |       StatusBadge.java
                     |   |       TournamentCard.java
                     |   |       TournamentStatus.java
