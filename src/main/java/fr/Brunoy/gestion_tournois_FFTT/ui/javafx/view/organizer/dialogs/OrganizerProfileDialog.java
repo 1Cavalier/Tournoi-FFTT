@@ -1,8 +1,8 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs;
 
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.Navigator;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteClubRepository;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.ClubDto;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
@@ -30,24 +30,20 @@ import java.util.Optional;
  */
 public class OrganizerProfileDialog extends Stage {
 
-    public OrganizerProfileDialog(Navigator nav) {
+    public OrganizerProfileDialog(AppRouter nav) {
         setTitle("Modifier le profil du club");
         initModality(Modality.APPLICATION_MODAL);
 
-        OrganizerAccount org = nav.getCurrentOrganizer();
-        if (org == null) {
-            close();
-            return;
-        }
+        OrganizerDto org = nav.requireOrganizer();
+        Optional<ClubDto> clubOpt = nav.clubRepo().findByOrganizerId(org.getId());
 
-        Optional<SqliteClubRepository.ClubRow> clubOpt = nav.clubRepo().findByOrganizerId(org.getId());
         if (clubOpt.isEmpty()) {
             showError("Club introuvable", "Aucun club n'est associé à cet organisateur.");
             close();
             return;
         }
 
-        SqliteClubRepository.ClubRow existing = clubOpt.get();
+        ClubDto existing = clubOpt.get();
 
         TextField clubNumber = new TextField(nvl(existing.clubNumber()));
         TextField clubName = new TextField(nvl(existing.clubName()));
@@ -57,7 +53,6 @@ public class OrganizerProfileDialog extends Stage {
         TextField address2 = new TextField(nvl(existing.address2()));
         TextField firstName = new TextField(nvl(existing.contactFirstName()));
         TextField lastName = new TextField(nvl(existing.contactLastName()));
-        TextField officialContactEmail = new TextField(nvl(existing.officialContactEmail()));
         TextField latitude = new TextField(existing.latitude() == null ? "" : String.valueOf(existing.latitude()));
         TextField longitude = new TextField(existing.longitude() == null ? "" : String.valueOf(existing.longitude()));
 
@@ -113,9 +108,6 @@ public class OrganizerProfileDialog extends Stage {
         grid.add(label("Nom responsable"), 0, r);
         grid.add(lastName, 1, r++);
 
-        grid.add(label("Email officiel du club"), 0, r);
-        grid.add(officialContactEmail, 1, r++);
-
         HBox logoRow = new HBox(10, logoPath, chooseLogo);
         HBox.setHgrow(logoPath, Priority.ALWAYS);
         grid.add(label("Logo"), 0, r);
@@ -146,7 +138,7 @@ public class OrganizerProfileDialog extends Stage {
                             "Latitude et longitude doivent être renseignées ensemble, ou laissées vides.");
                 }
 
-                SqliteClubRepository.ClubRow updated = new SqliteClubRepository.ClubRow(
+                ClubDto updated = new ClubDto(
                         existing.id(),
                         blankToNull(clubNumber.getText()),
                         blankToNull(clubName.getText()),
@@ -158,9 +150,7 @@ public class OrganizerProfileDialog extends Stage {
                         lon,
                         blankToNull(firstName.getText()),
                         blankToNull(lastName.getText()),
-                        blankToNull(officialContactEmail.getText()),
                         blankToNull(logoPath.getText()),
-                        existing.createdAt(),
                         existing.updatedAt());
 
                 nav.clubRepo().updateClubProfile(updated);

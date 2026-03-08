@@ -1,22 +1,22 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo;
 
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.ClubRow;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.ClubDto;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Contrat d'accès aux clubs (indépendant du stockage).
+ * Contrat d'accès aux clubs.
  */
 public interface ClubRepository {
 
     String createClub(String clubNumberOrNull, String clubNameOrNull);
 
-    Optional<ClubRow> findById(String clubId);
+    Optional<ClubDto> findById(String clubId);
 
-    Optional<ClubRow> findByOrganizerId(String organizerId);
+    Optional<ClubDto> findByOrganizerId(String organizerId);
 
-    List<ClubRow> search(String query, int limit);
+    List<ClubDto> search(String query, int limit);
 
-    void updateClubProfile(ClubRow club);
+    void updateClubProfile(ClubDto club);
 }

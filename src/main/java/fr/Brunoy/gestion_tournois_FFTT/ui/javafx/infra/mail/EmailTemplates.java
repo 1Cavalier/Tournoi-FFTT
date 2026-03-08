@@ -2,7 +2,6 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.mail;
 
 /**
  * Templates emails (sujets + contenus).
- * Garder ici uniquement du texte formaté, sans logique métier.
  */
 public final class EmailTemplates {
 
@@ -13,7 +12,7 @@ public final class EmailTemplates {
     public static final int LOGIN_OTP_TTL_MINUTES = 10;
 
     public static String verificationSubject() {
-        return "Vérification email — Tournoi FFTT";
+        return "Vérification email — PingManager";
     }
 
     public static String verificationBody(String code) {
@@ -21,16 +20,17 @@ public final class EmailTemplates {
                 Bonjour,
 
                 Voici votre code de vérification d'email :
+
                 %s
 
                 Ce code est valable %d minutes.
 
-                — Tournoi FFTT
+                — PingManager
                 """.formatted(code, EMAIL_VERIFICATION_TTL_MINUTES);
     }
 
     public static String loginOtpSubject() {
-        return "Code de connexion — Tournoi FFTT";
+        return "Code de connexion — PingManager";
     }
 
     public static String loginOtpBody(String otp) {
@@ -38,12 +38,13 @@ public final class EmailTemplates {
                 Bonjour,
 
                 Voici votre code de connexion :
+
                 %s
 
                 Ce code est valable %d minutes.
                 Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.
 
-                — Tournoi FFTT
+                — PingManager
                 """.formatted(otp, LOGIN_OTP_TTL_MINUTES);
     }
 }

@@ -1,7 +1,7 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.auth;
 
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.Navigator;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteClubRepository;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.ClubDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.security.PasswordPolicy;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import javafx.collections.FXCollections;
@@ -29,10 +29,10 @@ public class OrganizerRegisterView extends BorderPane {
     private static final String ERROR_STYLE = "-fx-text-fill: #b00020; -fx-font-weight: 700;";
     private static final String SUCCESS_STYLE = "-fx-text-fill: #1b5e20; -fx-font-weight: 700;";
 
-    private final Navigator nav;
+    private final AppRouter nav;
     private final Label messageLabel = new Label();
 
-    public OrganizerRegisterView(Navigator nav) {
+    public OrganizerRegisterView(AppRouter nav) {
         this.nav = Objects.requireNonNull(nav, "nav must not be null");
 
         AppTheme.applyPage(this);
@@ -89,11 +89,11 @@ public class OrganizerRegisterView extends BorderPane {
         Button searchButton = new Button("Rechercher");
         AppTheme.styleSecondary(searchButton);
 
-        ListView<SqliteClubRepository.ClubRow> resultsList = new ListView<>();
+        ListView<ClubDto> resultsList = new ListView<>();
         resultsList.setPrefHeight(180);
         resultsList.setCellFactory(lv -> new ListCell<>() {
             @Override
-            protected void updateItem(SqliteClubRepository.ClubRow item, boolean empty) {
+            protected void updateItem(ClubDto item, boolean empty) {
                 super.updateItem(item, empty);
 
                 if (empty || item == null) {
@@ -161,7 +161,7 @@ public class OrganizerRegisterView extends BorderPane {
         return label;
     }
 
-    private void performClubSearch(TextField searchField, ListView<SqliteClubRepository.ClubRow> resultsList) {
+    private void performClubSearch(TextField searchField, ListView<ClubDto> resultsList) {
         clearMessage();
 
         String query = safeTrim(searchField.getText());
@@ -171,7 +171,7 @@ public class OrganizerRegisterView extends BorderPane {
             return;
         }
 
-        List<SqliteClubRepository.ClubRow> found = nav.clubRepo().search(query, 30);
+        List<ClubDto> found = nav.clubRepo().search(query, 30);
         resultsList.setItems(FXCollections.observableArrayList(found));
 
         if (found.isEmpty()) {
@@ -182,7 +182,7 @@ public class OrganizerRegisterView extends BorderPane {
     private void createAccount(
             TextField emailField,
             PasswordField passwordField,
-            ListView<SqliteClubRepository.ClubRow> resultsList) {
+            ListView<ClubDto> resultsList) {
 
         clearMessage();
 
@@ -195,27 +195,25 @@ public class OrganizerRegisterView extends BorderPane {
 
             PasswordPolicy.validateOrThrow(password);
 
-            SqliteClubRepository.ClubRow selectedClub = resultsList.getSelectionModel().getSelectedItem();
+            ClubDto selectedClub = resultsList.getSelectionModel().getSelectedItem();
             if (selectedClub == null) {
                 throw new IllegalArgumentException("Sélectionne un club dans la liste.");
             }
 
             String clubName = safeText(selectedClub.clubName(), "Club inconnu");
             String clubNumber = safeText(selectedClub.clubNumber(), "numéro inconnu");
-            String officialContactEmail = safeText(selectedClub.officialContactEmail(), "adresse inconnue");
+            String clubCity = safeText(selectedClub.city(), "ville inconnue");
 
             Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
             confirm.setTitle("Confirmation de la demande");
-            confirm.setHeaderText("Demande d'accès au club");
-
+            confirm.setHeaderText("Création du compte organisateur");
             confirm.setContentText(
                     "Vous êtes sur le point de créer un compte pour le club :\n\n"
                             + clubName + "\n"
-                            + "Numéro FFTT : " + clubNumber + "\n\n"
-                            + "Un email de vérification sera envoyé à l'adresse suivante :\n"
-                            + officialContactEmail + "\n\n"
-                            + "Cette adresse est rattachée à votre club dans la base FFTT.\n"
-                            + "Êtes-vous sûr de vouloir continuer la démarche ?");
+                            + "Numéro FFTT : " + clubNumber + "\n"
+                            + "Ville : " + clubCity + "\n\n"
+                            + "Un code de vérification sera envoyé à votre adresse email.\n"
+                            + "Êtes-vous sûr de vouloir continuer ?");
 
             confirm.getButtonTypes().setAll(ButtonType.CANCEL, ButtonType.OK);
 

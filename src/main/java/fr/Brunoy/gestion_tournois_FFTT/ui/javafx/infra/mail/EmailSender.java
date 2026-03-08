@@ -5,5 +5,6 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.mail;
  * Permet de remplacer l'implémentation console (dev) par SMTP/API (prod).
  */
 public interface EmailSender {
+
     void send(String to, String subject, String body);
 }

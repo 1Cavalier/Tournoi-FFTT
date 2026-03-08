@@ -1,6 +1,6 @@
-package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model;
+package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto;
 
-public record OrganizerTournamentCardModel(
+public record TournamentCardDto(
         String id,
         String organizerId,
         String name,

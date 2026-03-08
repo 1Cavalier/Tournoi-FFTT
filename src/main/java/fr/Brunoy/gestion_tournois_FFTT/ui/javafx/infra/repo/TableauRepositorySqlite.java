@@ -1,25 +1,30 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo;
 
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.entity.Tableau;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TableauDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.db.SqliteDb;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.TableauRow;
 
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SqliteTableauRepository {
+/**
+ * Implémentation SQLite du TableauRepository.
+ */
+public class TableauRepositorySqlite implements TableauRepository {
 
     private final SqliteDb db;
 
-    public SqliteTableauRepository(SqliteDb db) {
+    public TableauRepositorySqlite(SqliteDb db) {
         this.db = db;
     }
 
-    // ---------- INSERT (batch) ----------
+    @Override
     public void insertMany(String tournamentId, List<Tableau> tableaux) {
-        if (tableaux == null || tableaux.isEmpty())
+
+        if (tableaux == null || tableaux.isEmpty()) {
             return;
+        }
 
         String sql = """
                 INSERT INTO tableau(
@@ -37,6 +42,7 @@ public class SqliteTableauRepository {
             c.setAutoCommit(false);
 
             for (Tableau tb : tableaux) {
+
                 String id = "tab-" + java.util.UUID.randomUUID();
 
                 ps.setString(1, id);
@@ -61,10 +67,12 @@ public class SqliteTableauRepository {
         }
     }
 
-    // ---------- READ ----------
-    public List<TableauRow> findByTournamentId(String tournamentId) {
+    @Override
+    public List<TableauDto> findByTournamentId(String tournamentId) {
+
         String sql = """
-                SELECT id, tournament_id, code, label, date, prepaid_cents, onsite_cents, capacity
+                SELECT id, tournament_id, code, label, date,
+                       prepaid_cents, onsite_cents, capacity
                 FROM tableau
                 WHERE tournament_id = ?
                 ORDER BY date ASC, code ASC
@@ -72,12 +80,15 @@ public class SqliteTableauRepository {
 
         try (Connection c = db.openConnection();
                 var ps = c.prepareStatement(sql)) {
+
             ps.setString(1, tournamentId);
 
             try (var rs = ps.executeQuery()) {
-                List<TableauRow> out = new ArrayList<>();
+
+                List<TableauDto> out = new ArrayList<>();
+
                 while (rs.next()) {
-                    out.add(new TableauRow(
+                    out.add(new TableauDto(
                             rs.getString("id"),
                             rs.getString("tournament_id"),
                             rs.getString("code"),
@@ -87,6 +98,7 @@ public class SqliteTableauRepository {
                             rs.getInt("onsite_cents"),
                             rs.getInt("capacity")));
                 }
+
                 return out;
             }
 

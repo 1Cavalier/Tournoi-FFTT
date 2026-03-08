@@ -11,30 +11,36 @@ import java.sql.Statement;
  * Wrapper simple pour ouvrir des connexions SQLite.
  */
 public class SqliteDb {
-
+    
     private final String jdbcUrl;
 
     public SqliteDb(Path dbFile) {
+
         try {
+
             Path parent = dbFile.getParent();
+
             if (parent != null) {
                 Files.createDirectories(parent);
             }
+
         } catch (Exception e) {
+
             throw new RuntimeException("Impossible de créer le dossier DB", e);
         }
+
         this.jdbcUrl = "jdbc:sqlite:" + dbFile;
     }
 
     public Connection openConnection() throws SQLException {
-        Connection c = DriverManager.getConnection(jdbcUrl);
+        Connection connection = DriverManager.getConnection(jdbcUrl);
+        connection.setAutoCommit(true);
 
-        // SQLite : les clés étrangères sont désactivées par défaut par connexion.
-        try (Statement st = c.createStatement()) {
+        try (Statement st = connection.createStatement()) {
             st.execute("PRAGMA foreign_keys = ON;");
         }
 
-        return c;
+        return connection;
     }
 
     public String jdbcUrl() {

@@ -24,10 +24,10 @@ public final class CreateTableauDialog extends Dialog<Tableau> {
 
     public CreateTableauDialog(LocalDate tournamentStart, LocalDate tournamentEnd) {
 
-        int waitCap = 20;
+        int waitlistCapacity = 20;
 
         setTitle("Créer un tableau");
-        setHeaderText("Paramètres du tableau");
+        setHeaderText("Configurer un tableau");
 
         ButtonType createBtn = new ButtonType("Créer", ButtonBar.ButtonData.OK_DONE);
         getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, createBtn);
@@ -206,10 +206,10 @@ public final class CreateTableauDialog extends Dialog<Tableau> {
 
         grid.add(new Separator(), 0, r++, 2, 1);
 
-        grid.add(lbl("Règle sexe"), 0, r);
+        grid.add(lbl("Sexe autorisé"), 0, r);
         grid.add(genderPolicy, 1, r++);
 
-        grid.add(lbl("Règle points"), 0, r);
+        grid.add(lbl("Règle de points"), 0, r);
         grid.add(pointsRule, 1, r++);
 
         grid.add(lbl("Points min"), 0, r);
@@ -266,7 +266,13 @@ public final class CreateTableauDialog extends Dialog<Tableau> {
 
             try {
                 String c = safeUpper(code.getText());
+                if (c.isBlank()) {
+                    throw new IllegalArgumentException("Code obligatoire.");
+                }
                 String d = safeTrim(designation.getText());
+                if (d.isBlank()) {
+                    throw new IllegalArgumentException("Désignation obligatoire.");
+                }
 
                 LocalDate dt = date.getValue();
                 if (dt == null)
@@ -311,11 +317,15 @@ public final class CreateTableauDialog extends Dialog<Tableau> {
 
                 LocalTime checkInEnd = LocalTime.of(checkH.getValue(), checkM.getValue());
                 LocalTime start = LocalTime.of(startH.getValue(), startM.getValue());
+                if (start.isBefore(checkInEnd)) {
+                    throw new IllegalArgumentException(
+                            "L'heure de début doit être après ou égale à la fin du pointage.");
+                }
 
                 // --- Primes ---
                 PrizeDistribution prizes;
                 if (!prizesEnabled.isSelected()) {
-                    prizes = new PrizeDistribution(List.of(new PrizeTier(1, 1, 0))); // neutre
+                    prizes = new PrizeDistribution(List.of(new PrizeTier(1, 1, 0)));
                 } else {
                     List<PrizeTier> tiers = new ArrayList<>();
 
@@ -352,12 +362,12 @@ public final class CreateTableauDialog extends Dialog<Tableau> {
                         d,
                         dt,
                         gp,
-                        AgeCategoryPolicy.any(), // <-- ajouté (ou ta policy UI)
+                        AgeCategoryPolicy.any(),
                         pr,
                         min,
                         max,
                         cap,
-                        waitCap,
+                        waitlistCapacity,
                         fee,
                         checkInEnd,
                         start,

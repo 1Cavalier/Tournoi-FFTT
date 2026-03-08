@@ -4,8 +4,8 @@ import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.entity.Tableau;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.FemaleExtraRuleType;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.TournamentLevel;
 import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.RankingPhase;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.Navigator;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
 import javafx.beans.binding.BooleanBinding;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
@@ -23,15 +23,10 @@ import java.time.temporal.ChronoUnit;
 
 public class CreateTournamentDialog extends Stage {
 
-    public CreateTournamentDialog(Navigator nav) {
+    public CreateTournamentDialog(AppRouter nav) {
         setTitle("Créer un tournoi");
         initModality(Modality.APPLICATION_MODAL);
-
-        OrganizerAccount org = nav.getCurrentOrganizer();
-        if (org == null) {
-            close();
-            return;
-        }
+        OrganizerDto org = nav.requireOrganizer();
 
         // ================== Champs tournoi ==================
 
@@ -89,10 +84,14 @@ public class CreateTournamentDialog extends Stage {
         Tooltip tip = new Tooltip("""
                 NONE : pas d’extra
 
-                ANY_TABLEAU : +1 tableau autorisé sur n’importe quel tableau (1 seul par jour)
+                EXTRA_ANY_ONCE : +1 tableau autorisé une seule fois
 
-                SPECIFIC_TABLEAU_CODE : +1 tableau autorisé uniquement si la joueuse choisit un tableau précis (code)
-                """);
+                EXTRA_ANY_PER_DAY : +1 tableau autorisé par jour
+
+                SPECIFIC_TABLEAU_ONCE : +1 tableau autorisé une seule fois sur un tableau précis
+
+                SPECIFIC_TABLEAU_PER_DAY : +1 tableau autorisé par jour sur un tableau précis
+                                """);
         tip.setWrapText(true);
         tip.setMaxWidth(360);
         Tooltip.install(infoBtn, tip);

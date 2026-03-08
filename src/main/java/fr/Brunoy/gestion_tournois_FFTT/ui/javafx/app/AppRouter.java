@@ -1,9 +1,9 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app;
 
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteClubRepository;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteTableauRepository;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.SqliteTournamentRepository;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubRepository;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TableauRepository;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TournamentRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service.OrganizerAuthService;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.auth.OrganizerLoginView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.auth.OrganizerRegisterView;
@@ -11,6 +11,7 @@ import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.home.HomeView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs.CreateTournamentDialog;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs.OrganizerProfileDialog;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.pages.OrganizerDashboardView;
+
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
@@ -18,16 +19,10 @@ import javafx.stage.Stage;
 import java.util.Objects;
 
 /**
- * Navigator centralise :
- * - la navigation JavaFX (changement de scène, ouverture de dialogs)
- * - la session organisateur en cours
- * - l'accès aux dépendances applicatives utiles aux vues
- *
- * Il ne contient :
- * - aucune initialisation technique de base de données
- * - aucune logique métier
+ * Router central de l'application.
+ * Gère la navigation entre les vues et les dialogs.
  */
-public final class Navigator {
+public final class AppRouter {
 
     private static final double DEFAULT_WIDTH = 900;
     private static final double DEFAULT_HEIGHT = 600;
@@ -36,13 +31,13 @@ public final class Navigator {
     private static final double DASHBOARD_HEIGHT = 700;
 
     private final Stage stage;
-    private final AppContext ctx;
+    private final ApplicationContext ctx;
+    private final OrganizerSession session;
 
-    private OrganizerAccount currentOrganizer;
-
-    public Navigator(Stage stage, AppContext ctx) {
+    public AppRouter(Stage stage, ApplicationContext ctx) {
         this.stage = Objects.requireNonNull(stage, "stage must not be null");
-        this.ctx = Objects.requireNonNull(ctx, "app context must not be null");
+        this.ctx = Objects.requireNonNull(ctx, "context must not be null");
+        this.session = new OrganizerSession();
     }
 
     // -------------------------------------------------------------------------
@@ -53,43 +48,36 @@ public final class Navigator {
         return ctx.organizerAuthService();
     }
 
-    public SqliteClubRepository clubRepo() {
-        return ctx.clubRepo();
+    public ClubRepository clubRepo() {
+        return ctx.clubRepository();
     }
 
-    public SqliteTournamentRepository tournamentRepo() {
-        return ctx.tournamentRepo();
+    public TournamentRepository tournamentRepo() {
+        return ctx.tournamentRepository();
     }
 
-    public SqliteTableauRepository tableauRepo() {
-        return ctx.tableauRepo();
+    public TableauRepository tableauRepo() {
+        return ctx.tableauRepository();
     }
 
     // -------------------------------------------------------------------------
     // Session organisateur
     // -------------------------------------------------------------------------
 
-    public OrganizerAccount getCurrentOrganizer() {
-        return currentOrganizer;
+    public OrganizerSession session() {
+        return session;
     }
 
-    public boolean isOrganizerLoggedIn() {
-        return currentOrganizer != null;
+    public OrganizerDto requireOrganizer() {
+        return session.get();
     }
 
-    public void setCurrentOrganizer(OrganizerAccount organizer) {
-        this.currentOrganizer = Objects.requireNonNull(organizer, "organizer must not be null");
-    }
-
-    public OrganizerAccount requireOrganizerSession() {
-        if (currentOrganizer == null) {
-            throw new IllegalStateException("Aucun organisateur connecté.");
-        }
-        return currentOrganizer;
+    public void loginOrganizer(OrganizerDto organizer) {
+        session.login(organizer);
     }
 
     public void logoutOrganizer() {
-        currentOrganizer = null;
+        session.logout();
         showHome();
     }
 
@@ -122,13 +110,43 @@ public final class Navigator {
     }
 
     public void showOrganizerDashboard() {
-        requireOrganizerSession();
+
+        requireOrganizer();
+
         setScene(
                 new OrganizerDashboardView(this),
                 DASHBOARD_WIDTH,
                 DASHBOARD_HEIGHT,
                 "PingManager — Tableau de bord organisateur");
     }
+
+    // -------------------------------------------------------------------------
+    // Dialogs organisateur
+    // -------------------------------------------------------------------------
+
+    public void showOrganizerProfileDialog() {
+
+        requireOrganizer();
+
+        OrganizerProfileDialog dialog = new OrganizerProfileDialog(this);
+        dialog.showAndWait();
+
+        showOrganizerDashboard();
+    }
+
+    public void showCreateTournamentDialog() {
+
+        requireOrganizer();
+
+        CreateTournamentDialog dialog = new CreateTournamentDialog(this);
+        dialog.showAndWait();
+
+        showOrganizerDashboard();
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers UI
+    // -------------------------------------------------------------------------
 
     public void showInfo(String title, String message) {
 
@@ -141,34 +159,11 @@ public final class Navigator {
 
         alert.showAndWait();
     }
-    // -------------------------------------------------------------------------
-    // Dialogs organisateur
-    // -------------------------------------------------------------------------
-
-    public void showOrganizerProfileDialog() {
-        requireOrganizerSession();
-
-        OrganizerProfileDialog dialog = new OrganizerProfileDialog(this);
-        dialog.showAndWait();
-
-        showOrganizerDashboard();
-    }
-
-    public void showCreateTournamentDialog() {
-        requireOrganizerSession();
-
-        CreateTournamentDialog dialog = new CreateTournamentDialog(this);
-        dialog.showAndWait();
-
-        showOrganizerDashboard();
-    }
-
-    // -------------------------------------------------------------------------
-    // Helpers UI
-    // -------------------------------------------------------------------------
 
     private void setScene(Parent root, double width, double height, String title) {
+
         Scene scene = new Scene(root, width, height);
+
         stage.setScene(scene);
         stage.setTitle(title);
         stage.show();

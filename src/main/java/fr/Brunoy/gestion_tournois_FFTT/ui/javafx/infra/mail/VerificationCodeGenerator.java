@@ -3,8 +3,7 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.mail;
 import java.security.SecureRandom;
 
 /**
- * Générateur de codes courts (6 chiffres).
- * Utilise SecureRandom (adapté à des codes de vérification).
+ * Générateur de codes numériques courts pour vérification (OTP).
  */
 public final class VerificationCodeGenerator {
 
@@ -13,8 +12,26 @@ public final class VerificationCodeGenerator {
     private VerificationCodeGenerator() {
     }
 
+    /**
+     * Génère un code à 6 chiffres.
+     */
     public static String code6() {
-        int value = RANDOM.nextInt(1_000_000); // 0..999999
-        return String.format("%06d", value);
+        return generateDigits(6);
+    }
+
+    /**
+     * Génère un code numérique de longueur donnée.
+     */
+    public static String generateDigits(int length) {
+
+        if (length <= 0 || length > 9) {
+            throw new IllegalArgumentException("Longueur de code invalide");
+        }
+
+        int bound = (int) Math.pow(10, length);
+
+        int value = RANDOM.nextInt(bound);
+
+        return String.format("%0" + length + "d", value);
     }
 }

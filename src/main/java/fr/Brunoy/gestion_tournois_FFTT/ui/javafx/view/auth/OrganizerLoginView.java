@@ -1,7 +1,7 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.auth;
 
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.Navigator;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -23,10 +23,10 @@ public class OrganizerLoginView extends BorderPane {
     private static final String ERROR_STYLE = "-fx-text-fill: #b00020; -fx-font-weight: 700;";
     private static final String SUCCESS_STYLE = "-fx-text-fill: #1b5e20; -fx-font-weight: 700;";
 
-    private final Navigator nav;
+    private final AppRouter nav;
     private final Label messageLabel = new Label();
 
-    public OrganizerLoginView(Navigator nav) {
+    public OrganizerLoginView(AppRouter nav) {
         this.nav = Objects.requireNonNull(nav, "nav must not be null");
 
         AppTheme.applyPage(this);
@@ -137,7 +137,7 @@ public class OrganizerLoginView extends BorderPane {
 
             nav.organizerAuth().loginStart(email, password);
 
-            OrganizerAccount organizer = requestOtpAndAuthenticate(email);
+            OrganizerDto organizer = requestOtpAndAuthenticate(email);
             passwordField.clear();
 
             if (organizer == null) {
@@ -145,7 +145,7 @@ public class OrganizerLoginView extends BorderPane {
                 return;
             }
 
-            nav.setCurrentOrganizer(organizer);
+            nav.loginOrganizer(organizer);
             nav.showOrganizerDashboard();
 
         } catch (IllegalArgumentException ex) {
@@ -154,15 +154,15 @@ public class OrganizerLoginView extends BorderPane {
         }
     }
 
-    private OrganizerAccount requestOtpAndAuthenticate(String email) {
-        AtomicReference<OrganizerAccount> organizerRef = new AtomicReference<>();
+    private OrganizerDto requestOtpAndAuthenticate(String email) {
+        AtomicReference<OrganizerDto> organizerRef = new AtomicReference<>();
 
         CodeVerificationDialog dialog = new CodeVerificationDialog(
                 "Code de connexion",
                 "Un code de connexion a été envoyé à : " + email,
                 code -> {
                     try {
-                        OrganizerAccount organizer = nav.organizerAuth().verifyLoginOtpAndFinish(email, code);
+                        OrganizerDto organizer = nav.organizerAuth().verifyLoginOtpAndFinish(email, code);
                         organizerRef.set(organizer);
                         return true;
                     } catch (IllegalArgumentException ex) {

@@ -16,7 +16,7 @@
     <artifactId>gestion-tournois-FFTT</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>gestion-tournois-FFTT</name>
-    <description>Gestion de tournois FFTT (V1 JavaFX)</description>
+    <description>PingManager</description>
 
     <properties>
         <!-- aligné sur ton JDK (20.0.1) -->
@@ -87,7 +87,7 @@
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.8</version>
                 <configuration>
-                    <mainClass>fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.MainApp</mainClass>
+                    <mainClass>fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.PingManagerApp</mainClass>
                 </configuration>
             </plugin>
 

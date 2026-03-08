@@ -15,28 +15,29 @@ import java.io.StringWriter;
  * Responsabilités :
  * - Démarrer l'application JavaFX
  * - Installer un handler global pour les exceptions non gérées
- * - Créer le contexte applicatif (AppContext)
- * - Démarrer la navigation (Navigator)
+ * - Créer le contexte applicatif (ApplicationContext)
+ * - Démarrer la navigation (AppRouter)
  */
-public class MainApp extends Application {
+public class PingManagerApp extends Application {
 
     @Override
     public void start(Stage stage) {
-        // Capture toutes les exceptions non gérées (threads non-JavaFX inclus)
+
+        // Capture toutes les exceptions non gérées
         Thread.setDefaultUncaughtExceptionHandler((thread, ex) -> {
             ex.printStackTrace();
             Platform.runLater(() -> showError("Erreur non gérée", ex));
         });
 
         try {
-            // Contexte applicatif central (DB, repos, services)
-            AppContext context = new AppContext();
+            // Contexte applicatif (DB, repos, services)
+            ApplicationContext context = new ApplicationContext();
 
-            // Navigation + session
-            Navigator nav = new Navigator(stage, context);
+            // Router principal de navigation
+            AppRouter router = new AppRouter(stage, context);
 
-            // Le Navigator fait déjà stage.show() dans setScene(...)
-            nav.showHome();
+            // Démarrage de l'application
+            router.showHome();
 
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -45,6 +46,7 @@ public class MainApp extends Application {
     }
 
     private void showError(String title, Throwable ex) {
+
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);
         alert.setHeaderText(ex.getClass().getName());
@@ -52,6 +54,7 @@ public class MainApp extends Application {
         String msg = (ex.getMessage() == null || ex.getMessage().isBlank())
                 ? "Une erreur est survenue."
                 : ex.getMessage();
+
         alert.setContentText(msg);
 
         StringWriter sw = new StringWriter();
@@ -65,6 +68,7 @@ public class MainApp extends Application {
 
         alert.getDialogPane().setExpandableContent(area);
         alert.getDialogPane().setExpanded(true);
+
         alert.showAndWait();
     }
 

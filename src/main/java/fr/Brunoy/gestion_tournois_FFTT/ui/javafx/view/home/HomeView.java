@@ -1,6 +1,6 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.home;
 
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.Navigator;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -19,9 +19,9 @@ public class HomeView extends BorderPane {
 
     private static final double CARD_WIDTH = 420;
 
-    private final Navigator nav;
+    private final AppRouter nav;
 
-    public HomeView(Navigator nav) {
+    public HomeView(AppRouter nav) {
         this.nav = Objects.requireNonNull(nav, "nav must not be null");
 
         AppTheme.applyPage(this);

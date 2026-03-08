@@ -17,30 +17,29 @@ import java.util.Objects;
 import java.util.function.Function;
 
 /**
- * Fenêtre modale générique pour saisir un code reçu par email.
+ * Fenêtre modale pour saisir un code reçu par email.
  *
  * Utilisable pour :
  * - vérification d'email à l'inscription
  * - OTP de connexion
- *
- * La logique métier est injectée via une fonction de vérification.
  */
 public class CodeVerificationDialog extends Stage {
 
     private static final String ERROR_STYLE = "-fx-text-fill: #b00020; -fx-font-weight: 700;";
     private static final double WIDTH = 420;
     private static final double HEIGHT = 220;
+    private static final int CODE_LENGTH = 6;
 
     private boolean success;
 
     public CodeVerificationDialog(
             String title,
             String infoText,
-            Function<String, Boolean> verifier) {
+            Function<String, Boolean> verifyAction) {
 
         Objects.requireNonNull(title, "title must not be null");
         Objects.requireNonNull(infoText, "infoText must not be null");
-        Objects.requireNonNull(verifier, "verifier must not be null");
+        Objects.requireNonNull(verifyAction, "verifyAction must not be null");
 
         setTitle(title);
         initModality(Modality.APPLICATION_MODAL);
@@ -53,8 +52,8 @@ public class CodeVerificationDialog extends Stage {
         codeField.setPromptText("Code à 6 chiffres");
         codeField.textProperty().addListener((obs, oldValue, newValue) -> {
             String digitsOnly = newValue == null ? "" : newValue.replaceAll("\\D", "");
-            if (digitsOnly.length() > 6) {
-                digitsOnly = digitsOnly.substring(0, 6);
+            if (digitsOnly.length() > CODE_LENGTH) {
+                digitsOnly = digitsOnly.substring(0, CODE_LENGTH);
             }
             if (!digitsOnly.equals(newValue)) {
                 codeField.setText(digitsOnly);
@@ -69,13 +68,13 @@ public class CodeVerificationDialog extends Stage {
 
         Button verifyButton = new Button("Valider");
         verifyButton.setDefaultButton(true);
+        verifyButton.setOnAction(e -> runVerification(codeField, messageLabel, verifyAction));
 
         Button cancelButton = new Button("Annuler");
         cancelButton.setCancelButton(true);
         cancelButton.setOnAction(e -> close());
 
-        verifyButton.setOnAction(e -> runVerification(codeField, messageLabel, verifier));
-        codeField.setOnAction(e -> runVerification(codeField, messageLabel, verifier));
+        codeField.setOnAction(e -> runVerification(codeField, messageLabel, verifyAction));
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -87,7 +86,6 @@ public class CodeVerificationDialog extends Stage {
         root.setPadding(new Insets(18));
 
         setScene(new Scene(root, WIDTH, HEIGHT));
-
         setOnShown(e -> codeField.requestFocus());
     }
 
@@ -98,7 +96,7 @@ public class CodeVerificationDialog extends Stage {
     private void runVerification(
             TextField codeField,
             Label messageLabel,
-            Function<String, Boolean> verifier) {
+            Function<String, Boolean> verifyAction) {
 
         hideMessage(messageLabel);
 
@@ -109,24 +107,25 @@ public class CodeVerificationDialog extends Stage {
             return;
         }
 
-        if (code.length() != 6) {
+        if (code.length() != CODE_LENGTH) {
             showError(messageLabel, "Le code doit contenir 6 chiffres.");
             return;
         }
 
-        boolean ok;
+        boolean verified;
         try {
-            ok = verifier.apply(code);
+            verified = verifyAction.apply(code);
         } catch (Exception ex) {
-            ok = false;
+            verified = false;
         }
 
-        if (ok) {
+        if (verified) {
             success = true;
             close();
-        } else {
-            showError(messageLabel, "Code invalide ou expiré.");
+            return;
         }
+
+        showError(messageLabel, "Code invalide ou expiré.");
     }
 
     private void showError(Label messageLabel, String text) {

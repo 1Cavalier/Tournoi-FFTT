@@ -1,7 +1,7 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.layout;
 
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.Navigator;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -16,14 +16,13 @@ import java.util.Objects;
 public class OrganizerTopBar extends HBox {
 
     @SuppressWarnings("unused")
-    private final Navigator nav;
+    private final AppRouter nav;
     @SuppressWarnings("unused")
-    private final OrganizerAccount organizer;
+    private final OrganizerDto organizer;
 
-    public OrganizerTopBar(Navigator nav, OrganizerAccount organizer) {
+    public OrganizerTopBar(AppRouter nav, OrganizerDto organizer) {
         this.nav = Objects.requireNonNull(nav, "nav must not be null");
         this.organizer = Objects.requireNonNull(organizer, "organizer must not be null");
-
         build();
     }
 

@@ -7,6 +7,7 @@ public class ConsoleEmailSender implements EmailSender {
 
     @Override
     public void send(String to, String subject, String body) {
+
         String safeTo = to == null ? "" : to.trim();
         String safeSubject = subject == null ? "" : subject.trim();
         String safeBody = body == null ? "" : body;

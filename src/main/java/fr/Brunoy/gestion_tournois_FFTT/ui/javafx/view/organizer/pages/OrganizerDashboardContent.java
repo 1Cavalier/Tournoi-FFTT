@@ -1,12 +1,12 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.pages;
 
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.Navigator;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerTournamentCardModel;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerTournamentCardModelMapper;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.TournamentRow;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentCardDto;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.mapper.TournamentCardMapper;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.components.UiUtils;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.components.TournamentCard;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
@@ -21,12 +21,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class OrganizerHomeView extends VBox {
+public class OrganizerDashboardContent extends VBox {
 
-    private final Navigator nav;
-    private final OrganizerAccount organizer;
+    private final AppRouter nav;
+    private final OrganizerDto organizer;
 
-    public OrganizerHomeView(Navigator nav, OrganizerAccount organizer) {
+    public OrganizerDashboardContent(AppRouter nav, OrganizerDto organizer) {
         this.nav = Objects.requireNonNull(nav, "nav must not be null");
         this.organizer = Objects.requireNonNull(organizer, "organizer must not be null");
         build();
@@ -45,10 +45,6 @@ public class OrganizerHomeView extends VBox {
 
         setChildrenAsScroll(root);
     }
-
-    // ---------------------------------------------------------
-    // WELCOME
-    // ---------------------------------------------------------
 
     private VBox buildWelcomeSection() {
         VBox content = new VBox(AppTheme.SPACE_SM);
@@ -83,20 +79,16 @@ public class OrganizerHomeView extends VBox {
         return "Bienvenue sur le compte du club : " + clubName;
     }
 
-    // ---------------------------------------------------------
-    // TOURNAMENTS
-    // ---------------------------------------------------------
-
     private VBox buildClubTournamentsSection() {
-        List<TournamentRow> active = loadActiveTournaments();
-        List<TournamentRow> draft = loadDraftTournaments();
+        List<TournamentDto> active = loadActiveTournaments();
+        List<TournamentDto> draft = loadDraftTournaments();
 
-        List<TournamentRow> allTournaments = new ArrayList<>();
+        List<TournamentDto> allTournaments = new ArrayList<>();
         allTournaments.addAll(draft);
         allTournaments.addAll(active);
 
-        List<OrganizerTournamentCardModel> cards = new ArrayList<>();
-        for (TournamentRow tournament : allTournaments) {
+        List<TournamentCardDto> cards = new ArrayList<>();
+        for (TournamentDto tournament : allTournaments) {
             cards.add(toCardModel(tournament));
         }
 
@@ -117,7 +109,7 @@ public class OrganizerHomeView extends VBox {
         if (cards.isEmpty()) {
             content.getChildren().add(buildEmptyTournamentState());
         } else {
-            content.getChildren().add(UiUtils.tournamentCardList(nav, cards));
+            content.getChildren().add(buildTournamentCardList(cards));
         }
 
         content.getChildren().add(buildCreateTournamentRow());
@@ -127,11 +119,11 @@ public class OrganizerHomeView extends VBox {
         return card;
     }
 
-    private OrganizerTournamentCardModel toCardModel(TournamentRow tournament) {
+    private TournamentCardDto toCardModel(TournamentDto tournament) {
         var clubOpt = nav.clubRepo().findByOrganizerId(tournament.organizerId());
         var tableaux = nav.tableauRepo().findByTournamentId(tournament.id());
 
-        return OrganizerTournamentCardModelMapper.map(tournament, clubOpt, tableaux);
+        return TournamentCardMapper.map(tournament, clubOpt, tableaux);
     }
 
     private VBox buildEmptyTournamentState() {
@@ -168,17 +160,23 @@ public class OrganizerHomeView extends VBox {
         return row;
     }
 
-    private List<TournamentRow> loadActiveTournaments() {
+    private List<TournamentDto> loadActiveTournaments() {
         return nav.tournamentRepo().findActiveForOrganizer(organizer.getId());
     }
 
-    private List<TournamentRow> loadDraftTournaments() {
-        return nav.tournamentRepo().findDraftForOrganizer(organizer.getId());
+    private VBox buildTournamentCardList(List<TournamentCardDto> cards) {
+        VBox box = new VBox(12);
+
+        for (TournamentCardDto card : cards) {
+            box.getChildren().add(new TournamentCard(nav, card));
+        }
+
+        return box;
     }
 
-    // ---------------------------------------------------------
-    // HELP
-    // ---------------------------------------------------------
+    private List<TournamentDto> loadDraftTournaments() {
+        return nav.tournamentRepo().findDraftForOrganizer(organizer.getId());
+    }
 
     private VBox buildHelpSection() {
         VBox content = new VBox(AppTheme.SPACE_MD);
@@ -212,10 +210,6 @@ public class OrganizerHomeView extends VBox {
         alert.setContentText("La section d'aide sera bientôt disponible.");
         alert.showAndWait();
     }
-
-    // ---------------------------------------------------------
-    // SCROLL
-    // ---------------------------------------------------------
 
     private void setChildrenAsScroll(VBox content) {
         ScrollPane scroll = new ScrollPane(content);

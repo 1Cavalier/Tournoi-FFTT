@@ -1,10 +1,11 @@
-package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model;
+package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto;
 
 /**
  * DTO UI : représentation d'un club utilisable partout (UI, services, repos).
  * Ne dépend pas de SQLite.
  */
-public record ClubRow(
+
+public record ClubDto(
         String id,
         String clubNumber,
         String clubName,

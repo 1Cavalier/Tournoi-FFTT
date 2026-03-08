@@ -1,7 +1,7 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.pages;
 
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.Navigator;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.model.OrganizerAccount;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.layout.OrganizerSidebar;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.layout.OrganizerTopBar;
@@ -11,12 +11,12 @@ import java.util.Objects;
 
 public class OrganizerDashboardView extends BorderPane {
 
-    private final Navigator nav;
-    private final OrganizerAccount organizer;
+    private final AppRouter nav;
+    private final OrganizerDto organizer;
 
-    public OrganizerDashboardView(Navigator nav) {
+    public OrganizerDashboardView(AppRouter nav) {
         this.nav = Objects.requireNonNull(nav, "nav must not be null");
-        this.organizer = nav.requireOrganizerSession();
+        this.organizer = nav.requireOrganizer();
 
         AppTheme.applyPage(this);
 
@@ -33,7 +33,7 @@ public class OrganizerDashboardView extends BorderPane {
         return new OrganizerSidebar(nav, organizer);
     }
 
-    private OrganizerHomeView buildMainContent() {
-        return new OrganizerHomeView(nav, organizer);
+    private OrganizerDashboardContent buildMainContent() {
+        return new OrganizerDashboardContent(nav, organizer);
     }
 }
