@@ -368,7 +368,13 @@ public class CreateTournamentDialog extends Stage {
                 FemaleExtraRuleType rule = femaleRule.getValue();
                 String code = femaleCode.getText();
 
+                String clubId = nav.clubRepo()
+                        .findByOrganizerId(org.getId())
+                        .orElseThrow(() -> new IllegalStateException("Club introuvable pour cet organisateur"))
+                        .id();
+
                 nav.tournamentRepo().createDraftTournament(
+                        clubId,
                         org.getId(),
                         name.getText().trim(),
                         level.getValue().name(),

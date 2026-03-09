@@ -21,9 +21,11 @@ public class OrganizerRepositorySqlite implements OrganizerRepository {
     }
 
     @Override
-    public OrganizerDto insert(String clubId, String email, String passwordHash) {
+    public OrganizerDto insert(String clubId, String firstName, String lastName, String email, String passwordHash) {
 
         requireNotBlank(clubId, "clubId obligatoire");
+        requireNotBlank(firstName, "firstName obligatoire");
+        requireNotBlank(lastName, "lastName obligatoire");
         requireNotBlank(email, "email obligatoire");
         requireNotBlank(passwordHash, "passwordHash obligatoire");
 
@@ -32,10 +34,10 @@ public class OrganizerRepositorySqlite implements OrganizerRepository {
 
         String sql = """
                 INSERT INTO organizer_account(
-                  id, club_id, email, password_hash,
+                  id, club_id, first_name, last_name, email, password_hash,
                   email_verified,
                   created_at, updated_at
-                ) VALUES(?,?,?,?,0,?,?)
+                ) VALUES(?,?,?,?,?, ?,0,?,?)
                 """;
 
         try (Connection c = db.openConnection();
@@ -43,10 +45,12 @@ public class OrganizerRepositorySqlite implements OrganizerRepository {
 
             ps.setString(1, id);
             ps.setString(2, clubId);
-            ps.setString(3, email);
-            ps.setString(4, passwordHash);
-            ps.setString(5, now);
-            ps.setString(6, now);
+            ps.setString(3, blankToNull(firstName));
+            ps.setString(4, blankToNull(lastName));
+            ps.setString(5, email);
+            ps.setString(6, passwordHash);
+            ps.setString(7, now);
+            ps.setString(8, now);
 
             ps.executeUpdate();
 
@@ -65,6 +69,8 @@ public class OrganizerRepositorySqlite implements OrganizerRepository {
 
         String sql = """
                 SELECT oa.id,
+                       oa.first_name,
+                       oa.last_name,
                        oa.email,
                        oa.email_verified,
                        c.club_name
@@ -80,13 +86,14 @@ public class OrganizerRepositorySqlite implements OrganizerRepository {
 
             try (var rs = ps.executeQuery()) {
 
-                if (!rs.next())
+                if (!rs.next()) {
                     return Optional.empty();
+                }
 
                 return Optional.of(new OrganizerDto(
                         rs.getString("id"),
-                        null,
-                        null,
+                        rs.getString("first_name"),
+                        rs.getString("last_name"),
                         rs.getString("club_name"),
                         rs.getString("email"),
                         rs.getInt("email_verified") == 1));
@@ -104,6 +111,8 @@ public class OrganizerRepositorySqlite implements OrganizerRepository {
 
         String sql = """
                 SELECT oa.id,
+                       oa.first_name,
+                       oa.last_name,
                        oa.email,
                        oa.email_verified,
                        c.club_name
@@ -119,13 +128,14 @@ public class OrganizerRepositorySqlite implements OrganizerRepository {
 
             try (var rs = ps.executeQuery()) {
 
-                if (!rs.next())
+                if (!rs.next()) {
                     return Optional.empty();
+                }
 
                 return Optional.of(new OrganizerDto(
                         rs.getString("id"),
-                        null,
-                        null,
+                        rs.getString("first_name"),
+                        rs.getString("last_name"),
                         rs.getString("club_name"),
                         rs.getString("email"),
                         rs.getInt("email_verified") == 1));
@@ -249,12 +259,6 @@ public class OrganizerRepositorySqlite implements OrganizerRepository {
         }
     }
 
-    private void requireNotBlank(String value, String message) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(message);
-        }
-    }
-
     @Override
     public Optional<AuthOrganizerRow> findAuthByEmail(String email) {
 
@@ -287,6 +291,20 @@ public class OrganizerRepositorySqlite implements OrganizerRepository {
 
         } catch (Exception e) {
             throw new RuntimeException("DB error findAuthByEmail", e);
+        }
+    }
+
+    private static String blankToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private void requireNotBlank(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(message);
         }
     }
 }

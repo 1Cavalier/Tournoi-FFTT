@@ -66,6 +66,14 @@ public class OrganizerRegisterView extends BorderPane {
     }
 
     private VBox buildRegisterCard() {
+        TextField firstNameField = new TextField();
+        firstNameField.setPromptText("Prénom");
+        firstNameField.setMaxWidth(Double.MAX_VALUE);
+
+        TextField lastNameField = new TextField();
+        lastNameField.setPromptText("Nom");
+        lastNameField.setMaxWidth(Double.MAX_VALUE);
+
         TextField emailField = new TextField();
         emailField.setPromptText("Adresse email");
         emailField.setMaxWidth(Double.MAX_VALUE);
@@ -122,12 +130,22 @@ public class OrganizerRegisterView extends BorderPane {
 
         searchButton.setOnAction(e -> performClubSearch(searchField, resultsList));
         searchField.setOnAction(e -> performClubSearch(searchField, resultsList));
-        passwordField.setOnAction(e -> createAccount(emailField, passwordField, resultsList));
-        emailField.setOnAction(e -> createAccount(emailField, passwordField, resultsList));
-        createAccountButton.setOnAction(e -> createAccount(emailField, passwordField, resultsList));
+
+        firstNameField.setOnAction(
+                e -> createAccount(firstNameField, lastNameField, emailField, passwordField, resultsList));
+        lastNameField.setOnAction(
+                e -> createAccount(firstNameField, lastNameField, emailField, passwordField, resultsList));
+        emailField.setOnAction(
+                e -> createAccount(firstNameField, lastNameField, emailField, passwordField, resultsList));
+        passwordField.setOnAction(
+                e -> createAccount(firstNameField, lastNameField, emailField, passwordField, resultsList));
+        createAccountButton.setOnAction(
+                e -> createAccount(firstNameField, lastNameField, emailField, passwordField, resultsList));
 
         VBox card = AppTheme.card(
                 sectionTitle("Compte organisateur"),
+                firstNameField,
+                lastNameField,
                 emailField,
                 passwordField,
                 rulesLabel,
@@ -140,7 +158,7 @@ public class OrganizerRegisterView extends BorderPane {
                 messageLabel);
         card.setMaxWidth(640);
 
-        emailField.requestFocus();
+        firstNameField.requestFocus();
         return card;
     }
 
@@ -180,6 +198,8 @@ public class OrganizerRegisterView extends BorderPane {
     }
 
     private void createAccount(
+            TextField firstNameField,
+            TextField lastNameField,
             TextField emailField,
             PasswordField passwordField,
             ListView<ClubDto> resultsList) {
@@ -187,9 +207,13 @@ public class OrganizerRegisterView extends BorderPane {
         clearMessage();
 
         try {
+            String firstName = safeTrim(firstNameField.getText());
+            String lastName = safeTrim(lastNameField.getText());
             String email = normalizeEmail(emailField.getText());
             String password = passwordField.getText();
 
+            requireNotBlank(firstName, "Prénom obligatoire.");
+            requireNotBlank(lastName, "Nom obligatoire.");
             requireNotBlank(email, "Email obligatoire.");
             requireNotBlank(password, "Mot de passe obligatoire.");
 
@@ -208,11 +232,14 @@ public class OrganizerRegisterView extends BorderPane {
             confirm.setTitle("Confirmation de la demande");
             confirm.setHeaderText("Création du compte organisateur");
             confirm.setContentText(
-                    "Vous êtes sur le point de créer un compte pour le club :\n\n"
+                    "Vous êtes sur le point de créer un compte pour :\n\n"
+                            + firstName + " " + lastName + "\n"
+                            + email + "\n\n"
+                            + "Club sélectionné :\n"
                             + clubName + "\n"
                             + "Numéro FFTT : " + clubNumber + "\n"
                             + "Ville : " + clubCity + "\n\n"
-                            + "Un code de vérification sera envoyé à votre adresse email.\n"
+                            + "Un code de vérification sera envoyé à l'adresse officielle du club.\n"
                             + "Êtes-vous sûr de vouloir continuer ?");
 
             confirm.getButtonTypes().setAll(ButtonType.CANCEL, ButtonType.OK);
@@ -223,13 +250,15 @@ public class OrganizerRegisterView extends BorderPane {
             }
 
             var account = nav.organizerAuth().register(
+                    firstName,
+                    lastName,
                     email,
                     password,
                     selectedClub.id());
 
             CodeVerificationDialog dialog = new CodeVerificationDialog(
                     "Vérification email",
-                    "Un code a été envoyé à : " + account.getEmail(),
+                    "Saisissez le code de vérification transmis au club pour valider ce compte.",
                     code -> nav.organizerAuth().verifyEmail(account.getEmail(), code));
 
             dialog.showAndWait();

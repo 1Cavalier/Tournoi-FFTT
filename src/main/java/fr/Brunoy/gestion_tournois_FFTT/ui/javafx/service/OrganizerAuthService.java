@@ -1,9 +1,12 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service;
 
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.ClubAccessDto;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.ClubDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.mail.EmailTemplates;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.mail.EmailVerificationService;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.mail.VerificationCodeGenerator;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubAccessRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.OrganizerRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.security.HashUtils;
@@ -17,15 +20,18 @@ public class OrganizerAuthService {
 
     private final OrganizerRepository organizerRepo;
     private final ClubRepository clubRepo;
+    private final ClubAccessRepository clubAccessRepo;
     private final EmailVerificationService emailVerification;
 
     public OrganizerAuthService(
             OrganizerRepository organizerRepo,
             ClubRepository clubRepo,
+            ClubAccessRepository clubAccessRepo,
             EmailVerificationService emailVerification) {
 
         this.organizerRepo = Objects.requireNonNull(organizerRepo, "organizerRepo must not be null");
         this.clubRepo = Objects.requireNonNull(clubRepo, "clubRepo must not be null");
+        this.clubAccessRepo = Objects.requireNonNull(clubAccessRepo, "clubAccessRepo must not be null");
         this.emailVerification = Objects.requireNonNull(emailVerification, "emailVerification must not be null");
     }
 
@@ -33,26 +39,39 @@ public class OrganizerAuthService {
     // INSCRIPTION
     // -------------------------------------------------------------------------
 
-    public OrganizerDto register(String email, String password, String clubId) {
+    public OrganizerDto register(String firstName, String lastName, String email, String password, String clubId) {
 
+        String cleanFirstName = normalizeRequiredText(firstName, "Prénom obligatoire.");
+        String cleanLastName = normalizeRequiredText(lastName, "Nom obligatoire.");
         String cleanEmail = normalizeRequiredEmail(email);
         String cleanPassword = normalizeRequiredText(password, "Mot de passe obligatoire.");
         String cleanClubId = normalizeRequiredText(clubId, "Club obligatoire.");
 
         PasswordPolicy.validateOrThrow(cleanPassword);
 
-        clubRepo.findById(cleanClubId)
+        ClubDto club = clubRepo.findById(cleanClubId)
                 .orElseThrow(() -> new IllegalArgumentException("Club introuvable."));
 
         organizerRepo.findByEmail(cleanEmail).ifPresent(existing -> {
             throw new IllegalArgumentException("Un compte existe déjà avec cet email.");
         });
 
+        String clubVerificationEmail = normalizeRequiredEmail(
+                club.officialContactEmail(),
+                "Aucune adresse email officielle n'est renseignée pour ce club.");
+
         String passwordHash = HashUtils.hash(cleanPassword);
 
-        OrganizerDto account = organizerRepo.insert(cleanClubId, cleanEmail, passwordHash);
+        OrganizerDto account = organizerRepo.insert(
+                cleanClubId,
+                cleanFirstName,
+                cleanLastName,
+                cleanEmail,
+                passwordHash);
 
-        emailVerification.sendVerificationCode(account.getId(), account.getEmail());
+        // Le code est stocké sur le compte organisateur,
+        // mais envoyé à l'adresse officielle du club.
+        emailVerification.sendVerificationCode(account.getId(), clubVerificationEmail);
 
         return account;
     }
@@ -67,7 +86,30 @@ public class OrganizerAuthService {
             return false;
         }
 
-        return emailVerification.verify(normalizeEmail(email), code.trim());
+        String cleanEmail = normalizeEmail(email);
+        boolean ok = emailVerification.verify(cleanEmail, code.trim());
+
+        if (!ok) {
+            return false;
+        }
+
+        OrganizerDto organizer = organizerRepo.findByEmail(cleanEmail)
+                .orElseThrow(() -> new IllegalArgumentException("Compte introuvable."));
+
+        ClubDto club = clubRepo.findByOrganizerId(organizer.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Club introuvable pour cet organisateur."));
+
+        if (!clubAccessRepo.existsByClubIdAndEmail(club.id(), organizer.getEmail())) {
+            clubAccessRepo.insert(new ClubAccessDto(
+                    null,
+                    club.id(),
+                    organizer.getEmail(),
+                    blankToNull(organizer.getFirstName()),
+                    blankToNull(organizer.getLastName()),
+                    null));
+        }
+
+        return true;
     }
 
     public void resendVerificationCode(String email) {
@@ -81,7 +123,14 @@ public class OrganizerAuthService {
             throw new IllegalArgumentException("Email déjà vérifié.");
         }
 
-        emailVerification.sendVerificationCode(organizer.getId(), organizer.getEmail());
+        ClubDto club = clubRepo.findByOrganizerId(organizer.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Club introuvable pour cet organisateur."));
+
+        String clubVerificationEmail = normalizeRequiredEmail(
+                club.officialContactEmail(),
+                "Aucune adresse email officielle n'est renseignée pour ce club.");
+
+        emailVerification.sendVerificationCode(organizer.getId(), clubVerificationEmail);
     }
 
     // -------------------------------------------------------------------------
@@ -140,11 +189,13 @@ public class OrganizerAuthService {
     // -------------------------------------------------------------------------
 
     private String normalizeRequiredEmail(String email) {
+        return normalizeRequiredEmail(email, "Email obligatoire.");
+    }
 
+    private String normalizeRequiredEmail(String email, String message) {
         if (email == null || email.isBlank()) {
-            throw new IllegalArgumentException("Email obligatoire.");
+            throw new IllegalArgumentException(message);
         }
-
         return normalizeEmail(email);
     }
 
@@ -153,11 +204,17 @@ public class OrganizerAuthService {
     }
 
     private String normalizeRequiredText(String value, String message) {
-
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(message);
         }
-
         return value.trim();
+    }
+
+    private String blankToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

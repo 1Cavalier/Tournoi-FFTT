@@ -128,8 +128,13 @@ public class OrganizerSidebar extends VBox {
 
         VBox tournamentsBox = new VBox(8);
 
-        List<TournamentDto> draft = nav.tournamentRepo().findDraftForOrganizer(organizer.getId());
-        List<TournamentDto> active = nav.tournamentRepo().findActiveForOrganizer(organizer.getId());
+        String clubId = nav.clubRepo()
+                .findByOrganizerId(organizer.getId())
+                .orElseThrow(() -> new IllegalStateException("Club introuvable pour cet organisateur"))
+                .id();
+
+        List<TournamentDto> draft = nav.tournamentRepo().findDraftForClub(clubId);
+        List<TournamentDto> active = nav.tournamentRepo().findActiveForClub(clubId);
 
         List<TournamentDto> visibleTournaments = new ArrayList<>();
         visibleTournaments.addAll(draft);

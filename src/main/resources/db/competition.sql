@@ -2,20 +2,31 @@ PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS tournament (
   id TEXT PRIMARY KEY,
-  organizer_id TEXT NOT NULL,     -- pas de FK (car autre DB)
+
+  club_id TEXT NOT NULL,
+  organizer_id TEXT NOT NULL,     -- créateur initial
+
   name TEXT NOT NULL,
   level TEXT NOT NULL,
   phase TEXT NOT NULL,
   start_date TEXT NOT NULL,
   end_date   TEXT NOT NULL,
   status TEXT NOT NULL,
+
   max_tableaux_per_day INTEGER NOT NULL DEFAULT 2,
   max_total_tableaux   INTEGER NOT NULL DEFAULT 4,
   female_extra_rule    TEXT NOT NULL DEFAULT 'NONE',
   female_extra_code    TEXT,
+
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_tournament_club_id
+ON tournament(club_id);
+
+CREATE INDEX IF NOT EXISTS idx_tournament_organizer_id
+ON tournament(organizer_id);
 
 CREATE TABLE IF NOT EXISTS app_state (
   id INTEGER PRIMARY KEY CHECK (id = 1),

@@ -19,8 +19,8 @@ CREATE TABLE IF NOT EXISTS club (
   latitude  REAL,
   longitude REAL,
 
-  contact_first_name    TEXT,
-  contact_last_name     TEXT,
+  contact_first_name     TEXT,
+  contact_last_name      TEXT,
   official_contact_email TEXT,
 
   logo_path TEXT,
@@ -44,15 +44,16 @@ CREATE TABLE IF NOT EXISTS organizer_account (
 
   club_id TEXT NOT NULL,
 
+  first_name TEXT,
+  last_name TEXT,
+
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
 
-  -- vérification à l'inscription
   email_verified INTEGER NOT NULL DEFAULT 0,
   email_verification_code TEXT,
   email_verification_expires_at TEXT,
 
-  -- OTP à chaque connexion
   login_otp_code TEXT,
   login_otp_expires_at TEXT,
 
@@ -61,3 +62,29 @@ CREATE TABLE IF NOT EXISTS organizer_account (
 
   FOREIGN KEY (club_id) REFERENCES club(id)
 );
+
+-- =========================
+-- CLUB ACCESS
+-- Liste des accès identifiés liés à un club.
+-- Permet d'afficher qui a accès au club et de préparer le multi-accès.
+-- =========================
+CREATE TABLE IF NOT EXISTS club_access (
+  id TEXT PRIMARY KEY,
+
+  club_id TEXT NOT NULL,
+
+  email TEXT NOT NULL,
+  first_name TEXT,
+  last_name  TEXT,
+
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+
+  FOREIGN KEY (club_id) REFERENCES club(id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_club_access_club_email
+ON club_access(club_id, email);
+
+CREATE INDEX IF NOT EXISTS idx_club_access_club_id
+ON club_access(club_id);

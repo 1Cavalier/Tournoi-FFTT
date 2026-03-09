@@ -161,7 +161,12 @@ public class OrganizerDashboardContent extends VBox {
     }
 
     private List<TournamentDto> loadActiveTournaments() {
-        return nav.tournamentRepo().findActiveForOrganizer(organizer.getId());
+        String clubId = nav.clubRepo()
+                .findByOrganizerId(organizer.getId())
+                .orElseThrow(() -> new IllegalStateException("Club introuvable pour cet organisateur"))
+                .id();
+
+        return nav.tournamentRepo().findActiveForClub(clubId);
     }
 
     private VBox buildTournamentCardList(List<TournamentCardDto> cards) {
@@ -175,7 +180,12 @@ public class OrganizerDashboardContent extends VBox {
     }
 
     private List<TournamentDto> loadDraftTournaments() {
-        return nav.tournamentRepo().findDraftForOrganizer(organizer.getId());
+        String clubId = nav.clubRepo()
+                .findByOrganizerId(organizer.getId())
+                .orElseThrow(() -> new IllegalStateException("Club introuvable pour cet organisateur"))
+                .id();
+
+        return nav.tournamentRepo().findDraftForClub(clubId);
     }
 
     private VBox buildHelpSection() {

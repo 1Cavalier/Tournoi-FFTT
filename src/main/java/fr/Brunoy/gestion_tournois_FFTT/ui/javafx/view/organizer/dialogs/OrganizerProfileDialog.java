@@ -1,13 +1,19 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs;
 
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.ClubAccessDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.ClubDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
+import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.Separator;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
@@ -20,6 +26,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.io.File;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -116,7 +123,51 @@ public class OrganizerProfileDialog extends Stage {
         Label hint = new Label("Les coordonnées GPS doivent être renseignées ensemble, ou laissées vides.");
         hint.setStyle("-fx-opacity: 0.8;");
 
-        VBox center = new VBox(10, grid, hint);
+        // ---------------------------------------------------------------------
+        // TABLEAU DES ACCÈS MULTI-COMPTES DU CLUB
+        // ---------------------------------------------------------------------
+        // ---------------------------------------------------------------------
+        // TABLEAU DES ACCÈS MULTI-COMPTES DU CLUB
+        // ---------------------------------------------------------------------
+        Label accessTitle = new Label("Comptes ayant accès au club");
+        accessTitle.setStyle("-fx-font-size: 15px; -fx-font-weight: bold;");
+
+        TableView<ClubAccessDto> accessTable = new TableView<>();
+        accessTable.setPlaceholder(new Label("Aucun accès supplémentaire trouvé pour ce club."));
+        accessTable.setPrefHeight(220);
+
+        TableColumn<ClubAccessDto, String> emailCol = new TableColumn<>("Email");
+        emailCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(nvl(cell.getValue().email())));
+
+        TableColumn<ClubAccessDto, String> firstNameCol = new TableColumn<>("Prénom");
+        firstNameCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(nvl(cell.getValue().firstName())));
+
+        TableColumn<ClubAccessDto, String> lastNameCol = new TableColumn<>("Nom");
+        lastNameCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(nvl(cell.getValue().lastName())));
+
+        accessTable.getColumns().add(emailCol);
+        accessTable.getColumns().add(firstNameCol);
+        accessTable.getColumns().add(lastNameCol);
+
+        Runnable reloadAccessTable = () -> {
+            List<ClubAccessDto> accesses = nav.clubAccessRepo().findByClubId(existing.id());
+            accessTable.setItems(FXCollections.observableArrayList(accesses));
+        };
+        reloadAccessTable.run();
+
+        Button refreshAccess = new Button("Rafraîchir");
+        refreshAccess.setOnAction(e -> reloadAccessTable.run());
+
+        HBox accessHeader = new HBox(10, accessTitle, new Region(), refreshAccess);
+        HBox.setHgrow(accessHeader.getChildren().get(1), Priority.ALWAYS);
+
+        VBox accessSection = new VBox(10,
+                new Separator(),
+                accessHeader,
+                accessTable);
+        accessSection.setPadding(new Insets(10, 18, 0, 18));
+
+        VBox center = new VBox(10, grid, hint, accessSection);
         center.setPadding(new Insets(0, 18, 10, 18));
 
         Button cancel = new Button("Annuler");
@@ -150,10 +201,12 @@ public class OrganizerProfileDialog extends Stage {
                         lon,
                         blankToNull(firstName.getText()),
                         blankToNull(lastName.getText()),
+                        existing.officialContactEmail(),
                         blankToNull(logoPath.getText()),
                         existing.updatedAt());
 
                 nav.clubRepo().updateClubProfile(updated);
+                reloadAccessTable.run();
                 close();
 
             } catch (Exception ex) {
@@ -170,7 +223,7 @@ public class OrganizerProfileDialog extends Stage {
         root.setCenter(center);
         root.setBottom(bottom);
 
-        setScene(new Scene(root, 760, 680));
+        setScene(new Scene(root, 860, 860));
     }
 
     private static Label label(String text) {

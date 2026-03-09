@@ -22,6 +22,7 @@ public final class ApplicationContext {
     private final SqliteDb competitionDb;
 
     private final ClubRepository clubRepository;
+    private final ClubAccessRepository clubAccessRepository;
     private final OrganizerRepository organizerRepository;
     private final TournamentRepository tournamentRepository;
     private final TableauRepository tableauRepository;
@@ -44,6 +45,7 @@ public final class ApplicationContext {
         applySql(clubDb, "/db/SeedData.sql");
 
         this.clubRepository = new ClubRepositorySqlite(clubDb);
+        this.clubAccessRepository = new ClubAccessRepositorySqlite(clubDb);
         this.organizerRepository = new OrganizerRepositorySqlite(clubDb);
         this.tournamentRepository = new TournamentRepositorySqlite(competitionDb);
         this.tableauRepository = new TableauRepositorySqlite(competitionDb);
@@ -51,7 +53,10 @@ public final class ApplicationContext {
         this.emailSender = new ConsoleEmailSender();
         this.emailVerificationService = new EmailVerificationService(organizerRepository, emailSender);
 
-        this.organizerAuthService = new OrganizerAuthService(organizerRepository, clubRepository,
+        this.organizerAuthService = new OrganizerAuthService(
+                organizerRepository,
+                clubRepository,
+                clubAccessRepository,
                 emailVerificationService);
     }
 
@@ -87,6 +92,10 @@ public final class ApplicationContext {
 
     public EmailVerificationService emailVerificationService() {
         return emailVerificationService;
+    }
+
+    public ClubAccessRepository clubAccessRepository() {
+        return clubAccessRepository;
     }
 
     public EmailSender emailSender() {

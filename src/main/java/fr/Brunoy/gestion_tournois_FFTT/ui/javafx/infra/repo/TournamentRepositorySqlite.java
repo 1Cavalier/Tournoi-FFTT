@@ -26,11 +26,12 @@ public class TournamentRepositorySqlite implements TournamentRepository {
         String sql = "SELECT current_tournament_id FROM app_state WHERE id = 1";
 
         try (Connection c = db.openConnection();
-                var ps = c.prepareStatement(sql);
-                var rs = ps.executeQuery()) {
+             var ps = c.prepareStatement(sql);
+             var rs = ps.executeQuery()) {
 
-            if (!rs.next())
+            if (!rs.next()) {
                 return Optional.empty();
+            }
 
             String id = rs.getString(1);
             return (id == null || id.isBlank())
@@ -46,7 +47,7 @@ public class TournamentRepositorySqlite implements TournamentRepository {
     public Optional<TournamentDto> findById(String id) {
 
         String sql = """
-                SELECT id, organizer_id, name, level, phase,
+                SELECT id, club_id, organizer_id, name, level, phase,
                        start_date, end_date, status,
                        max_tableaux_per_day,
                        female_extra_rule,
@@ -56,15 +57,14 @@ public class TournamentRepositorySqlite implements TournamentRepository {
                 """;
 
         try (Connection c = db.openConnection();
-                var ps = c.prepareStatement(sql)) {
+             var ps = c.prepareStatement(sql)) {
 
             ps.setString(1, id);
 
             try (var rs = ps.executeQuery()) {
-
-                if (!rs.next())
+                if (!rs.next()) {
                     return Optional.empty();
-
+                }
                 return Optional.of(map(rs));
             }
 
@@ -74,16 +74,16 @@ public class TournamentRepositorySqlite implements TournamentRepository {
     }
 
     @Override
-    public List<TournamentDto> findActiveForOrganizer(String organizerId) {
+    public List<TournamentDto> findActiveForClub(String clubId) {
 
         String sql = """
-                SELECT id, organizer_id, name, level, phase,
+                SELECT id, club_id, organizer_id, name, level, phase,
                        start_date, end_date, status,
                        max_tableaux_per_day,
                        female_extra_rule,
                        female_extra_code
                 FROM tournament
-                WHERE organizer_id = ?
+                WHERE club_id = ?
                   AND status IN ('RUNNING','OPEN')
                 ORDER BY
                     CASE status
@@ -94,36 +94,35 @@ public class TournamentRepositorySqlite implements TournamentRepository {
                     start_date ASC
                 """;
 
-        return queryTournamentList(sql, organizerId);
+        return queryTournamentList(sql, clubId);
     }
 
     @Override
-    public List<TournamentDto> findDraftForOrganizer(String organizerId) {
+    public List<TournamentDto> findDraftForClub(String clubId) {
 
         String sql = """
-                SELECT id, organizer_id, name, level, phase,
+                SELECT id, club_id, organizer_id, name, level, phase,
                        start_date, end_date, status,
                        max_tableaux_per_day,
                        female_extra_rule,
                        female_extra_code
                 FROM tournament
-                WHERE organizer_id = ?
+                WHERE club_id = ?
                   AND status = 'DRAFT'
                 ORDER BY updated_at DESC
                 """;
 
-        return queryTournamentList(sql, organizerId);
+        return queryTournamentList(sql, clubId);
     }
 
-    private List<TournamentDto> queryTournamentList(String sql, String organizerId) {
+    private List<TournamentDto> queryTournamentList(String sql, String clubId) {
 
         try (Connection c = db.openConnection();
-                var ps = c.prepareStatement(sql)) {
+             var ps = c.prepareStatement(sql)) {
 
-            ps.setString(1, organizerId);
+            ps.setString(1, clubId);
 
             try (var rs = ps.executeQuery()) {
-
                 List<TournamentDto> out = new ArrayList<>();
 
                 while (rs.next()) {
@@ -140,6 +139,7 @@ public class TournamentRepositorySqlite implements TournamentRepository {
 
     @Override
     public String createDraftTournament(
+            String clubId,
             String organizerId,
             String name,
             String level,
@@ -158,31 +158,32 @@ public class TournamentRepositorySqlite implements TournamentRepository {
 
         String insert = """
                 INSERT INTO tournament(
-                    id, organizer_id, name, level, phase,
+                    id, club_id, organizer_id, name, level, phase,
                     start_date, end_date, status,
                     max_tableaux_per_day, max_total_tableaux,
                     female_extra_rule, female_extra_code,
                     created_at, updated_at
-                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """;
 
         try (Connection c = db.openConnection();
-                var ps = c.prepareStatement(insert)) {
+             var ps = c.prepareStatement(insert)) {
 
             ps.setString(1, id);
-            ps.setString(2, organizerId);
-            ps.setString(3, name);
-            ps.setString(4, level);
-            ps.setString(5, rankingPhase);
-            ps.setString(6, startDate.toString());
-            ps.setString(7, endDate.toString());
-            ps.setString(8, "DRAFT");
-            ps.setInt(9, maxPerDay);
-            ps.setInt(10, maxTotal);
-            ps.setString(11, femaleRule);
-            ps.setString(12, femaleCode);
-            ps.setString(13, now);
+            ps.setString(2, clubId);
+            ps.setString(3, organizerId);
+            ps.setString(4, name);
+            ps.setString(5, level);
+            ps.setString(6, rankingPhase);
+            ps.setString(7, startDate.toString());
+            ps.setString(8, endDate.toString());
+            ps.setString(9, "DRAFT");
+            ps.setInt(10, maxPerDay);
+            ps.setInt(11, maxTotal);
+            ps.setString(12, femaleRule);
+            ps.setString(13, femaleCode);
             ps.setString(14, now);
+            ps.setString(15, now);
 
             ps.executeUpdate();
 
@@ -194,7 +195,6 @@ public class TournamentRepositorySqlite implements TournamentRepository {
     }
 
     private TournamentDto map(java.sql.ResultSet rs) throws java.sql.SQLException {
-
         return new TournamentDto(
                 rs.getString("id"),
                 rs.getString("organizer_id"),

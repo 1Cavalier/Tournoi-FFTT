@@ -67,6 +67,7 @@ public class ClubRepositorySqlite implements ClubRepository {
                        departement_code, city, address1, address2,
                        latitude, longitude,
                        contact_first_name, contact_last_name,
+                       official_contact_email,
                        logo_path, updated_at
                 FROM club
                 WHERE id = ?
@@ -78,10 +79,9 @@ public class ClubRepositorySqlite implements ClubRepository {
             ps.setString(1, clubId);
 
             try (var rs = ps.executeQuery()) {
-
-                if (!rs.next())
+                if (!rs.next()) {
                     return Optional.empty();
-
+                }
                 return Optional.of(map(rs));
             }
 
@@ -98,6 +98,7 @@ public class ClubRepositorySqlite implements ClubRepository {
                        c.departement_code, c.city, c.address1, c.address2,
                        c.latitude, c.longitude,
                        c.contact_first_name, c.contact_last_name,
+                       c.official_contact_email,
                        c.logo_path, c.updated_at
                 FROM organizer_account oa
                 JOIN club c ON c.id = oa.club_id
@@ -110,10 +111,9 @@ public class ClubRepositorySqlite implements ClubRepository {
             ps.setString(1, organizerId);
 
             try (var rs = ps.executeQuery()) {
-
-                if (!rs.next())
+                if (!rs.next()) {
                     return Optional.empty();
-
+                }
                 return Optional.of(map(rs));
             }
 
@@ -126,8 +126,9 @@ public class ClubRepositorySqlite implements ClubRepository {
     public List<ClubDto> search(String query, int limit) {
 
         String q = query == null ? "" : query.trim();
-        if (q.isEmpty())
+        if (q.isEmpty()) {
             return List.of();
+        }
 
         int lim = limit <= 0 ? 20 : Math.min(limit, 100);
 
@@ -136,6 +137,7 @@ public class ClubRepositorySqlite implements ClubRepository {
                        departement_code, city, address1, address2,
                        latitude, longitude,
                        contact_first_name, contact_last_name,
+                       official_contact_email,
                        logo_path, updated_at
                 FROM club
                 WHERE upper(coalesce(club_name,'')) LIKE upper(?)
@@ -156,7 +158,6 @@ public class ClubRepositorySqlite implements ClubRepository {
             List<ClubDto> out = new ArrayList<>();
 
             try (var rs = ps.executeQuery()) {
-
                 while (rs.next()) {
                     out.add(map(rs));
                 }
@@ -194,6 +195,7 @@ public class ClubRepositorySqlite implements ClubRepository {
                     longitude = ?,
                     contact_first_name = ?,
                     contact_last_name = ?,
+                    official_contact_email = ?,
                     logo_path = ?,
                     updated_at = ?
                 WHERE id = ?
@@ -214,10 +216,10 @@ public class ClubRepositorySqlite implements ClubRepository {
 
             ps.setString(9, blankToNull(club.contactFirstName()));
             ps.setString(10, blankToNull(club.contactLastName()));
-
-            ps.setString(11, blankToNull(club.logoPath()));
-            ps.setString(12, now);
-            ps.setString(13, club.id());
+            ps.setString(11, blankToNull(club.officialContactEmail()));
+            ps.setString(12, blankToNull(club.logoPath()));
+            ps.setString(13, now);
+            ps.setString(14, club.id());
 
             ps.executeUpdate();
 
@@ -231,7 +233,6 @@ public class ClubRepositorySqlite implements ClubRepository {
     // ---------------------------------------------------------
 
     private ClubDto map(java.sql.ResultSet rs) throws java.sql.SQLException {
-
         return new ClubDto(
                 rs.getString("id"),
                 rs.getString("club_number"),
@@ -244,6 +245,7 @@ public class ClubRepositorySqlite implements ClubRepository {
                 (Double) rs.getObject("longitude"),
                 rs.getString("contact_first_name"),
                 rs.getString("contact_last_name"),
+                rs.getString("official_contact_email"),
                 rs.getString("logo_path"),
                 rs.getString("updated_at"));
     }
@@ -253,12 +255,11 @@ public class ClubRepositorySqlite implements ClubRepository {
     // ---------------------------------------------------------
 
     private static String blankToNull(String s) {
-
-        if (s == null)
+        if (s == null) {
             return null;
+        }
 
         String t = s.trim();
-
         return t.isEmpty() ? null : t;
     }
 }

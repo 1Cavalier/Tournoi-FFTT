@@ -25,9 +25,9 @@ VALUES (
   NULL,
   NULL,
   NULL,
-  'Quentin',
-  'Soumet',
-  'soumet.quentin@gmail.com',
+  'Serge',
+  'BOULIER',
+  'serge.boulier@gmail.com',
   NULL,
   CURRENT_TIMESTAMP,
   CURRENT_TIMESTAMP

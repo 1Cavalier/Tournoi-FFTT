@@ -15,11 +15,12 @@ public interface TournamentRepository {
 
     Optional<TournamentDto> findById(String id);
 
-    List<TournamentDto> findActiveForOrganizer(String organizerId);
+    List<TournamentDto> findActiveForClub(String clubId);
 
-    List<TournamentDto> findDraftForOrganizer(String organizerId);
+    List<TournamentDto> findDraftForClub(String clubId);
 
     String createDraftTournament(
+            String clubId,
             String organizerId,
             String name,
             String level,

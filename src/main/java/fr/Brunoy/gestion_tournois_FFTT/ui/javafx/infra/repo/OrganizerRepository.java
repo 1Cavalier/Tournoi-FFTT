@@ -9,7 +9,7 @@ import java.util.Optional;
  */
 public interface OrganizerRepository {
 
-    OrganizerDto insert(String clubId, String email, String passwordHash);
+    OrganizerDto insert(String clubId, String firstName, String lastName, String email, String passwordHash);
 
     Optional<OrganizerDto> findByEmail(String email);
 
