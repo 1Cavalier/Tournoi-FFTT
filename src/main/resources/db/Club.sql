@@ -63,6 +63,12 @@ CREATE TABLE IF NOT EXISTS organizer_account (
   FOREIGN KEY (club_id) REFERENCES club(id)
 );
 
+CREATE INDEX IF NOT EXISTS idx_organizer_account_club_id
+ON organizer_account(club_id);
+
+CREATE INDEX IF NOT EXISTS idx_organizer_account_email
+ON organizer_account(email);
+
 -- =========================
 -- CLUB ACCESS
 -- Liste des accès identifiés liés à un club.

@@ -1,33 +1,23 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo;
 
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRow;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Contrat d'accès aux tournois.
- */
 public interface TournamentRepository {
 
-    Optional<String> findCurrentTournamentId();
+    TournamentRow insert(TournamentRow tournament);
 
-    Optional<TournamentDto> findById(String id);
+    Optional<TournamentRow> findById(String id);
 
-    List<TournamentDto> findActiveForClub(String clubId);
+    List<TournamentRow> findByClubId(String clubId);
 
-    List<TournamentDto> findDraftForClub(String clubId);
+    List<TournamentRow> findDraftForClub(String clubId);
 
-    String createDraftTournament(
-            String clubId,
-            String organizerId,
-            String name,
-            String level,
-            String rankingPhase,
-            LocalDate startDate,
-            LocalDate endDate,
-            int maxPerDay,
-            String femaleRule,
-            String femaleCode);
+    List<TournamentRow> findActiveForClub(String clubId);
+
+    void update(TournamentRow tournament);
+
+    void delete(String id);
 }

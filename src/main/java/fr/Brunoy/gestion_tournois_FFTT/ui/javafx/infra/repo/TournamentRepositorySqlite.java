@@ -1,17 +1,15 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo;
 
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRow;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.db.SqliteDb;
 
 import java.sql.Connection;
-import java.time.LocalDate;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Implémentation SQLite du TournamentRepository.
- */
 public class TournamentRepositorySqlite implements TournamentRepository {
 
     private final SqliteDb db;
@@ -21,191 +19,207 @@ public class TournamentRepositorySqlite implements TournamentRepository {
     }
 
     @Override
-    public Optional<String> findCurrentTournamentId() {
-
-        String sql = "SELECT current_tournament_id FROM app_state WHERE id = 1";
+    public TournamentRow insert(TournamentRow t) {
+        String sql = """
+                INSERT INTO tournament (
+                    id, club_id, organizer_id,
+                    name, address1, address2, city, department,
+                    level, phase,
+                    start_date, end_date,
+                    status,
+                    created_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """;
 
         try (Connection c = db.openConnection();
-             var ps = c.prepareStatement(sql);
-             var rs = ps.executeQuery()) {
+                PreparedStatement ps = c.prepareStatement(sql)) {
 
-            if (!rs.next()) {
-                return Optional.empty();
-            }
+            ps.setString(1, t.id());
+            ps.setString(2, t.clubId());
+            ps.setString(3, t.organizerId());
+            ps.setString(4, t.name());
+            ps.setString(5, t.address1());
+            ps.setString(6, t.address2());
+            ps.setString(7, t.city());
+            ps.setString(8, t.department());
+            ps.setString(9, t.level());
+            ps.setString(10, t.phase());
+            ps.setString(11, t.startDate());
+            ps.setString(12, t.endDate());
+            ps.setString(13, t.status());
+            ps.setString(14, t.createdAt());
+            ps.setString(15, t.updatedAt());
 
-            String id = rs.getString(1);
-            return (id == null || id.isBlank())
-                    ? Optional.empty()
-                    : Optional.of(id);
+            ps.executeUpdate();
+            return t;
 
         } catch (Exception e) {
-            throw new RuntimeException("DB error findCurrentTournamentId", e);
+            throw new RuntimeException("Insert tournament failed", e);
         }
     }
 
     @Override
-    public Optional<TournamentDto> findById(String id) {
+    public Optional<TournamentRow> findById(String id) {
+        String sql = "SELECT * FROM tournament WHERE id = ?";
 
+        try (Connection c = db.openConnection();
+                PreparedStatement ps = c.prepareStatement(sql)) {
+
+            ps.setString(1, id);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(map(rs));
+                }
+            }
+
+            return Optional.empty();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Find tournament by id failed", e);
+        }
+    }
+
+    @Override
+    public List<TournamentRow> findByClubId(String clubId) {
+        String sql = "SELECT * FROM tournament WHERE club_id = ? ORDER BY start_date DESC";
+
+        List<TournamentRow> list = new ArrayList<>();
+
+        try (Connection c = db.openConnection();
+                PreparedStatement ps = c.prepareStatement(sql)) {
+
+            ps.setString(1, clubId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(map(rs));
+                }
+            }
+
+            return list;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Find tournaments by club failed", e);
+        }
+    }
+
+    @Override
+    public List<TournamentRow> findDraftForClub(String clubId) {
         String sql = """
-                SELECT id, club_id, organizer_id, name, level, phase,
-                       start_date, end_date, status,
-                       max_tableaux_per_day,
-                       female_extra_rule,
-                       female_extra_code
-                FROM tournament
+                SELECT * FROM tournament
+                WHERE club_id = ? AND status = 'DRAFT'
+                ORDER BY start_date DESC
+                """;
+
+        return findByQuery(clubId, sql);
+    }
+
+    @Override
+    public List<TournamentRow> findActiveForClub(String clubId) {
+        String sql = """
+                SELECT * FROM tournament
+                WHERE club_id = ? AND status != 'DRAFT'
+                ORDER BY start_date DESC
+                """;
+
+        return findByQuery(clubId, sql);
+    }
+
+    private List<TournamentRow> findByQuery(String clubId, String sql) {
+        List<TournamentRow> list = new ArrayList<>();
+
+        try (Connection c = db.openConnection();
+                PreparedStatement ps = c.prepareStatement(sql)) {
+
+            ps.setString(1, clubId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(map(rs));
+                }
+            }
+
+            return list;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Query tournament failed", e);
+        }
+    }
+
+    @Override
+    public void update(TournamentRow t) {
+        String sql = """
+                UPDATE tournament SET
+                    name = ?,
+                    address1 = ?,
+                    address2 = ?,
+                    city = ?,
+                    department = ?,
+                    level = ?,
+                    phase = ?,
+                    start_date = ?,
+                    end_date = ?,
+                    status = ?,
+                    updated_at = ?
                 WHERE id = ?
                 """;
 
         try (Connection c = db.openConnection();
-             var ps = c.prepareStatement(sql)) {
+                PreparedStatement ps = c.prepareStatement(sql)) {
 
-            ps.setString(1, id);
-
-            try (var rs = ps.executeQuery()) {
-                if (!rs.next()) {
-                    return Optional.empty();
-                }
-                return Optional.of(map(rs));
-            }
-
-        } catch (Exception e) {
-            throw new RuntimeException("DB error findById(tournament)", e);
-        }
-    }
-
-    @Override
-    public List<TournamentDto> findActiveForClub(String clubId) {
-
-        String sql = """
-                SELECT id, club_id, organizer_id, name, level, phase,
-                       start_date, end_date, status,
-                       max_tableaux_per_day,
-                       female_extra_rule,
-                       female_extra_code
-                FROM tournament
-                WHERE club_id = ?
-                  AND status IN ('RUNNING','OPEN')
-                ORDER BY
-                    CASE status
-                        WHEN 'RUNNING' THEN 0
-                        WHEN 'OPEN' THEN 1
-                        ELSE 9
-                    END,
-                    start_date ASC
-                """;
-
-        return queryTournamentList(sql, clubId);
-    }
-
-    @Override
-    public List<TournamentDto> findDraftForClub(String clubId) {
-
-        String sql = """
-                SELECT id, club_id, organizer_id, name, level, phase,
-                       start_date, end_date, status,
-                       max_tableaux_per_day,
-                       female_extra_rule,
-                       female_extra_code
-                FROM tournament
-                WHERE club_id = ?
-                  AND status = 'DRAFT'
-                ORDER BY updated_at DESC
-                """;
-
-        return queryTournamentList(sql, clubId);
-    }
-
-    private List<TournamentDto> queryTournamentList(String sql, String clubId) {
-
-        try (Connection c = db.openConnection();
-             var ps = c.prepareStatement(sql)) {
-
-            ps.setString(1, clubId);
-
-            try (var rs = ps.executeQuery()) {
-                List<TournamentDto> out = new ArrayList<>();
-
-                while (rs.next()) {
-                    out.add(map(rs));
-                }
-
-                return out;
-            }
-
-        } catch (Exception e) {
-            throw new RuntimeException("DB error list tournaments", e);
-        }
-    }
-
-    @Override
-    public String createDraftTournament(
-            String clubId,
-            String organizerId,
-            String name,
-            String level,
-            String rankingPhase,
-            LocalDate startDate,
-            LocalDate endDate,
-            int maxPerDay,
-            String femaleRule,
-            String femaleCode) {
-
-        String id = "tourn-" + java.util.UUID.randomUUID();
-        String now = java.time.Instant.now().toString();
-
-        long days = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate) + 1;
-        int maxTotal = (int) Math.max(1, days * (long) maxPerDay);
-
-        String insert = """
-                INSERT INTO tournament(
-                    id, club_id, organizer_id, name, level, phase,
-                    start_date, end_date, status,
-                    max_tableaux_per_day, max_total_tableaux,
-                    female_extra_rule, female_extra_code,
-                    created_at, updated_at
-                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                """;
-
-        try (Connection c = db.openConnection();
-             var ps = c.prepareStatement(insert)) {
-
-            ps.setString(1, id);
-            ps.setString(2, clubId);
-            ps.setString(3, organizerId);
-            ps.setString(4, name);
-            ps.setString(5, level);
-            ps.setString(6, rankingPhase);
-            ps.setString(7, startDate.toString());
-            ps.setString(8, endDate.toString());
-            ps.setString(9, "DRAFT");
-            ps.setInt(10, maxPerDay);
-            ps.setInt(11, maxTotal);
-            ps.setString(12, femaleRule);
-            ps.setString(13, femaleCode);
-            ps.setString(14, now);
-            ps.setString(15, now);
+            ps.setString(1, t.name());
+            ps.setString(2, t.address1());
+            ps.setString(3, t.address2());
+            ps.setString(4, t.city());
+            ps.setString(5, t.department());
+            ps.setString(6, t.level());
+            ps.setString(7, t.phase());
+            ps.setString(8, t.startDate());
+            ps.setString(9, t.endDate());
+            ps.setString(10, t.status());
+            ps.setString(11, t.updatedAt());
+            ps.setString(12, t.id());
 
             ps.executeUpdate();
 
-            return id;
-
         } catch (Exception e) {
-            throw new RuntimeException("DB error createDraftTournament", e);
+            throw new RuntimeException("Update tournament failed", e);
         }
     }
 
-    private TournamentDto map(java.sql.ResultSet rs) throws java.sql.SQLException {
-        return new TournamentDto(
+    @Override
+    public void delete(String id) {
+        String sql = "DELETE FROM tournament WHERE id = ?";
+
+        try (Connection c = db.openConnection();
+                PreparedStatement ps = c.prepareStatement(sql)) {
+
+            ps.setString(1, id);
+            ps.executeUpdate();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Delete tournament failed", e);
+        }
+    }
+
+    private TournamentRow map(ResultSet rs) throws Exception {
+        return new TournamentRow(
                 rs.getString("id"),
+                rs.getString("club_id"),
                 rs.getString("organizer_id"),
                 rs.getString("name"),
+                rs.getString("address1"),
+                rs.getString("address2"),
+                rs.getString("city"),
+                rs.getString("department"),
                 rs.getString("level"),
                 rs.getString("phase"),
                 rs.getString("start_date"),
                 rs.getString("end_date"),
                 rs.getString("status"),
-                (Integer) rs.getObject("max_tableaux_per_day"),
-                rs.getString("female_extra_rule"),
-                rs.getString("female_extra_code"));
+                rs.getString("created_at"),
+                rs.getString("updated_at"));
     }
 }

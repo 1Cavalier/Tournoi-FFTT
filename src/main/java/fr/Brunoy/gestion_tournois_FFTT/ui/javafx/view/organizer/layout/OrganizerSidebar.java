@@ -3,7 +3,7 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.layout;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.ClubDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRow;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.components.OrganizerViewUtils;
 import javafx.geometry.Insets;
@@ -133,15 +133,15 @@ public class OrganizerSidebar extends VBox {
                 .orElseThrow(() -> new IllegalStateException("Club introuvable pour cet organisateur"))
                 .id();
 
-        List<TournamentDto> draft = nav.tournamentRepo().findDraftForClub(clubId);
-        List<TournamentDto> active = nav.tournamentRepo().findActiveForClub(clubId);
+        List<TournamentRow> draft = nav.tournamentService().findDraftForClub(clubId);
+        List<TournamentRow> active = nav.tournamentService().findActiveForClub(clubId);
 
-        List<TournamentDto> visibleTournaments = new ArrayList<>();
+        List<TournamentRow> visibleTournaments = new ArrayList<>();
         visibleTournaments.addAll(draft);
         visibleTournaments.addAll(active);
 
         if (visibleTournaments.isEmpty()) {
-            Label empty = new Label("Aucun tournoi actif n'est disponible.");
+            Label empty = new Label("Aucun tournoi n'est disponible.");
             AppTheme.applySidebarMutedText(empty);
 
             VBox emptyBox = new VBox(empty);
@@ -150,7 +150,7 @@ public class OrganizerSidebar extends VBox {
 
             tournamentsBox.getChildren().add(emptyBox);
         } else {
-            for (TournamentDto row : visibleTournaments) {
+            for (TournamentRow row : visibleTournaments) {
                 tournamentsBox.getChildren().add(buildTournamentBlock(row));
             }
         }
@@ -159,55 +159,37 @@ public class OrganizerSidebar extends VBox {
         return section;
     }
 
-    private VBox buildTournamentBlock(TournamentDto tournament) {
-        VBox block = new VBox(6);
+    private VBox buildTournamentBlock(TournamentRow tournament) {
+        VBox block = new VBox(8);
         block.setStyle(AppTheme.SIDEBAR_PANEL_STYLE);
         block.setPadding(new Insets(10));
 
-        HBox titleRow = new HBox(8);
-        titleRow.setAlignment(Pos.CENTER_LEFT);
-
         Label tournamentName = new Label(OrganizerViewUtils.safe(tournament.name()));
         tournamentName.setStyle(AppTheme.SIDEBAR_PRIMARY_TEXT_STYLE);
+        tournamentName.setWrapText(true);
         tournamentName.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(tournamentName, Priority.ALWAYS);
-
-        String statusText = resolveTournamentStatusText(tournament);
-
-        Label statusBadge = new Label(statusText);
-        statusBadge.setStyle(AppTheme.tournamentStatusBadgeStyle(statusText));
-
-        titleRow.getChildren().addAll(tournamentName, statusBadge);
 
         VBox submenu = new VBox(6);
         submenu.getChildren().addAll(
-                buildTournamentMenuItem("Général"),
-                buildTournamentMenuItem("Règlement"),
-                buildTournamentMenuItem("Inscriptions"),
-                buildTournamentMenuItem("Tableaux"),
-                buildTournamentMenuItem("Résultats"));
+                buildTournamentMenuItem("Général", tournament),
+                buildTournamentMenuItem("Règlement", tournament),
+                buildTournamentMenuItem("Tableaux", tournament),
+                buildTournamentMenuItem("Inscriptions", tournament));
 
-        block.getChildren().addAll(titleRow, submenu);
+        block.getChildren().addAll(tournamentName, submenu);
         return block;
     }
 
-    private Button buildTournamentMenuItem(String label) {
+    private Button buildTournamentMenuItem(String label, TournamentRow tournament) {
         Button button = new Button(label);
         AppTheme.styleSidebarTournamentItem(button, false);
 
         button.setOnAction(e -> nav.showInfo(
-                "Fonction à venir",
-                "La section \"" + label + "\" sera reliée à sa vue dédiée dans une prochaine étape."));
+                label,
+                "La section \"" + label + "\" du tournoi \"" + OrganizerViewUtils.safe(tournament.name())
+                        + "\" sera reliée dans une prochaine étape."));
 
         return button;
-    }
-
-    private String resolveTournamentStatusText(TournamentDto tournament) {
-        String status = OrganizerViewUtils.safe(tournament.status());
-        if (!status.isBlank()) {
-            return status.toUpperCase();
-        }
-        return "DRAFT";
     }
 
     // -------------------------------------------------------------------------

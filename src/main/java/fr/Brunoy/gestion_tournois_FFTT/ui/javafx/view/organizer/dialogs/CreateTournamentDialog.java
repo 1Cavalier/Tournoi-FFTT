@@ -1,544 +1,368 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs;
 
-import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.entity.Tableau;
-import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.FemaleExtraRuleType;
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.TournamentLevel;
 import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.RankingPhase;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.ClubDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
-import javafx.beans.binding.BooleanBinding;
-import javafx.collections.FXCollections;
-import javafx.collections.ListChangeListener;
-import javafx.collections.ObservableList;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service.CreateTournamentDraftCommand;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
-import javafx.scene.layout.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.DateCell;
+import javafx.scene.control.DatePicker;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Objects;
 
 public class CreateTournamentDialog extends Stage {
 
+    private final AppRouter nav;
+    private final OrganizerDto organizer;
+    private final ClubDto club;
+
+    private final TextField nameField = new TextField();
+    private final TextField address1Field = new TextField();
+    private final TextField address2Field = new TextField();
+    private final TextField cityField = new TextField();
+    private final TextField departmentField = new TextField();
+
+    private final ComboBox<TournamentLevel> levelBox = new ComboBox<>();
+    private final ComboBox<RankingPhase> phaseBox = new ComboBox<>();
+
+    private final DatePicker startDatePicker = new DatePicker();
+    private final DatePicker endDatePicker = new DatePicker();
+
+    private final Label daysInfoLabel = new Label("Veuillez sélectionner les dates du tournoi.");
+    private final Button createButton = new Button("Créer le tournoi");
+
     public CreateTournamentDialog(AppRouter nav) {
-        setTitle("Créer un tournoi");
+        this.nav = Objects.requireNonNull(nav, "nav must not be null");
+        this.organizer = nav.requireOrganizer();
+        this.club = nav.clubRepo()
+                .findByOrganizerId(organizer.getId())
+                .orElseThrow(() -> new IllegalStateException("Club introuvable pour cet organisateur"));
+
         initModality(Modality.APPLICATION_MODAL);
-        OrganizerDto org = nav.requireOrganizer();
-
-        // ================== Champs tournoi ==================
-
-        TextField name = new TextField();
-        name.setPromptText("Nom du tournoi");
-
-        ComboBox<TournamentLevel> level = new ComboBox<>();
-        level.getItems().addAll(TournamentLevel.values());
-        level.setMaxWidth(Double.MAX_VALUE);
-
-        ComboBox<RankingPhase> rankingPhase = new ComboBox<>();
-        rankingPhase.getItems().addAll(RankingPhase.values());
-        rankingPhase.setMaxWidth(Double.MAX_VALUE);
-
-        DatePicker startDate = new DatePicker();
-        DatePicker endDate = new DatePicker();
-
-        // ================== Policy ==================
-
-        Spinner<Integer> maxPerDay = new Spinner<>(1, 10, 2);
-        maxPerDay.setEditable(true);
-
-        ComboBox<FemaleExtraRuleType> femaleRule = new ComboBox<>();
-        femaleRule.getItems().addAll(FemaleExtraRuleType.values());
-        femaleRule.setValue(FemaleExtraRuleType.NONE);
-        femaleRule.setMaxWidth(Double.MAX_VALUE);
-
-        TextField femaleCode = new TextField();
-        femaleCode.setPromptText("Ex: D (si SPECIFIC_TABLEAU_CODE)");
-        femaleCode.setDisable(true);
-
-        femaleRule.valueProperty().addListener((obs, oldV, newV) -> {
-            boolean needsCode = newV == FemaleExtraRuleType.SPECIFIC_TABLEAU_ONCE
-                    || newV == FemaleExtraRuleType.SPECIFIC_TABLEAU_PER_DAY;
-
-            femaleCode.setDisable(!needsCode);
-
-            if (!needsCode) {
-                femaleCode.clear();
-            }
-        });
-
-        // Petit "i" info à côté de règle féminine
-        Button infoBtn = new Button("i");
-        infoBtn.setFocusTraversable(false);
-        infoBtn.setPrefSize(24, 24);
-        infoBtn.setMinSize(24, 24);
-        infoBtn.setMaxSize(24, 24);
-        infoBtn.setStyle("""
-                -fx-background-radius: 50;
-                -fx-font-weight: bold;
-                -fx-padding: 0;
-                """);
-
-        Tooltip tip = new Tooltip("""
-                NONE : pas d’extra
-
-                EXTRA_ANY_ONCE : +1 tableau autorisé une seule fois
-
-                EXTRA_ANY_PER_DAY : +1 tableau autorisé par jour
-
-                SPECIFIC_TABLEAU_ONCE : +1 tableau autorisé une seule fois sur un tableau précis
-
-                SPECIFIC_TABLEAU_PER_DAY : +1 tableau autorisé par jour sur un tableau précis
-                                """);
-        tip.setWrapText(true);
-        tip.setMaxWidth(360);
-        Tooltip.install(infoBtn, tip);
-
-        // ================== Tableaux (métier en mémoire) ==================
-
-        ObservableList<Tableau> tableaux = FXCollections.observableArrayList();
-        ListView<Tableau> tableauxList = new ListView<>(tableaux);
-        tableauxList.setPrefHeight(220);
-
-        // affichage lisible (sinon toString() par défaut)
-        tableauxList.setCellFactory(lv -> new ListCell<>() {
-            @Override
-            protected void updateItem(Tableau item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                } else {
-                    double prepaid = item.fee().prepaid() / 100.0;
-                    double onSite = item.fee().onSite() / 100.0;
-                    setText(item.code() + " — " + item.designation()
-                            + " — " + item.date()
-                            + " — cap " + item.maxPlayers()
-                            + " — " + prepaid + "€ (online) / " + onSite + "€ (sur place)");
-                }
-            }
-        });
-
-        Button addTableauBtn = new Button("Créer un tableau");
-        addTableauBtn.setMaxWidth(Double.MAX_VALUE);
-
-        // On bloque si dates pas renseignées
-        addTableauBtn.disableProperty().bind(
-                startDate.valueProperty().isNull().or(endDate.valueProperty().isNull()));
-
-        Button removeTableauBtn = new Button("Supprimer le tableau sélectionné");
-        removeTableauBtn.setMaxWidth(Double.MAX_VALUE);
-        removeTableauBtn.disableProperty().bind(
-                tableauxList.getSelectionModel().selectedItemProperty().isNull());
-
-        addTableauBtn.setOnAction(e -> {
-            CreateTableauDialog dlg = new CreateTableauDialog(startDate.getValue(), endDate.getValue());
-            dlg.showAndWait().ifPresent(tb -> {
-
-                // 1) code unique
-                boolean dup = tableaux.stream().anyMatch(x -> x.code().equalsIgnoreCase(tb.code()));
-                if (dup) {
-                    showAlert("Code déjà utilisé", "Un tableau avec ce code existe déjà.");
-                    return;
-                }
-
-                // 2) si dates tournoi saisies, imposer que la date du tableau est dedans
-                LocalDate sd = startDate.getValue();
-                LocalDate ed = endDate.getValue();
-                if (sd != null && ed != null) {
-                    if (tb.date().isBefore(sd) || tb.date().isAfter(ed)) {
-                        showAlert("Date invalide",
-                                "La date du tableau doit être comprise entre la date début et la date fin du tournoi.");
-                        return;
-                    }
-                }
-
-                tableaux.add(tb);
-            });
-        });
-
-        removeTableauBtn.setOnAction(e -> {
-            Tableau sel = tableauxList.getSelectionModel().getSelectedItem();
-            if (sel != null)
-                tableaux.remove(sel);
-        });
-
-        VBox tableauxBox = new VBox(10);
-        Label tableauxTitle = new Label("Les Tableaux");
-        tableauxTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
-        tableauxBox.getChildren().addAll(tableauxTitle, tableauxList, addTableauBtn, removeTableauBtn);
-
-        // ================== Erreurs + boutons ==================
-
-        Label error = new Label();
-        error.setStyle("-fx-text-fill:#b00020;");
-
-        Button cancel = new Button("Annuler");
-        Button create = new Button("Créer");
-        create.setDefaultButton(true);
-
-        cancel.setOnAction(e -> close());
-
-        // ================== Règles de changement de dates (SHIFT ou CLEAR)
-        // ==================
-        // - Si on déplace le tournoi sans changer sa durée => on décale les tableaux
-        // (1->8 etc.)
-        // - Si on change la durée => on supprime les tableaux
-
-        final LocalDate[] lastStart = { null };
-        final LocalDate[] lastEnd = { null };
-        final boolean[] internalChange = { false };
-
-        Runnable handleTournamentRangeChange = () -> {
-            if (internalChange[0])
-                return;
-
-            LocalDate ns = startDate.getValue();
-            LocalDate ne = endDate.getValue();
-
-            // pas encore défini -> on mémorise et on sort
-            if (ns == null || ne == null) {
-                lastStart[0] = ns;
-                lastEnd[0] = ne;
-                return;
-            }
-
-            // première fois qu'on a une plage complète
-            if (lastStart[0] == null || lastEnd[0] == null) {
-                lastStart[0] = ns;
-                lastEnd[0] = ne;
-                return;
-            }
-
-            LocalDate os = lastStart[0];
-            LocalDate oe = lastEnd[0];
-
-            if (ns.equals(os) && ne.equals(oe))
-                return;
-
-            long oldLen = ChronoUnit.DAYS.between(os, oe); // ex 1->2 = 1
-            long newLen = ChronoUnit.DAYS.between(ns, ne);
-
-            // durée différente => on supprime les tableaux
-            if (oldLen != newLen) {
-                if (!tableaux.isEmpty()) {
-                    tableaux.clear();
-                    error.setText("Durée du tournoi modifiée : tableaux supprimés (à recréer).");
-                }
-                lastStart[0] = ns;
-                lastEnd[0] = ne;
-                return;
-            }
-
-            // durée identique => on décale les tableaux selon le déplacement du début
-            long delta = ChronoUnit.DAYS.between(os, ns);
-            if (delta != 0 && !tableaux.isEmpty()) {
-                internalChange[0] = true;
-                try {
-                    for (int i = 0; i < tableaux.size(); i++) {
-                        Tableau tb = tableaux.get(i);
-                        tableaux.set(i, copyWithDate(tb, tb.date().plusDays(delta)));
-                    }
-                    error.setText("");
-                } finally {
-                    internalChange[0] = false;
-                }
-            }
-
-            lastStart[0] = ns;
-            lastEnd[0] = ne;
-        };
-
-        startDate.valueProperty().addListener((obs, o, n) -> handleTournamentRangeChange.run());
-        endDate.valueProperty().addListener((obs, o, n) -> handleTournamentRangeChange.run());
-
-        // Bonus UX : empêcher fin < début + auto-ajuster fin si besoin
-        endDate.setDayCellFactory(dp -> new DateCell() {
-            @Override
-            public void updateItem(LocalDate item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null)
-                    return;
-
-                LocalDate sd = startDate.getValue();
-                if (sd == null)
-                    return;
-
-                boolean out = item.isBefore(sd);
-                setDisable(out);
-                if (out)
-                    setTooltip(new Tooltip("La fin ne peut pas être avant le début"));
-            }
-        });
-
-        startDate.valueProperty().addListener((obs, o, sd) -> {
-            if (sd == null)
-                return;
-            LocalDate ed = endDate.getValue();
-            if (ed == null || ed.isBefore(sd)) {
-                endDate.setValue(sd);
-            }
-        });
-
-        // ================== Validation live + disable Create ==================
-
-        Runnable refreshError = () -> {
-            String msg = validateTournamentAndTableaux(
-                    name.getText(),
-                    level.getValue(),
-                    rankingPhase.getValue(),
-                    startDate.getValue(),
-                    endDate.getValue(),
-                    maxPerDay.getValue(),
-                    femaleRule.getValue(),
-                    femaleCode.getText(),
-                    tableaux);
-            // Important : si on a déjà un message informatif (ex durée modifiée), on ne
-            // l’écrase pas
-            // sauf si tout est OK
-            if (msg == null) {
-                // ne pas effacer un message "durée modifiée" si tu veux le garder : commente la
-                // ligne suivante
-                // error.setText("");
-                // ici on laisse tel quel si tu veux garder l'info, sinon décommente :
-                // error.setText("");
-            } else {
-                error.setText(msg);
-            }
-        };
-
-        name.textProperty().addListener((obs, o, n) -> refreshError.run());
-        level.valueProperty().addListener((obs, o, n) -> refreshError.run());
-        rankingPhase.valueProperty().addListener((obs, o, n) -> refreshError.run());
-        startDate.valueProperty().addListener((obs, o, n) -> refreshError.run());
-        endDate.valueProperty().addListener((obs, o, n) -> refreshError.run());
-        femaleRule.valueProperty().addListener((obs, o, n) -> refreshError.run());
-        femaleCode.textProperty().addListener((obs, o, n) -> refreshError.run());
-        tableaux.addListener((ListChangeListener<Tableau>) c -> refreshError.run());
-
-        BooleanBinding invalid = new BooleanBinding() {
-            {
-                bind(name.textProperty(),
-                        startDate.valueProperty(),
-                        endDate.valueProperty(),
-                        level.valueProperty(),
-                        rankingPhase.valueProperty(),
-                        femaleRule.valueProperty(),
-                        femaleCode.textProperty(),
-                        tableaux);
-            }
-
-            @Override
-            protected boolean computeValue() {
-                return validateTournamentAndTableaux(
-                        name.getText(),
-                        level.getValue(),
-                        rankingPhase.getValue(),
-                        startDate.getValue(),
-                        endDate.getValue(),
-                        maxPerDay.getValue(),
-                        femaleRule.getValue(),
-                        femaleCode.getText(),
-                        tableaux) != null;
-            }
-        };
-        create.disableProperty().bind(invalid);
-
-        // ================== Action "Créer" ==================
-
-        create.setOnAction(e -> {
-            try {
-                String msg = validateTournamentAndTableaux(
-                        name.getText(),
-                        level.getValue(),
-                        rankingPhase.getValue(),
-                        startDate.getValue(),
-                        endDate.getValue(),
-                        maxPerDay.getValue(),
-                        femaleRule.getValue(),
-                        femaleCode.getText(),
-                        tableaux);
-                if (msg != null)
-                    throw new IllegalArgumentException(msg);
-
-                LocalDate sd = startDate.getValue();
-                LocalDate ed = endDate.getValue();
-
-                FemaleExtraRuleType rule = femaleRule.getValue();
-                String code = femaleCode.getText();
-
-                String clubId = nav.clubRepo()
-                        .findByOrganizerId(org.getId())
-                        .orElseThrow(() -> new IllegalStateException("Club introuvable pour cet organisateur"))
-                        .id();
-
-                nav.tournamentRepo().createDraftTournament(
-                        clubId,
-                        org.getId(),
-                        name.getText().trim(),
-                        level.getValue().name(),
-                        rankingPhase.getValue().name(),
-                        sd,
-                        ed,
-                        maxPerDay.getValue(),
-                        rule.name(),
-                        code);
-
-                // IMPORTANT : tableaux non persistés ici (étape suivante)
-                close();
-
-            } catch (Exception ex) {
-                error.setText(ex.getMessage() == null ? "Erreur" : ex.getMessage());
-            }
-        });
+        setTitle("Créer un tournoi");
+
+        build();
+        configureDefaults();
+        configureDateLogic();
+        configureActions();
+    }
+
+    private void build() {
+        VBox root = new VBox(AppTheme.SPACE_LG);
+        root.setPadding(new Insets(20));
+        AppTheme.applyPage(root);
+
+        Label title = new Label("Créer un tournoi");
+        AppTheme.applyTitle(title);
+
+        Label subtitle = new Label(
+                "Renseignez d'abord le bloc général du tournoi. "
+                        + "Le tournoi sera créé en brouillon puis complété ensuite.");
+        AppTheme.applyBody(subtitle);
+        subtitle.setWrapText(true);
+
+        GridPane form = new GridPane();
+        form.setHgap(14);
+        form.setVgap(12);
+
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setMinWidth(220);
+
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setHgrow(Priority.ALWAYS);
+
+        form.getColumnConstraints().addAll(col1, col2);
+
+        int row = 0;
+        addField(form, row++, "Nom du tournoi", nameField);
+        addField(form, row++, "Adresse 1 du tournoi", address1Field);
+        addField(form, row++, "Adresse 2 du tournoi", address2Field);
+        addField(form, row++, "Ville", cityField);
+        addField(form, row++, "Département", departmentField);
+        addField(form, row++, "Niveau du tournoi", levelBox);
+        addField(form, row++, "Phase de comptage des points", phaseBox);
+
+        HBox datesRow = new HBox(12, startDatePicker, endDatePicker);
+        datesRow.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(startDatePicker, Priority.ALWAYS);
+        HBox.setHgrow(endDatePicker, Priority.ALWAYS);
+        startDatePicker.setMaxWidth(Double.MAX_VALUE);
+        endDatePicker.setMaxWidth(Double.MAX_VALUE);
+
+        addField(form, row++, "Date du tournoi", datesRow);
+
+        AppTheme.applyBody(daysInfoLabel);
+        daysInfoLabel.setWrapText(true);
+        form.add(new Label(""), 0, row);
+        form.add(daysInfoLabel, 1, row);
+
+        Button cancelButton = new Button("Annuler");
+        AppTheme.styleSecondary(cancelButton);
+        cancelButton.setOnAction(e -> close());
+
+        AppTheme.stylePrimary(createButton);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        HBox bottom = new HBox(10, error, spacer, cancel, create);
-        bottom.setPadding(new Insets(12, 18, 18, 18));
+        HBox actions = new HBox(12, cancelButton, spacer, createButton);
+        actions.setAlignment(Pos.CENTER_RIGHT);
 
-        // ================== Layout global ==================
+        VBox cardContent = new VBox(AppTheme.SPACE_MD, form);
+        VBox card = AppTheme.card(cardContent);
+        card.setMaxWidth(Double.MAX_VALUE);
 
-        GridPane form = new GridPane();
-        form.setHgap(10);
-        form.setVgap(10);
-        form.setPadding(new Insets(18));
+        root.getChildren().addAll(title, subtitle, card, actions);
 
-        int r = 0;
-        form.add(label("Nom"), 0, r);
-        form.add(name, 1, r++);
-
-        form.add(label("Niveau"), 0, r);
-        form.add(level, 1, r++);
-
-        form.add(label("RankingPhase"), 0, r);
-        form.add(rankingPhase, 1, r++);
-
-        form.add(label("Date début"), 0, r);
-        form.add(startDate, 1, r++);
-
-        form.add(label("Date fin"), 0, r);
-        form.add(endDate, 1, r++);
-
-        form.add(new Separator(), 0, r++, 2, 1);
-
-        form.add(label("Max tableaux / jour"), 0, r);
-        form.add(maxPerDay, 1, r++);
-
-        HBox femaleRow = new HBox(8, femaleRule, infoBtn);
-        femaleRow.setAlignment(Pos.CENTER_LEFT);
-        HBox.setHgrow(femaleRule, Priority.ALWAYS);
-
-        form.add(label("Règle féminine"), 0, r);
-        form.add(femaleRow, 1, r++);
-
-        form.add(label("Code tableau féminin"), 0, r);
-        form.add(femaleCode, 1, r++);
-
-        ColumnConstraints c1 = new ColumnConstraints();
-        c1.setMinWidth(170);
-
-        ColumnConstraints c2 = new ColumnConstraints();
-        c2.setHgrow(Priority.ALWAYS);
-
-        form.getColumnConstraints().addAll(c1, c2);
-
-        VBox center = new VBox(16, form, tableauxBox);
-        center.setPadding(new Insets(0, 18, 0, 18));
-
-        BorderPane root = new BorderPane();
-        root.setCenter(center);
-        root.setBottom(bottom);
-
-        setScene(new Scene(root, 900, 760));
+        Scene scene = new Scene(root, 760, 560);
+        setScene(scene);
     }
 
-    // ========= Validation centralisée (tournoi + sécurité tableaux) =========
+    private void configureDefaults() {
+        nameField.setPromptText("Ex : Tournoi du Club");
+        address1Field.setPromptText("Adresse principale du tournoi");
+        address2Field.setPromptText("Complément d'adresse");
+        cityField.setPromptText("Ville");
+        departmentField.setPromptText("Département");
+        startDatePicker.setPromptText("Date de début");
+        endDatePicker.setPromptText("Date de fin");
 
-    private static String validateTournamentAndTableaux(
-            String tournamentName,
-            TournamentLevel level,
-            RankingPhase rankingPhase,
-            LocalDate sd,
-            LocalDate ed,
-            int mpd,
-            FemaleExtraRuleType femaleRule,
-            String femaleCode,
-            ObservableList<Tableau> tableaux) {
-        if (tournamentName == null || tournamentName.isBlank())
-            return "Nom obligatoire.";
+        levelBox.getItems().setAll(TournamentLevel.values());
+        phaseBox.getItems().setAll(RankingPhase.values());
 
-        if (level == null)
-            return "Niveau obligatoire.";
+        address1Field.setText(readClubAddress1());
+        address2Field.setText(readClubAddress2());
+        cityField.setText(readClubCity());
+        departmentField.setText(readClubDepartment());
 
-        if (rankingPhase == null)
-            return "RankingPhase obligatoire.";
-
-        if (sd == null || ed == null)
-            return "Dates obligatoires.";
-
-        if (ed.isBefore(sd))
-            return "La date de fin doit être >= date début.";
-
-        if (mpd <= 0)
-            return "Max tableaux / jour invalide.";
-
-        if (femaleRule == null)
-            return "Règle féminine obligatoire.";
-
-        if (femaleRule == FemaleExtraRuleType.SPECIFIC_TABLEAU_ONCE
-                || femaleRule == FemaleExtraRuleType.SPECIFIC_TABLEAU_PER_DAY) {
-            if (femaleCode == null || femaleCode.isBlank()) {
-                return "Code tableau obligatoire si règle SPECIFIC_TABLEAU_*.";
-            }
+        if (!levelBox.getItems().isEmpty()) {
+            levelBox.getSelectionModel().selectFirst();
         }
+        if (!phaseBox.getItems().isEmpty()) {
+            phaseBox.getSelectionModel().selectFirst();
+        }
+    }
 
-        // sécurité : normalement impossible car on shift/clear, mais on garde un filet
-        if (tableaux != null) {
-            for (Tableau tb : tableaux) {
-                if (tb.date().isBefore(sd) || tb.date().isAfter(ed)) {
-                    return "Le tableau " + tb.code() + " (" + tb.date() + ") est hors des dates du tournoi.";
+    private void configureDateLogic() {
+        startDatePicker.setDayCellFactory(dp -> new DateCell() {
+            @Override
+            public void updateItem(LocalDate item, boolean empty) {
+                super.updateItem(item, empty);
+                LocalDate today = LocalDate.now();
+                setDisable(empty || item.isBefore(today));
+            }
+        });
+
+        endDatePicker.setDayCellFactory(dp -> new DateCell() {
+            @Override
+            public void updateItem(LocalDate item, boolean empty) {
+                super.updateItem(item, empty);
+
+                LocalDate start = startDatePicker.getValue();
+                LocalDate today = LocalDate.now();
+
+                boolean disable = empty || item.isBefore(today);
+                if (start != null) {
+                    disable = disable || item.isBefore(start);
                 }
+                setDisable(disable);
             }
+        });
+
+        startDatePicker.valueProperty().addListener((obs, oldValue, newValue) -> {
+            LocalDate end = endDatePicker.getValue();
+            if (newValue != null && end != null && end.isBefore(newValue)) {
+                endDatePicker.setValue(newValue);
+            }
+            refreshDaysInfo();
+        });
+
+        endDatePicker.valueProperty().addListener((obs, oldValue, newValue) -> refreshDaysInfo());
+
+        refreshDaysInfo();
+    }
+
+    private void configureActions() {
+        createButton.setOnAction(e -> onCreateTournament());
+    }
+
+    private void onCreateTournament() {
+        try {
+            String name = requireText(nameField, "Le nom du tournoi est obligatoire.");
+            String address1 = optionalText(address1Field);
+            String address2 = optionalText(address2Field);
+            String city = requireText(cityField, "La ville est obligatoire.");
+            String department = requireText(departmentField, "Le département est obligatoire.");
+
+            TournamentLevel level = requireCombo(levelBox, "Le niveau du tournoi est obligatoire.");
+            RankingPhase phase = requireCombo(phaseBox, "La phase est obligatoire.");
+
+            LocalDate startDate = startDatePicker.getValue();
+            LocalDate endDate = endDatePicker.getValue();
+
+            if (startDate == null) {
+                throw new IllegalArgumentException("La date de début est obligatoire.");
+            }
+            if (endDate == null) {
+                throw new IllegalArgumentException("La date de fin est obligatoire.");
+            }
+            if (endDate.isBefore(startDate)) {
+                throw new IllegalArgumentException("La date de fin ne peut pas être avant la date de début.");
+            }
+
+            CreateTournamentDraftCommand cmd = new CreateTournamentDraftCommand(
+                    readClubId(),
+                    organizer.getId(),
+                    name,
+                    address1,
+                    address2,
+                    city,
+                    department,
+                    level,
+                    phase,
+                    startDate,
+                    endDate);
+
+            nav.tournamentService().createDraft(cmd);
+
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Tournoi créé");
+            alert.setHeaderText("Création réussie");
+            alert.setContentText("Le tournoi a été créé en brouillon avec succès.");
+            alert.showAndWait();
+
+            close();
+
+        } catch (IllegalArgumentException ex) {
+            showError("Validation", ex.getMessage());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            showError("Erreur", "Impossible de créer le tournoi : " + safeMessage(ex));
+        }
+    }
+
+    private void refreshDaysInfo() {
+        LocalDate start = startDatePicker.getValue();
+        LocalDate end = endDatePicker.getValue();
+
+        if (start == null && end == null) {
+            daysInfoLabel.setText("Veuillez sélectionner les dates du tournoi.");
+            return;
+        }
+        if (start != null && end == null) {
+            daysInfoLabel.setText("Veuillez maintenant sélectionner la date de fin du tournoi.");
+            return;
+        }
+        if (start == null) {
+            daysInfoLabel.setText("Veuillez d'abord sélectionner la date de début du tournoi.");
+            return;
+        }
+        if (end.isBefore(start)) {
+            daysInfoLabel.setText("La date de fin doit être égale ou postérieure à la date de début.");
+            return;
         }
 
-        return null;
+        long days = ChronoUnit.DAYS.between(start, end) + 1;
+        String dayWord = days > 1 ? "jours" : "jour";
+
+        daysInfoLabel.setText(
+                "Actuellement, vous avez sélectionné " + days + " " + dayWord
+                        + " pour l'ensemble de votre tournoi.");
     }
 
-    // ========= Copie d'un tableau en changeant uniquement la date =========
-    // Si ça ne compile pas chez toi, colle Tableau.java et je te l'adapte
-    // exactement.
-    private static Tableau copyWithDate(Tableau tb, LocalDate newDate) {
-        return new Tableau(
-                tb.code(),
-                tb.designation(),
-                newDate,
-                tb.genderPolicy(),
-                tb.ageCategoryPolicy(), // <-- ajouté
-                tb.pointsRuleType(),
-                tb.minPoints(),
-                tb.maxPoints(),
-                tb.maxPlayers(),
-                tb.waitlistCapacity(),
-                tb.fee(),
-                tb.checkInEnd(),
-                tb.startTime(),
-                tb.prizes());
+    private void addField(GridPane grid, int row, String labelText, javafx.scene.Node field) {
+        Label label = new Label(labelText + " :");
+        AppTheme.applyBody(label);
+
+        GridPane.setHgrow(field, Priority.ALWAYS);
+        if (field instanceof Region region) {
+            region.setMaxWidth(Double.MAX_VALUE);
+        }
+
+        grid.add(label, 0, row);
+        grid.add(field, 1, row);
     }
 
-    private static Label label(String txt) {
-        Label l = new Label(txt);
-        l.setMinWidth(170);
-        return l;
+    private String requireText(TextField field, String message) {
+        String value = field.getText();
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(message);
+        }
+        return value.trim();
     }
 
-    private void showAlert(String title, String msg) {
-        Alert a = new Alert(Alert.AlertType.WARNING);
-        a.setTitle(title);
-        a.setHeaderText(null);
-        a.setContentText(msg);
-        a.showAndWait();
+    private String optionalText(TextField field) {
+        String value = field.getText();
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private <T> T requireCombo(ComboBox<T> comboBox, String message) {
+        T value = comboBox.getValue();
+        if (value == null) {
+            throw new IllegalArgumentException(message);
+        }
+        return value;
+    }
+
+    private void showError(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(title);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    private String safeMessage(Exception ex) {
+        return ex.getMessage() == null || ex.getMessage().isBlank()
+                ? "Erreur inconnue."
+                : ex.getMessage();
+    }
+
+    private String readClubId() {
+        return club.id();
+    }
+
+    private String readClubAddress1() {
+        return nullSafe(club.address1());
+    }
+
+    private String readClubAddress2() {
+        return nullSafe(club.address2());
+    }
+
+    private String readClubCity() {
+        return nullSafe(club.city());
+    }
+
+    private String readClubDepartment() {
+        return nullSafe(club.departementCode());
+    }
+
+    private String nullSafe(String value) {
+        return value == null ? "" : value.trim();
     }
 }

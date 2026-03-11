@@ -3,9 +3,9 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubAccessRepository;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TableauRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TournamentRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service.OrganizerAuthService;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service.TournamentService;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.auth.OrganizerLoginView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.auth.OrganizerRegisterView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.home.HomeView;
@@ -20,8 +20,7 @@ import javafx.stage.Stage;
 import java.util.Objects;
 
 /**
- * Router central de l'application.
- * Gère la navigation entre les vues et les dialogs.
+ * Router central de navigation JavaFX.
  */
 public final class AppRouter {
 
@@ -36,18 +35,26 @@ public final class AppRouter {
     private final OrganizerSession session;
 
     public AppRouter(Stage stage, ApplicationContext ctx) {
-        this.stage = Objects.requireNonNull(stage, "stage must not be null");
-        this.ctx = Objects.requireNonNull(ctx, "context must not be null");
+        this.stage = Objects.requireNonNull(stage);
+        this.ctx = Objects.requireNonNull(ctx);
         this.session = new OrganizerSession();
     }
 
     // -------------------------------------------------------------------------
-    // Accès aux services / repositories
+    // SERVICES
     // -------------------------------------------------------------------------
 
     public OrganizerAuthService organizerAuth() {
         return ctx.organizerAuthService();
     }
+
+    public TournamentService tournamentService() {
+        return ctx.tournamentService();
+    }
+
+    // -------------------------------------------------------------------------
+    // REPOSITORIES
+    // -------------------------------------------------------------------------
 
     public ClubRepository clubRepo() {
         return ctx.clubRepository();
@@ -61,12 +68,8 @@ public final class AppRouter {
         return ctx.tournamentRepository();
     }
 
-    public TableauRepository tableauRepo() {
-        return ctx.tableauRepository();
-    }
-
     // -------------------------------------------------------------------------
-    // Session organisateur
+    // SESSION
     // -------------------------------------------------------------------------
 
     public OrganizerSession session() {
@@ -87,7 +90,7 @@ public final class AppRouter {
     }
 
     // -------------------------------------------------------------------------
-    // Navigation principale
+    // NAVIGATION
     // -------------------------------------------------------------------------
 
     public void showHome() {
@@ -126,7 +129,7 @@ public final class AppRouter {
     }
 
     // -------------------------------------------------------------------------
-    // Dialogs organisateur
+    // DIALOGS
     // -------------------------------------------------------------------------
 
     public void showOrganizerProfileDialog() {
@@ -150,7 +153,7 @@ public final class AppRouter {
     }
 
     // -------------------------------------------------------------------------
-    // Helpers UI
+    // HELPERS UI
     // -------------------------------------------------------------------------
 
     public void showInfo(String title, String message) {

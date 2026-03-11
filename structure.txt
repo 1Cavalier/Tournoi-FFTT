@@ -26,6 +26,7 @@ C:\USERS\SOUME\ONEDRIVE\DESKTOP\TOURNOI-FFTT\SRC\MAIN\JAVA\FR\BRUNOY\GESTION_TOU
 |   |   |   |       RegistrationStatus.java
 |   |   |   |       TableauPointsRuleType.java
 |   |   |   |       TournamentLevel.java
+|   |   |   |       TournamentStatus.java
 |   |   |   |       
 |   |   |   \---value
 |   |   |           AgeCategoryPolicy.java
@@ -76,11 +77,9 @@ C:\USERS\SOUME\ONEDRIVE\DESKTOP\TOURNOI-FFTT\SRC\MAIN\JAVA\FR\BRUNOY\GESTION_TOU
         |       PingManagerApp.java
         |       
         +---dto
+        |       ClubAccessDto.java
         |       ClubDto.java
         |       OrganizerDto.java
-        |       TableauDto.java
-        |       TournamentCardDto.java
-        |       TournamentDto.java
         |       
         +---infra
         |   +---db
@@ -95,22 +94,17 @@ C:\USERS\SOUME\ONEDRIVE\DESKTOP\TOURNOI-FFTT\SRC\MAIN\JAVA\FR\BRUNOY\GESTION_TOU
         |   |       VerificationCodeGenerator.java
         |   |       
         |   +---repo
+        |   |       ClubAccessRepository.java
+        |   |       ClubAccessRepositorySqlite.java
         |   |       ClubRepository.java
         |   |       ClubRepositorySqlite.java
         |   |       OrganizerRepository.java
         |   |       OrganizerRepositorySqlite.java
-        |   |       TableauRepository.java
-        |   |       TableauRepositorySqlite.java
-        |   |       TournamentRepository.java
-        |   |       TournamentRepositorySqlite.java
         |   |       
         |   \---security
         |           HashUtils.java
         |           PasswordPolicy.java
         |           
-        +---mapper
-        |       TournamentCardMapper.java
-        |       
         +---service
         |       OrganizerAuthService.java
         |       
@@ -130,14 +124,10 @@ C:\USERS\SOUME\ONEDRIVE\DESKTOP\TOURNOI-FFTT\SRC\MAIN\JAVA\FR\BRUNOY\GESTION_TOU
             |       
             +---organizer
             |   +---components
+            |   |       OrganizerViewUtils.java
             |   |       StatusBadge.java
-            |   |       TournamentCard.java
-            |   |       TournamentStatus.java
-            |   |       UiUtils.java
             |   |       
             |   +---dialogs
-            |   |       CreateTableauDialog.java
-            |   |       CreateTournamentDialog.java
             |   |       OrganizerProfileDialog.java
             |   |       
             |   +---layout
@@ -145,8 +135,8 @@ C:\USERS\SOUME\ONEDRIVE\DESKTOP\TOURNOI-FFTT\SRC\MAIN\JAVA\FR\BRUNOY\GESTION_TOU
             |   |       OrganizerTopBar.java
             |   |       
             |   \---pages
+            |           OrganizerDashboardContent.java
             |           OrganizerDashboardView.java
-            |           OrganizerHomeView.java
             |           
             \---player
                     PlayerDashboardView.java

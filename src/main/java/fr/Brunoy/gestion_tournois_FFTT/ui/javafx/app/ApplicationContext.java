@@ -6,15 +6,15 @@ import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.mail.ConsoleEmailSender;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.mail.EmailSender;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.mail.EmailVerificationService;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.*;
-
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service.OrganizerAuthService;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service.TournamentService;
 
 import java.nio.file.Path;
 import java.sql.Connection;
 
 /**
  * Contexte applicatif.
- * Initialise les bases SQLite, les repositories et les services.
+ * Initialise les bases SQLite, repositories et services.
  */
 public final class ApplicationContext {
 
@@ -24,13 +24,14 @@ public final class ApplicationContext {
     private final ClubRepository clubRepository;
     private final ClubAccessRepository clubAccessRepository;
     private final OrganizerRepository organizerRepository;
+
     private final TournamentRepository tournamentRepository;
-    private final TableauRepository tableauRepository;
 
     private final EmailSender emailSender;
     private final EmailVerificationService emailVerificationService;
 
     private final OrganizerAuthService organizerAuthService;
+    private final TournamentService tournamentService;
 
     public ApplicationContext() {
 
@@ -47,17 +48,21 @@ public final class ApplicationContext {
         this.clubRepository = new ClubRepositorySqlite(clubDb);
         this.clubAccessRepository = new ClubAccessRepositorySqlite(clubDb);
         this.organizerRepository = new OrganizerRepositorySqlite(clubDb);
+
         this.tournamentRepository = new TournamentRepositorySqlite(competitionDb);
-        this.tableauRepository = new TableauRepositorySqlite(competitionDb);
 
         this.emailSender = new ConsoleEmailSender();
-        this.emailVerificationService = new EmailVerificationService(organizerRepository, emailSender);
+        this.emailVerificationService = new EmailVerificationService(
+                organizerRepository,
+                emailSender);
 
         this.organizerAuthService = new OrganizerAuthService(
                 organizerRepository,
                 clubRepository,
                 clubAccessRepository,
                 emailVerificationService);
+
+        this.tournamentService = new TournamentService(tournamentRepository);
     }
 
     private void applySql(SqliteDb db, String resourceSqlPath) {
@@ -68,14 +73,32 @@ public final class ApplicationContext {
         }
     }
 
-    // ---------------- GETTERS ----------------
+    // -------------------------------------------------------------------------
+    // SERVICES
+    // -------------------------------------------------------------------------
 
     public OrganizerAuthService organizerAuthService() {
         return organizerAuthService;
     }
 
+    public TournamentService tournamentService() {
+        return tournamentService;
+    }
+
+    public EmailVerificationService emailVerificationService() {
+        return emailVerificationService;
+    }
+
+    // -------------------------------------------------------------------------
+    // REPOSITORIES
+    // -------------------------------------------------------------------------
+
     public ClubRepository clubRepository() {
         return clubRepository;
+    }
+
+    public ClubAccessRepository clubAccessRepository() {
+        return clubAccessRepository;
     }
 
     public OrganizerRepository organizerRepository() {
@@ -86,17 +109,9 @@ public final class ApplicationContext {
         return tournamentRepository;
     }
 
-    public TableauRepository tableauRepository() {
-        return tableauRepository;
-    }
-
-    public EmailVerificationService emailVerificationService() {
-        return emailVerificationService;
-    }
-
-    public ClubAccessRepository clubAccessRepository() {
-        return clubAccessRepository;
-    }
+    // -------------------------------------------------------------------------
+    // MAIL
+    // -------------------------------------------------------------------------
 
     public EmailSender emailSender() {
         return emailSender;
