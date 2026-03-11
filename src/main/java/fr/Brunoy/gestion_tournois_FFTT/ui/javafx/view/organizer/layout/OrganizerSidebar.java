@@ -3,7 +3,7 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.layout;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.ClubDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRow;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.components.OrganizerViewUtils;
 import javafx.geometry.Insets;
@@ -133,10 +133,10 @@ public class OrganizerSidebar extends VBox {
                 .orElseThrow(() -> new IllegalStateException("Club introuvable pour cet organisateur"))
                 .id();
 
-        List<TournamentRow> draft = nav.tournamentService().findDraftForClub(clubId);
-        List<TournamentRow> active = nav.tournamentService().findActiveForClub(clubId);
+        List<TournamentDto> draft = nav.tournamentService().findDraftForClub(clubId);
+        List<TournamentDto> active = nav.tournamentService().findActiveForClub(clubId);
 
-        List<TournamentRow> visibleTournaments = new ArrayList<>();
+        List<TournamentDto> visibleTournaments = new ArrayList<>();
         visibleTournaments.addAll(draft);
         visibleTournaments.addAll(active);
 
@@ -150,7 +150,7 @@ public class OrganizerSidebar extends VBox {
 
             tournamentsBox.getChildren().add(emptyBox);
         } else {
-            for (TournamentRow row : visibleTournaments) {
+            for (TournamentDto row : visibleTournaments) {
                 tournamentsBox.getChildren().add(buildTournamentBlock(row));
             }
         }
@@ -159,7 +159,7 @@ public class OrganizerSidebar extends VBox {
         return section;
     }
 
-    private VBox buildTournamentBlock(TournamentRow tournament) {
+    private VBox buildTournamentBlock(TournamentDto tournament) {
         VBox block = new VBox(8);
         block.setStyle(AppTheme.SIDEBAR_PANEL_STYLE);
         block.setPadding(new Insets(10));
@@ -180,7 +180,7 @@ public class OrganizerSidebar extends VBox {
         return block;
     }
 
-    private Button buildTournamentMenuItem(String label, TournamentRow tournament) {
+    private Button buildTournamentMenuItem(String label, TournamentDto tournament) {
         Button button = new Button(label);
         AppTheme.styleSidebarTournamentItem(button, false);
 

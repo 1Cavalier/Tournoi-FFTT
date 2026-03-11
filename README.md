@@ -208,3 +208,4 @@ Fonctionnement 100% local.
 
 ```bash
 mvn clean javafx:run
+tree src\main\java\fr\Brunoy\gestion_tournois_FFTT /F /A > structure.txt

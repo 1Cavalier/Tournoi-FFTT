@@ -80,6 +80,7 @@ C:\USERS\SOUME\ONEDRIVE\DESKTOP\TOURNOI-FFTT\SRC\MAIN\JAVA\FR\BRUNOY\GESTION_TOU
         |       ClubAccessDto.java
         |       ClubDto.java
         |       OrganizerDto.java
+        |       TournamentRow.java
         |       
         +---infra
         |   +---db
@@ -100,13 +101,17 @@ C:\USERS\SOUME\ONEDRIVE\DESKTOP\TOURNOI-FFTT\SRC\MAIN\JAVA\FR\BRUNOY\GESTION_TOU
         |   |       ClubRepositorySqlite.java
         |   |       OrganizerRepository.java
         |   |       OrganizerRepositorySqlite.java
+        |   |       TournamentRepository.java
+        |   |       TournamentRepositorySqlite.java
         |   |       
         |   \---security
         |           HashUtils.java
         |           PasswordPolicy.java
         |           
         +---service
+        |       CreateTournamentDraftCommand.java
         |       OrganizerAuthService.java
+        |       TournamentService.java
         |       
         +---theme
         |       AppTheme.java
@@ -126,8 +131,10 @@ C:\USERS\SOUME\ONEDRIVE\DESKTOP\TOURNOI-FFTT\SRC\MAIN\JAVA\FR\BRUNOY\GESTION_TOU
             |   +---components
             |   |       OrganizerViewUtils.java
             |   |       StatusBadge.java
+            |   |       TournamentDashboardCard.java
             |   |       
             |   +---dialogs
+            |   |       CreateTournamentDialog.java
             |   |       OrganizerProfileDialog.java
             |   |       
             |   +---layout

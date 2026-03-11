@@ -1,7 +1,7 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.components;
 
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRow;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -21,9 +21,9 @@ public class TournamentDashboardCard extends VBox {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final AppRouter nav;
-    private final TournamentRow tournament;
+    private final TournamentDto tournament;
 
-    public TournamentDashboardCard(AppRouter nav, TournamentRow tournament) {
+    public TournamentDashboardCard(AppRouter nav, TournamentDto tournament) {
         this.nav = Objects.requireNonNull(nav, "nav must not be null");
         this.tournament = Objects.requireNonNull(tournament, "tournament must not be null");
         build();

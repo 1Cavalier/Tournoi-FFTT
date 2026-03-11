@@ -1,6 +1,6 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo;
 
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRow;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.db.SqliteDb;
 
 import java.sql.Connection;
@@ -19,7 +19,7 @@ public class TournamentRepositorySqlite implements TournamentRepository {
     }
 
     @Override
-    public TournamentRow insert(TournamentRow t) {
+    public TournamentDto insert(TournamentDto t) {
         String sql = """
                 INSERT INTO tournament (
                     id, club_id, organizer_id,
@@ -62,7 +62,7 @@ public class TournamentRepositorySqlite implements TournamentRepository {
     }
 
     @Override
-    public Optional<TournamentRow> findById(String id) {
+    public Optional<TournamentDto> findById(String id) {
         String sql = "SELECT * FROM tournament WHERE id = ?";
 
         try (Connection c = db.openConnection();
@@ -84,10 +84,10 @@ public class TournamentRepositorySqlite implements TournamentRepository {
     }
 
     @Override
-    public List<TournamentRow> findByClubId(String clubId) {
+    public List<TournamentDto> findByClubId(String clubId) {
         String sql = "SELECT * FROM tournament WHERE club_id = ? ORDER BY start_date DESC";
 
-        List<TournamentRow> list = new ArrayList<>();
+        List<TournamentDto> list = new ArrayList<>();
 
         try (Connection c = db.openConnection();
                 PreparedStatement ps = c.prepareStatement(sql)) {
@@ -108,7 +108,7 @@ public class TournamentRepositorySqlite implements TournamentRepository {
     }
 
     @Override
-    public List<TournamentRow> findDraftForClub(String clubId) {
+    public List<TournamentDto> findDraftForClub(String clubId) {
         String sql = """
                 SELECT * FROM tournament
                 WHERE club_id = ? AND status = 'DRAFT'
@@ -119,7 +119,7 @@ public class TournamentRepositorySqlite implements TournamentRepository {
     }
 
     @Override
-    public List<TournamentRow> findActiveForClub(String clubId) {
+    public List<TournamentDto> findActiveForClub(String clubId) {
         String sql = """
                 SELECT * FROM tournament
                 WHERE club_id = ? AND status != 'DRAFT'
@@ -129,8 +129,8 @@ public class TournamentRepositorySqlite implements TournamentRepository {
         return findByQuery(clubId, sql);
     }
 
-    private List<TournamentRow> findByQuery(String clubId, String sql) {
-        List<TournamentRow> list = new ArrayList<>();
+    private List<TournamentDto> findByQuery(String clubId, String sql) {
+        List<TournamentDto> list = new ArrayList<>();
 
         try (Connection c = db.openConnection();
                 PreparedStatement ps = c.prepareStatement(sql)) {
@@ -151,7 +151,7 @@ public class TournamentRepositorySqlite implements TournamentRepository {
     }
 
     @Override
-    public void update(TournamentRow t) {
+    public void update(TournamentDto t) {
         String sql = """
                 UPDATE tournament SET
                     name = ?,
@@ -208,8 +208,8 @@ public class TournamentRepositorySqlite implements TournamentRepository {
         }
     }
 
-    private TournamentRow map(ResultSet rs) throws Exception {
-        return new TournamentRow(
+    private TournamentDto map(ResultSet rs) throws Exception {
+        return new TournamentDto(
                 rs.getString("id"),
                 rs.getString("club_id"),
                 rs.getString("organizer_id"),

@@ -1,7 +1,7 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service;
 
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.TournamentStatus;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRow;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TournamentRepository;
 
 import java.time.LocalDate;
@@ -19,7 +19,7 @@ public class TournamentService {
         this.tournamentRepository = Objects.requireNonNull(tournamentRepository);
     }
 
-    public TournamentRow createDraft(CreateTournamentDraftCommand cmd) {
+    public TournamentDto createDraft(CreateTournamentDraftCommand cmd) {
         Objects.requireNonNull(cmd);
 
         if (cmd.endDate().isBefore(cmd.startDate())) {
@@ -28,7 +28,7 @@ public class TournamentService {
 
         String now = LocalDateTime.now().toString();
 
-        TournamentRow row = new TournamentRow(
+        TournamentDto row = new TournamentDto(
                 UUID.randomUUID().toString(),
                 required(cmd.clubId()),
                 required(cmd.organizerId()),
@@ -49,7 +49,7 @@ public class TournamentService {
         return tournamentRepository.insert(row);
     }
 
-    public TournamentRow updateGeneral(TournamentRow existing) {
+    public TournamentDto updateGeneral(TournamentDto existing) {
         Objects.requireNonNull(existing);
 
         LocalDate startDate = LocalDate.parse(existing.startDate());
@@ -59,7 +59,7 @@ public class TournamentService {
             throw new IllegalArgumentException("La date de fin ne peut pas être avant la date de début.");
         }
 
-        TournamentRow updated = new TournamentRow(
+        TournamentDto updated = new TournamentDto(
                 required(existing.id()),
                 required(existing.clubId()),
                 required(existing.organizerId()),
@@ -81,19 +81,19 @@ public class TournamentService {
         return updated;
     }
 
-    public Optional<TournamentRow> findById(String id) {
+    public Optional<TournamentDto> findById(String id) {
         return tournamentRepository.findById(id);
     }
 
-    public List<TournamentRow> findByClubId(String clubId) {
+    public List<TournamentDto> findByClubId(String clubId) {
         return tournamentRepository.findByClubId(clubId);
     }
 
-    public List<TournamentRow> findDraftForClub(String clubId) {
+    public List<TournamentDto> findDraftForClub(String clubId) {
         return tournamentRepository.findDraftForClub(clubId);
     }
 
-    public List<TournamentRow> findActiveForClub(String clubId) {
+    public List<TournamentDto> findActiveForClub(String clubId) {
         return tournamentRepository.findActiveForClub(clubId);
     }
 

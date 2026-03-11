@@ -153,7 +153,7 @@ public final class AppRouter {
     }
 
     public void showEditTournamentGeneralDialog(
-            fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRow tournament) {
+            fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto tournament) {
         requireOrganizer();
 
         CreateTournamentDialog dialog = new CreateTournamentDialog(this, tournament);

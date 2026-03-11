@@ -5,7 +5,7 @@ import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.RankingPhase;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.ClubDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRow;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service.CreateTournamentDraftCommand;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import javafx.geometry.Insets;
@@ -36,7 +36,7 @@ public class CreateTournamentDialog extends Stage {
     private final AppRouter nav;
     private final OrganizerDto organizer;
     private final ClubDto club;
-    private final TournamentRow existingTournament;
+    private final TournamentDto existingTournament;
 
     private final TextField nameField = new TextField();
     private final TextField address1Field = new TextField();
@@ -57,7 +57,7 @@ public class CreateTournamentDialog extends Stage {
         this(nav, null);
     }
 
-    public CreateTournamentDialog(AppRouter nav, TournamentRow existingTournament) {
+    public CreateTournamentDialog(AppRouter nav, TournamentDto existingTournament) {
         this.nav = Objects.requireNonNull(nav, "nav must not be null");
         this.organizer = nav.requireOrganizer();
         this.club = nav.clubRepo()
@@ -334,7 +334,7 @@ public class CreateTournamentDialog extends Stage {
             LocalDate startDate = requireDate(startDatePicker, "La date de début est obligatoire.");
             LocalDate endDate = requireDate(endDatePicker, "La date de fin est obligatoire.");
 
-            TournamentRow updated = new TournamentRow(
+            TournamentDto updated = new TournamentDto(
                     existingTournament.id(),
                     existingTournament.clubId(),
                     existingTournament.organizerId(),

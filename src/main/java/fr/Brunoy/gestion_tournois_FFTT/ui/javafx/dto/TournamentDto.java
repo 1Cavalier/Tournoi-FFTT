@@ -5,7 +5,7 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto;
  * Utilisé par la couche UI / persistence.
  */
 
-public record TournamentRow(
+public record TournamentDto(
         String id,
         String clubId,
         String organizerId,

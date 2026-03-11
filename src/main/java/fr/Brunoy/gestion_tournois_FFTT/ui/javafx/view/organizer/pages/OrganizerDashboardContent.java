@@ -2,7 +2,7 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.pages;
 
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRow;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.components.TournamentDashboardCard;
 import javafx.geometry.Insets;
@@ -79,10 +79,10 @@ public class OrganizerDashboardContent extends VBox {
     }
 
     private VBox buildClubTournamentsSection() {
-        List<TournamentRow> draft = loadDraftTournaments();
-        List<TournamentRow> active = loadActiveTournaments();
+        List<TournamentDto> draft = loadDraftTournaments();
+        List<TournamentDto> active = loadActiveTournaments();
 
-        List<TournamentRow> allTournaments = new ArrayList<>();
+        List<TournamentDto> allTournaments = new ArrayList<>();
         allTournaments.addAll(draft);
         allTournaments.addAll(active);
 
@@ -104,7 +104,7 @@ public class OrganizerDashboardContent extends VBox {
             content.getChildren().add(buildEmptyTournamentState());
         } else {
             VBox listBox = new VBox(12);
-            for (TournamentRow tournament : allTournaments) {
+            for (TournamentDto tournament : allTournaments) {
                 listBox.getChildren().add(new TournamentDashboardCard(nav, tournament));
             }
             content.getChildren().add(listBox);
@@ -151,7 +151,7 @@ public class OrganizerDashboardContent extends VBox {
         return row;
     }
 
-    private List<TournamentRow> loadDraftTournaments() {
+    private List<TournamentDto> loadDraftTournaments() {
         String clubId = nav.clubRepo()
                 .findByOrganizerId(organizer.getId())
                 .orElseThrow(() -> new IllegalStateException("Club introuvable pour cet organisateur"))
@@ -160,7 +160,7 @@ public class OrganizerDashboardContent extends VBox {
         return nav.tournamentService().findDraftForClub(clubId);
     }
 
-    private List<TournamentRow> loadActiveTournaments() {
+    private List<TournamentDto> loadActiveTournaments() {
         String clubId = nav.clubRepo()
                 .findByOrganizerId(organizer.getId())
                 .orElseThrow(() -> new IllegalStateException("Club introuvable pour cet organisateur"))
