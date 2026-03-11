@@ -126,9 +126,7 @@ public class OrganizerProfileDialog extends Stage {
         // ---------------------------------------------------------------------
         // TABLEAU DES ACCÈS MULTI-COMPTES DU CLUB
         // ---------------------------------------------------------------------
-        // ---------------------------------------------------------------------
-        // TABLEAU DES ACCÈS MULTI-COMPTES DU CLUB
-        // ---------------------------------------------------------------------
+
         Label accessTitle = new Label("Comptes ayant accès au club");
         accessTitle.setStyle("-fx-font-size: 15px; -fx-font-weight: bold;");
 

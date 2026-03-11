@@ -41,6 +41,7 @@ public class TournamentService {
                 cmd.phase().name(),
                 cmd.startDate().toString(),
                 cmd.endDate().toString(),
+                null,
                 TournamentStatus.DRAFT.name(),
                 now,
                 now);
@@ -71,6 +72,7 @@ public class TournamentService {
                 required(existing.phase()),
                 existing.startDate(),
                 existing.endDate(),
+                optional(existing.homologationNumber()),
                 required(existing.status()),
                 existing.createdAt(),
                 LocalDateTime.now().toString());

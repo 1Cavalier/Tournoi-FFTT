@@ -26,10 +26,11 @@ public class TournamentRepositorySqlite implements TournamentRepository {
                     name, address1, address2, city, department,
                     level, phase,
                     start_date, end_date,
+                    homologation_number,
                     status,
                     created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection c = db.openConnection();
@@ -47,9 +48,10 @@ public class TournamentRepositorySqlite implements TournamentRepository {
             ps.setString(10, t.phase());
             ps.setString(11, t.startDate());
             ps.setString(12, t.endDate());
-            ps.setString(13, t.status());
-            ps.setString(14, t.createdAt());
-            ps.setString(15, t.updatedAt());
+            ps.setString(13, t.homologationNumber());
+            ps.setString(14, t.status());
+            ps.setString(15, t.createdAt());
+            ps.setString(16, t.updatedAt());
 
             ps.executeUpdate();
             return t;
@@ -161,6 +163,7 @@ public class TournamentRepositorySqlite implements TournamentRepository {
                     phase = ?,
                     start_date = ?,
                     end_date = ?,
+                    homologation_number = ?,
                     status = ?,
                     updated_at = ?
                 WHERE id = ?
@@ -178,9 +181,10 @@ public class TournamentRepositorySqlite implements TournamentRepository {
             ps.setString(7, t.phase());
             ps.setString(8, t.startDate());
             ps.setString(9, t.endDate());
-            ps.setString(10, t.status());
-            ps.setString(11, t.updatedAt());
-            ps.setString(12, t.id());
+            ps.setString(10, t.homologationNumber());
+            ps.setString(11, t.status());
+            ps.setString(12, t.updatedAt());
+            ps.setString(13, t.id());
 
             ps.executeUpdate();
 
@@ -218,6 +222,7 @@ public class TournamentRepositorySqlite implements TournamentRepository {
                 rs.getString("phase"),
                 rs.getString("start_date"),
                 rs.getString("end_date"),
+                rs.getString("homologation_number"),
                 rs.getString("status"),
                 rs.getString("created_at"),
                 rs.getString("updated_at"));

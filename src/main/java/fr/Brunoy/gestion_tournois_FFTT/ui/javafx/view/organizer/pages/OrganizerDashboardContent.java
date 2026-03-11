@@ -4,6 +4,7 @@ import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRow;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.components.TournamentDashboardCard;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
@@ -14,15 +15,11 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public class OrganizerDashboardContent extends VBox {
-
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final AppRouter nav;
     private final OrganizerDto organizer;
@@ -62,7 +59,7 @@ public class OrganizerDashboardContent extends VBox {
         Label details = new Label(
                 "Depuis cet espace, vous pouvez créer un tournoi en brouillon, "
                         + "retrouver les tournois du club, puis compléter progressivement "
-                        + "les parties général, règlement et tableaux.");
+                        + "les parties général, règlement, tableaux et inscriptions.");
         AppTheme.applyBody(details);
         details.setWrapText(true);
 
@@ -106,7 +103,11 @@ public class OrganizerDashboardContent extends VBox {
         if (allTournaments.isEmpty()) {
             content.getChildren().add(buildEmptyTournamentState());
         } else {
-            content.getChildren().add(buildTournamentCardList(allTournaments));
+            VBox listBox = new VBox(12);
+            for (TournamentRow tournament : allTournaments) {
+                listBox.getChildren().add(new TournamentDashboardCard(nav, tournament));
+            }
+            content.getChildren().add(listBox);
         }
 
         content.getChildren().add(buildCreateTournamentRow());
@@ -136,97 +137,6 @@ public class OrganizerDashboardContent extends VBox {
 
         box.getChildren().addAll(title, subtitle);
         return box;
-    }
-
-    private VBox buildTournamentCardList(List<TournamentRow> tournaments) {
-        VBox box = new VBox(12);
-
-        for (TournamentRow tournament : tournaments) {
-            box.getChildren().add(buildTournamentCard(tournament));
-        }
-
-        return box;
-    }
-
-    private VBox buildTournamentCard(TournamentRow tournament) {
-        VBox root = new VBox(12);
-        root.setPadding(new Insets(16));
-        root.setStyle(
-                "-fx-background-color:" + AppTheme.COLOR_SURFACE + ";" +
-                        "-fx-background-radius:" + AppTheme.RADIUS + ";" +
-                        "-fx-border-color:" + AppTheme.COLOR_BORDER + ";" +
-                        "-fx-border-radius:" + AppTheme.RADIUS + ";");
-
-        HBox header = new HBox(12);
-        header.setAlignment(Pos.CENTER_LEFT);
-
-        VBox titleBox = new VBox(4);
-        Label title = new Label(safe(tournament.name()));
-        AppTheme.applyCardTitle(title);
-
-        Label subTitle = new Label(buildTournamentSubtitle(tournament));
-        AppTheme.applyBody(subTitle);
-        subTitle.setWrapText(true);
-
-        titleBox.getChildren().addAll(title, subTitle);
-        HBox.setHgrow(titleBox, Priority.ALWAYS);
-
-        Label statusBadge = new Label(safe(tournament.status()));
-        statusBadge.setStyle(AppTheme.badgeStyle(resolveStatusColor(tournament.status())));
-
-        header.getChildren().addAll(titleBox, statusBadge);
-
-        HBox sections = new HBox(10);
-        sections.setAlignment(Pos.CENTER_LEFT);
-
-        Button generalBtn = new Button("Général");
-        AppTheme.styleSecondary(generalBtn);
-        generalBtn.setOnAction(e -> nav.showInfo(
-                "Général",
-                "La section Général du tournoi \"" + safe(tournament.name())
-                        + "\" sera reliée dans la prochaine étape."));
-
-        Button regulationBtn = new Button("Règlement");
-        AppTheme.styleSecondary(regulationBtn);
-        regulationBtn.setOnAction(e -> nav.showInfo(
-                "Règlement",
-                "La section Règlement du tournoi \"" + safe(tournament.name())
-                        + "\" sera reliée dans la prochaine étape."));
-
-        Button tableauxBtn = new Button("Tableaux");
-        AppTheme.styleSecondary(tableauxBtn);
-        tableauxBtn.setOnAction(e -> nav.showInfo(
-                "Tableaux",
-                "La section Tableaux du tournoi \"" + safe(tournament.name())
-                        + "\" sera reliée dans la prochaine étape."));
-
-        sections.getChildren().addAll(generalBtn, regulationBtn, tableauxBtn);
-
-        root.getChildren().addAll(header, sections);
-        return root;
-    }
-
-    private String buildTournamentSubtitle(TournamentRow tournament) {
-        String city = safe(tournament.city());
-        String level = prettyEnumName(tournament.level());
-        String phase = prettyPhase(tournament.phase());
-        String dates = formatDateRange(tournament.startDate(), tournament.endDate());
-
-        return city + " • " + level + " • " + phase + " • " + dates;
-    }
-
-    private String formatDateRange(String startDateRaw, String endDateRaw) {
-        try {
-            LocalDate start = LocalDate.parse(startDateRaw);
-            LocalDate end = LocalDate.parse(endDateRaw);
-
-            if (start.equals(end)) {
-                return DATE_FORMAT.format(start);
-            }
-            return DATE_FORMAT.format(start) + " - " + DATE_FORMAT.format(end);
-        } catch (Exception e) {
-            return safe(startDateRaw) + " - " + safe(endDateRaw);
-        }
     }
 
     private HBox buildCreateTournamentRow() {
@@ -300,52 +210,5 @@ public class OrganizerDashboardContent extends VBox {
 
         getChildren().setAll(scroll);
         VBox.setVgrow(scroll, Priority.ALWAYS);
-    }
-
-    private String safe(String value) {
-        return value == null ? "" : value.trim();
-    }
-
-    private String prettyEnumName(String raw) {
-        String value = safe(raw);
-        if (value.isBlank()) {
-            return "-";
-        }
-
-        return switch (value) {
-            case "DEPARTEMENTAL" -> "Départemental";
-            case "REGIONAL" -> "Régional";
-            case "NATIONAL_B" -> "National B";
-            case "NATIONAL_A" -> "National A";
-            case "INTERNATIONAL" -> "International";
-            case "DRAFT" -> "Brouillon";
-            case "OPEN" -> "Ouvert";
-            case "RUNNING" -> "En cours";
-            case "FINISHED" -> "Terminé";
-            case "CANCELLED" -> "Annulé";
-            default -> value.replace('_', ' ');
-        };
-    }
-
-    private String prettyPhase(String raw) {
-        String value = safe(raw);
-        return switch (value) {
-            case "PHASE_1" -> "Phase 1";
-            case "PHASE_2" -> "Phase 2";
-            default -> value;
-        };
-    }
-
-    private String resolveStatusColor(String status) {
-        String value = safe(status);
-
-        return switch (value) {
-            case "DRAFT" -> AppTheme.COLOR_PRIMARY;
-            case "OPEN" -> "#2E7D32";
-            case "RUNNING" -> "#EF6C00";
-            case "FINISHED" -> "#455A64";
-            case "CANCELLED" -> "#C62828";
-            default -> AppTheme.COLOR_PRIMARY;
-        };
     }
 }

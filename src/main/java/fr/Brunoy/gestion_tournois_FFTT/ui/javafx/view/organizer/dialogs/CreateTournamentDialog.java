@@ -5,6 +5,7 @@ import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.RankingPhase;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.ClubDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRow;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service.CreateTournamentDraftCommand;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import javafx.geometry.Insets;
@@ -35,6 +36,7 @@ public class CreateTournamentDialog extends Stage {
     private final AppRouter nav;
     private final OrganizerDto organizer;
     private final ClubDto club;
+    private final TournamentRow existingTournament;
 
     private final TextField nameField = new TextField();
     private final TextField address1Field = new TextField();
@@ -49,17 +51,22 @@ public class CreateTournamentDialog extends Stage {
     private final DatePicker endDatePicker = new DatePicker();
 
     private final Label daysInfoLabel = new Label("Veuillez sélectionner les dates du tournoi.");
-    private final Button createButton = new Button("Créer le tournoi");
+    private final Button saveButton = new Button();
 
     public CreateTournamentDialog(AppRouter nav) {
+        this(nav, null);
+    }
+
+    public CreateTournamentDialog(AppRouter nav, TournamentRow existingTournament) {
         this.nav = Objects.requireNonNull(nav, "nav must not be null");
         this.organizer = nav.requireOrganizer();
         this.club = nav.clubRepo()
                 .findByOrganizerId(organizer.getId())
                 .orElseThrow(() -> new IllegalStateException("Club introuvable pour cet organisateur"));
+        this.existingTournament = existingTournament;
 
         initModality(Modality.APPLICATION_MODAL);
-        setTitle("Créer un tournoi");
+        setTitle(isEditMode() ? "Modifier le tournoi" : "Créer un tournoi");
 
         build();
         configureDefaults();
@@ -67,17 +74,22 @@ public class CreateTournamentDialog extends Stage {
         configureActions();
     }
 
+    private boolean isEditMode() {
+        return existingTournament != null;
+    }
+
     private void build() {
         VBox root = new VBox(AppTheme.SPACE_LG);
         root.setPadding(new Insets(20));
         AppTheme.applyPage(root);
 
-        Label title = new Label("Créer un tournoi");
+        Label title = new Label(isEditMode() ? "Modifier le tournoi" : "Créer un tournoi");
         AppTheme.applyTitle(title);
 
         Label subtitle = new Label(
-                "Renseignez d'abord le bloc général du tournoi. "
-                        + "Le tournoi sera créé en brouillon puis complété ensuite.");
+                isEditMode()
+                        ? "Modifiez les informations générales du tournoi."
+                        : "Renseignez d'abord le bloc général du tournoi. Le tournoi sera créé en brouillon puis complété ensuite.");
         AppTheme.applyBody(subtitle);
         subtitle.setWrapText(true);
 
@@ -120,12 +132,13 @@ public class CreateTournamentDialog extends Stage {
         AppTheme.styleSecondary(cancelButton);
         cancelButton.setOnAction(e -> close());
 
-        AppTheme.stylePrimary(createButton);
+        saveButton.setText(isEditMode() ? "Enregistrer les modifications" : "Créer le tournoi");
+        AppTheme.stylePrimary(saveButton);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        HBox actions = new HBox(12, cancelButton, spacer, createButton);
+        HBox actions = new HBox(12, cancelButton, spacer, saveButton);
         actions.setAlignment(Pos.CENTER_RIGHT);
 
         VBox cardContent = new VBox(AppTheme.SPACE_MD, form);
@@ -150,15 +163,59 @@ public class CreateTournamentDialog extends Stage {
         levelBox.getItems().setAll(TournamentLevel.values());
         phaseBox.getItems().setAll(RankingPhase.values());
 
-        address1Field.setText(readClubAddress1());
-        address2Field.setText(readClubAddress2());
-        cityField.setText(readClubCity());
-        departmentField.setText(readClubDepartment());
+        if (isEditMode()) {
+            nameField.setText(nvl(existingTournament.name()));
+            address1Field.setText(nvl(existingTournament.address1()));
+            address2Field.setText(nvl(existingTournament.address2()));
+            cityField.setText(nvl(existingTournament.city()));
+            departmentField.setText(nvl(existingTournament.department()));
 
-        if (!levelBox.getItems().isEmpty()) {
+            selectLevel(existingTournament.level());
+            selectPhase(existingTournament.phase());
+
+            if (existingTournament.startDate() != null && !existingTournament.startDate().isBlank()) {
+                startDatePicker.setValue(LocalDate.parse(existingTournament.startDate()));
+            }
+            if (existingTournament.endDate() != null && !existingTournament.endDate().isBlank()) {
+                endDatePicker.setValue(LocalDate.parse(existingTournament.endDate()));
+            }
+        } else {
+            address1Field.setText(nvl(club.address1()));
+            address2Field.setText(nvl(club.address2()));
+            cityField.setText(nvl(club.city()));
+            departmentField.setText(nvl(club.departementCode()));
+
+            if (!levelBox.getItems().isEmpty()) {
+                levelBox.getSelectionModel().selectFirst();
+            }
+            if (!phaseBox.getItems().isEmpty()) {
+                phaseBox.getSelectionModel().selectFirst();
+            }
+        }
+
+        refreshDaysInfo();
+    }
+
+    private void selectLevel(String raw) {
+        if (raw == null || raw.isBlank()) {
+            levelBox.getSelectionModel().selectFirst();
+            return;
+        }
+        try {
+            levelBox.setValue(TournamentLevel.valueOf(raw));
+        } catch (Exception e) {
             levelBox.getSelectionModel().selectFirst();
         }
-        if (!phaseBox.getItems().isEmpty()) {
+    }
+
+    private void selectPhase(String raw) {
+        if (raw == null || raw.isBlank()) {
+            phaseBox.getSelectionModel().selectFirst();
+            return;
+        }
+        try {
+            phaseBox.setValue(RankingPhase.valueOf(raw));
+        } catch (Exception e) {
             phaseBox.getSelectionModel().selectFirst();
         }
     }
@@ -168,6 +225,12 @@ public class CreateTournamentDialog extends Stage {
             @Override
             public void updateItem(LocalDate item, boolean empty) {
                 super.updateItem(item, empty);
+
+                if (isEditMode()) {
+                    setDisable(empty);
+                    return;
+                }
+
                 LocalDate today = LocalDate.now();
                 setDisable(empty || item.isBefore(today));
             }
@@ -179,8 +242,13 @@ public class CreateTournamentDialog extends Stage {
                 super.updateItem(item, empty);
 
                 LocalDate start = startDatePicker.getValue();
-                LocalDate today = LocalDate.now();
 
+                if (isEditMode()) {
+                    setDisable(empty || (start != null && item.isBefore(start)));
+                    return;
+                }
+
+                LocalDate today = LocalDate.now();
                 boolean disable = empty || item.isBefore(today);
                 if (start != null) {
                     disable = disable || item.isBefore(start);
@@ -198,12 +266,16 @@ public class CreateTournamentDialog extends Stage {
         });
 
         endDatePicker.valueProperty().addListener((obs, oldValue, newValue) -> refreshDaysInfo());
-
-        refreshDaysInfo();
     }
 
     private void configureActions() {
-        createButton.setOnAction(e -> onCreateTournament());
+        saveButton.setOnAction(e -> {
+            if (isEditMode()) {
+                onUpdateTournament();
+            } else {
+                onCreateTournament();
+            }
+        });
     }
 
     private void onCreateTournament() {
@@ -217,21 +289,15 @@ public class CreateTournamentDialog extends Stage {
             TournamentLevel level = requireCombo(levelBox, "Le niveau du tournoi est obligatoire.");
             RankingPhase phase = requireCombo(phaseBox, "La phase est obligatoire.");
 
-            LocalDate startDate = startDatePicker.getValue();
-            LocalDate endDate = endDatePicker.getValue();
+            LocalDate startDate = requireDate(startDatePicker, "La date de début est obligatoire.");
+            LocalDate endDate = requireDate(endDatePicker, "La date de fin est obligatoire.");
 
-            if (startDate == null) {
-                throw new IllegalArgumentException("La date de début est obligatoire.");
-            }
-            if (endDate == null) {
-                throw new IllegalArgumentException("La date de fin est obligatoire.");
-            }
             if (endDate.isBefore(startDate)) {
                 throw new IllegalArgumentException("La date de fin ne peut pas être avant la date de début.");
             }
 
             CreateTournamentDraftCommand cmd = new CreateTournamentDraftCommand(
-                    readClubId(),
+                    club.id(),
                     organizer.getId(),
                     name,
                     address1,
@@ -244,13 +310,6 @@ public class CreateTournamentDialog extends Stage {
                     endDate);
 
             nav.tournamentService().createDraft(cmd);
-
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Tournoi créé");
-            alert.setHeaderText("Création réussie");
-            alert.setContentText("Le tournoi a été créé en brouillon avec succès.");
-            alert.showAndWait();
-
             close();
 
         } catch (IllegalArgumentException ex) {
@@ -258,6 +317,49 @@ public class CreateTournamentDialog extends Stage {
         } catch (Exception ex) {
             ex.printStackTrace();
             showError("Erreur", "Impossible de créer le tournoi : " + safeMessage(ex));
+        }
+    }
+
+    private void onUpdateTournament() {
+        try {
+            String name = requireText(nameField, "Le nom du tournoi est obligatoire.");
+            String address1 = optionalText(address1Field);
+            String address2 = optionalText(address2Field);
+            String city = requireText(cityField, "La ville est obligatoire.");
+            String department = requireText(departmentField, "Le département est obligatoire.");
+
+            TournamentLevel level = requireCombo(levelBox, "Le niveau du tournoi est obligatoire.");
+            RankingPhase phase = requireCombo(phaseBox, "La phase est obligatoire.");
+
+            LocalDate startDate = requireDate(startDatePicker, "La date de début est obligatoire.");
+            LocalDate endDate = requireDate(endDatePicker, "La date de fin est obligatoire.");
+
+            TournamentRow updated = new TournamentRow(
+                    existingTournament.id(),
+                    existingTournament.clubId(),
+                    existingTournament.organizerId(),
+                    name,
+                    address1,
+                    address2,
+                    city,
+                    department,
+                    level.name(),
+                    phase.name(),
+                    startDate.toString(),
+                    endDate.toString(),
+                    existingTournament.homologationNumber(),
+                    existingTournament.status(),
+                    existingTournament.createdAt(),
+                    existingTournament.updatedAt());
+
+            nav.tournamentService().updateGeneral(updated);
+            close();
+
+        } catch (IllegalArgumentException ex) {
+            showError("Validation", ex.getMessage());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            showError("Erreur", "Impossible de modifier le tournoi : " + safeMessage(ex));
         }
     }
 
@@ -320,6 +422,14 @@ public class CreateTournamentDialog extends Stage {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    private LocalDate requireDate(DatePicker picker, String message) {
+        LocalDate value = picker.getValue();
+        if (value == null) {
+            throw new IllegalArgumentException(message);
+        }
+        return value;
+    }
+
     private <T> T requireCombo(ComboBox<T> comboBox, String message) {
         T value = comboBox.getValue();
         if (value == null) {
@@ -342,27 +452,7 @@ public class CreateTournamentDialog extends Stage {
                 : ex.getMessage();
     }
 
-    private String readClubId() {
-        return club.id();
-    }
-
-    private String readClubAddress1() {
-        return nullSafe(club.address1());
-    }
-
-    private String readClubAddress2() {
-        return nullSafe(club.address2());
-    }
-
-    private String readClubCity() {
-        return nullSafe(club.city());
-    }
-
-    private String readClubDepartment() {
-        return nullSafe(club.departementCode());
-    }
-
-    private String nullSafe(String value) {
+    private String nvl(String value) {
         return value == null ? "" : value.trim();
     }
 }

@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS tournament (
   start_date TEXT NOT NULL,
   end_date   TEXT NOT NULL,
 
+  homologation_number TEXT,
   status TEXT NOT NULL,
 
   created_at TEXT NOT NULL,

@@ -152,6 +152,16 @@ public final class AppRouter {
         showOrganizerDashboard();
     }
 
+    public void showEditTournamentGeneralDialog(
+            fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRow tournament) {
+        requireOrganizer();
+
+        CreateTournamentDialog dialog = new CreateTournamentDialog(this, tournament);
+        dialog.showAndWait();
+
+        showOrganizerDashboard();
+    }
+
     // -------------------------------------------------------------------------
     // HELPERS UI
     // -------------------------------------------------------------------------
