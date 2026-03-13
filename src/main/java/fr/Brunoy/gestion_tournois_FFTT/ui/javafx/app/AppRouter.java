@@ -1,6 +1,8 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app;
 
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRegulationDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubAccessRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TournamentRepository;
@@ -10,6 +12,7 @@ import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.auth.OrganizerLoginView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.auth.OrganizerRegisterView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.home.HomeView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs.CreateTournamentDialog;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs.EditTournamentRegulationDialog;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs.OrganizerProfileDialog;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.pages.OrganizerDashboardView;
 
@@ -157,6 +160,19 @@ public final class AppRouter {
         requireOrganizer();
 
         CreateTournamentDialog dialog = new CreateTournamentDialog(this, tournament);
+        dialog.showAndWait();
+
+        showOrganizerDashboard();
+    }
+
+    public void showEditTournamentRegulationDialog(TournamentDto tournament) {
+
+        requireOrganizer();
+
+        TournamentRegulationDto regulation = tournamentService().getRegulation(tournament.id());
+
+        EditTournamentRegulationDialog dialog = new EditTournamentRegulationDialog(this, tournament, regulation);
+
         dialog.showAndWait();
 
         showOrganizerDashboard();

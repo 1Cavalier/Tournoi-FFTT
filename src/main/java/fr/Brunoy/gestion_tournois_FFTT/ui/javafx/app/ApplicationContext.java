@@ -26,6 +26,9 @@ public final class ApplicationContext {
     private final OrganizerRepository organizerRepository;
 
     private final TournamentRepository tournamentRepository;
+    private final TournamentRegulationRepository tournamentRegulationRepository;
+    // private final TournamentPolicyRepository tournamentPolicyRepository;
+    // private final TableauRepository tableauRepository;
 
     private final EmailSender emailSender;
     private final EmailVerificationService emailVerificationService;
@@ -41,15 +44,18 @@ public final class ApplicationContext {
         this.clubDb = new SqliteDb(clubDbFile);
         this.competitionDb = new SqliteDb(competitionDbFile);
 
-        applySql(clubDb, "/db/Club.sql");
-        applySql(competitionDb, "/db/Competition.sql");
-        applySql(clubDb, "/db/SeedData.sql");
+        initClubDatabase();
+        initCompetitionDatabase();
 
         this.clubRepository = new ClubRepositorySqlite(clubDb);
         this.clubAccessRepository = new ClubAccessRepositorySqlite(clubDb);
         this.organizerRepository = new OrganizerRepositorySqlite(clubDb);
 
         this.tournamentRepository = new TournamentRepositorySqlite(competitionDb);
+        this.tournamentRegulationRepository = new TournamentRegulationRepositorySqlite(competitionDb);
+        // this.tournamentPolicyRepository = new
+        // TournamentPolicyRepositorySqlite(competitionDb);
+        // this.tableauRepository = new TableauRepositorySqlite(competitionDb);
 
         this.emailSender = new ConsoleEmailSender();
         this.emailVerificationService = new EmailVerificationService(
@@ -62,7 +68,22 @@ public final class ApplicationContext {
                 clubAccessRepository,
                 emailVerificationService);
 
-        this.tournamentService = new TournamentService(tournamentRepository);
+        this.tournamentService = new TournamentService(
+                tournamentRepository,
+                tournamentRegulationRepository);
+    }
+
+    private void initClubDatabase() {
+        applySql(clubDb, "/db/Club.sql");
+        applySql(clubDb, "/db/SeedData.sql");
+    }
+
+    private void initCompetitionDatabase() {
+        applySql(competitionDb, "/db/competition/tournament.sql");
+        applySql(competitionDb, "/db/competition/tournament_regulation.sql");
+        applySql(competitionDb, "/db/competition/tournament_policy.sql");
+        applySql(competitionDb, "/db/competition/tableau.sql");
+        applySql(competitionDb, "/db/competition/app_state.sql");
     }
 
     private void applySql(SqliteDb db, String resourceSqlPath) {
@@ -108,6 +129,18 @@ public final class ApplicationContext {
     public TournamentRepository tournamentRepository() {
         return tournamentRepository;
     }
+
+    public TournamentRegulationRepository tournamentRegulationRepository() {
+        return tournamentRegulationRepository;
+    }
+
+    // public TournamentPolicyRepository tournamentPolicyRepository() {
+    // return tournamentPolicyRepository;
+    // }
+
+    // public TableauRepository tableauRepository() {
+    // return tableauRepository;
+    // }
 
     // -------------------------------------------------------------------------
     // MAIL

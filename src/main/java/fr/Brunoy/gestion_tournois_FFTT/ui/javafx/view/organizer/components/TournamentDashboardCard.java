@@ -2,6 +2,7 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.components;
 
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRegulationDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -22,10 +23,12 @@ public class TournamentDashboardCard extends VBox {
 
     private final AppRouter nav;
     private final TournamentDto tournament;
+    private final TournamentRegulationDto regulation;
 
-    public TournamentDashboardCard(AppRouter nav, TournamentDto tournament) {
+    public TournamentDashboardCard(AppRouter nav, TournamentDto tournament, TournamentRegulationDto regulation) {
         this.nav = Objects.requireNonNull(nav, "nav must not be null");
         this.tournament = Objects.requireNonNull(tournament, "tournament must not be null");
+        this.regulation = regulation; // peut être null temporairement si besoin
         build();
     }
 
@@ -64,21 +67,21 @@ public class TournamentDashboardCard extends VBox {
         row.setAlignment(Pos.TOP_LEFT);
 
         VBox general = buildGeneralSection();
-        VBox regulation = buildRegulationSection();
+        VBox regulationBox = buildRegulationSection();
         VBox tableaux = buildTableauxSection();
         VBox registrations = buildRegistrationSection();
 
         HBox.setHgrow(general, Priority.ALWAYS);
-        HBox.setHgrow(regulation, Priority.ALWAYS);
+        HBox.setHgrow(regulationBox, Priority.ALWAYS);
         HBox.setHgrow(tableaux, Priority.ALWAYS);
         HBox.setHgrow(registrations, Priority.ALWAYS);
 
         general.setMaxWidth(Double.MAX_VALUE);
-        regulation.setMaxWidth(Double.MAX_VALUE);
+        regulationBox.setMaxWidth(Double.MAX_VALUE);
         tableaux.setMaxWidth(Double.MAX_VALUE);
         registrations.setMaxWidth(Double.MAX_VALUE);
 
-        row.getChildren().addAll(general, regulation, tableaux, registrations);
+        row.getChildren().addAll(general, regulationBox, tableaux, registrations);
         return row;
     }
 
@@ -93,6 +96,7 @@ public class TournamentDashboardCard extends VBox {
                 infoRow("Département", tournament.department()),
                 infoRow("Adresse 1", tournament.address1()),
                 infoRow("Adresse 2", tournament.address2()),
+                infoRow("Ville", tournament.city()),
                 infoRow("Niveau", prettyLevel(tournament.level())),
                 infoRow("Phase", prettyPhase(tournament.phase())),
                 infoRow("Date", buildDates()),
@@ -116,14 +120,17 @@ public class TournamentDashboardCard extends VBox {
         AppTheme.applyCardTitle(title);
 
         content.getChildren().addAll(
-                infoRow("Statut", prettyStatus(tournament.status())),
-                infoRow("Publication", isDraft() ? "Non publiée" : "Publiée"),
-                infoRow("Homologation", tournament.homologationNumber()));
+                infoRow("État", regulationCompletionLabel()),
+                infoRow("Contact", regulationValue(regulation == null ? null : regulation.organizerEmail())),
+                infoRow("Salle", regulationValue(regulation == null ? null : regulation.venueName())),
+                infoRow("Tables", regulation == null ? null : regulation.numberOfTables()),
+                infoRow("Balles", regulationValue(regulation == null ? null : regulation.ballBrandAndType())),
+                infoRow("Aire de jeu", regulationValue(regulation == null ? null : regulation.playingAreaPreset())));
 
         Button edit = new Button("Modifier le règlement");
         AppTheme.styleSecondary(edit);
         edit.setMaxWidth(Double.MAX_VALUE);
-        edit.setOnAction(e -> nav.showInfo("À venir", "Modification du règlement."));
+        edit.setOnAction(e -> nav.showEditTournamentRegulationDialog(tournament));
 
         content.getChildren().add(verticalSpacer(6));
         content.getChildren().add(edit);
@@ -243,6 +250,38 @@ public class TournamentDashboardCard extends VBox {
         return "DRAFT".equalsIgnoreCase(nvl(tournament.status()));
     }
 
+    private String regulationCompletionLabel() {
+        if (regulation == null) {
+            return "information manquante";
+        }
+
+        int filled = 0;
+        int total = 6;
+
+        if (!isBlank(regulation.organizerEmail()))
+            filled++;
+        if (!isBlank(regulation.venueName()))
+            filled++;
+        if (regulation.numberOfTables() != null)
+            filled++;
+        if (!isBlank(regulation.playingAreaPreset()))
+            filled++;
+        if (!isBlank(regulation.ballBrandAndType()))
+            filled++;
+        if (!isBlank(regulation.firstMatchesStart()))
+            filled++;
+
+        if (filled == 0)
+            return "Non renseigné";
+        if (filled == total)
+            return "Complet";
+        return "Partiel";
+    }
+
+    private String regulationValue(Object value) {
+        return formatValue(value);
+    }
+
     private String prettyLevel(String value) {
         return switch (nvl(value)) {
             case "DEPARTEMENTAL" -> "Départemental";
@@ -296,6 +335,10 @@ public class TournamentDashboardCard extends VBox {
 
     private boolean isMissing(Object value) {
         return value == null || (value instanceof String s && s.isBlank());
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isBlank();
     }
 
     private String nvl(String value) {

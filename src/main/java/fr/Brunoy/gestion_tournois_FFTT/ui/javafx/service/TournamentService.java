@@ -2,6 +2,8 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service;
 
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.TournamentStatus;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRegulationDto;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TournamentRegulationRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TournamentRepository;
 
 import java.time.LocalDate;
@@ -14,22 +16,40 @@ import java.util.UUID;
 public class TournamentService {
 
     private final TournamentRepository tournamentRepository;
+    private final TournamentRegulationRepository tournamentRegulationRepository;
 
-    public TournamentService(TournamentRepository tournamentRepository) {
+    public TournamentService(
+            TournamentRepository tournamentRepository,
+            TournamentRegulationRepository tournamentRegulationRepository) {
+
         this.tournamentRepository = Objects.requireNonNull(tournamentRepository);
+        this.tournamentRegulationRepository = Objects.requireNonNull(tournamentRegulationRepository);
     }
 
     public TournamentDto createDraft(CreateTournamentDraftCommand cmd) {
         Objects.requireNonNull(cmd);
 
+        if (cmd.startDate() == null) {
+            throw new IllegalArgumentException("La date de début est obligatoire.");
+        }
+        if (cmd.endDate() == null) {
+            throw new IllegalArgumentException("La date de fin est obligatoire.");
+        }
         if (cmd.endDate().isBefore(cmd.startDate())) {
             throw new IllegalArgumentException("La date de fin ne peut pas être avant la date de début.");
         }
+        if (cmd.level() == null) {
+            throw new IllegalArgumentException("Le niveau du tournoi est obligatoire.");
+        }
+        if (cmd.phase() == null) {
+            throw new IllegalArgumentException("La phase est obligatoire.");
+        }
 
+        String tournamentId = UUID.randomUUID().toString();
         String now = LocalDateTime.now().toString();
 
-        TournamentDto row = new TournamentDto(
-                UUID.randomUUID().toString(),
+        TournamentDto tournament = new TournamentDto(
+                tournamentId,
                 required(cmd.clubId()),
                 required(cmd.organizerId()),
                 required(cmd.name()),
@@ -46,14 +66,49 @@ public class TournamentService {
                 now,
                 now);
 
-        return tournamentRepository.insert(row);
+        TournamentDto insertedTournament = tournamentRepository.insert(tournament);
+
+        TournamentRegulationDto emptyRegulation = new TournamentRegulationDto(
+                tournamentId,
+
+                null,
+                null,
+                null,
+
+                null,
+                null,
+                null,
+                null,
+
+                null,
+
+                null,
+                null,
+                null,
+                null,
+                null,
+
+                null,
+                null,
+
+                null,
+                null,
+                null,
+                null,
+
+                now,
+                now);
+
+        tournamentRegulationRepository.insert(emptyRegulation);
+
+        return insertedTournament;
     }
 
     public TournamentDto updateGeneral(TournamentDto existing) {
         Objects.requireNonNull(existing);
 
-        LocalDate startDate = LocalDate.parse(existing.startDate());
-        LocalDate endDate = LocalDate.parse(existing.endDate());
+        LocalDate startDate = parseRequiredDate(existing.startDate(), "La date de début est obligatoire.");
+        LocalDate endDate = parseRequiredDate(existing.endDate(), "La date de fin est obligatoire.");
 
         if (endDate.isBefore(startDate)) {
             throw new IllegalArgumentException("La date de fin ne peut pas être avant la date de début.");
@@ -70,14 +125,58 @@ public class TournamentService {
                 required(existing.department()),
                 required(existing.level()),
                 required(existing.phase()),
-                existing.startDate(),
-                existing.endDate(),
+                startDate.toString(),
+                endDate.toString(),
                 optional(existing.homologationNumber()),
                 required(existing.status()),
-                existing.createdAt(),
+                required(existing.createdAt()),
                 LocalDateTime.now().toString());
 
         tournamentRepository.update(updated);
+        return updated;
+    }
+
+    public TournamentRegulationDto getRegulation(String tournamentId) {
+        return tournamentRegulationRepository.findByTournamentId(required(tournamentId))
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Règlement introuvable pour le tournoi : " + tournamentId));
+    }
+
+    public TournamentRegulationDto updateRegulation(TournamentRegulationDto existing) {
+        Objects.requireNonNull(existing);
+
+        TournamentRegulationDto updated = new TournamentRegulationDto(
+                required(existing.tournamentId()),
+
+                optional(existing.organizerContactName()),
+                optional(existing.organizerEmail()),
+                optional(existing.organizerPhone()),
+
+                optional(existing.venueName()),
+                optional(existing.venueStreet()),
+                optional(existing.venueZip()),
+                optional(existing.venueCity()),
+
+                existing.numberOfTables(),
+
+                optional(existing.playingAreaPreset()),
+                optional(existing.playingAreaInfoText()),
+                existing.playingAreaLengthMeters(),
+                existing.playingAreaWidthMeters(),
+                existing.playingAreaCompliant(),
+
+                optional(existing.ballBrandAndType()),
+                optional(existing.ballProvisionPolicy()),
+
+                optional(existing.registrationDeadline()),
+                optional(existing.checkInDeadline()),
+                optional(existing.firstMatchesStart()),
+                optional(existing.expectedEndTime()),
+
+                required(existing.createdAt()),
+                LocalDateTime.now().toString());
+
+        tournamentRegulationRepository.update(updated);
         return updated;
     }
 
@@ -99,6 +198,13 @@ public class TournamentService {
 
     public void delete(String id) {
         tournamentRepository.delete(id);
+    }
+
+    private LocalDate parseRequiredDate(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(message);
+        }
+        return LocalDate.parse(value.trim());
     }
 
     private String required(String value) {

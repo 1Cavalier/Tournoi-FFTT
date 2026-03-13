@@ -3,6 +3,7 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.pages;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRegulationDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.components.TournamentDashboardCard;
 import javafx.geometry.Insets;
@@ -105,7 +106,8 @@ public class OrganizerDashboardContent extends VBox {
         } else {
             VBox listBox = new VBox(12);
             for (TournamentDto tournament : allTournaments) {
-                listBox.getChildren().add(new TournamentDashboardCard(nav, tournament));
+                TournamentRegulationDto regulation = nav.tournamentService().getRegulation(tournament.id());
+                listBox.getChildren().add(new TournamentDashboardCard(nav, tournament, regulation));
             }
             content.getChildren().add(listBox);
         }
