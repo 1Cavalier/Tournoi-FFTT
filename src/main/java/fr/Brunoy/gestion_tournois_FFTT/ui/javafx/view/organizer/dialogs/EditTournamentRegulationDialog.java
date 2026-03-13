@@ -32,6 +32,11 @@ import java.util.Objects;
 
 public class EditTournamentRegulationDialog extends Stage {
 
+    private enum PlayingAreaChoice {
+        STANDARD,
+        CUSTOM
+    }
+
     private final AppRouter nav;
     private final TournamentDto tournament;
     private final TournamentRegulationDto regulation;
@@ -42,7 +47,7 @@ public class EditTournamentRegulationDialog extends Stage {
 
     private final TextField numberOfTablesField = new TextField();
 
-    private final ComboBox<PlayingAreaPreset> playingAreaPresetBox = new ComboBox<>();
+    private final ComboBox<PlayingAreaChoice> playingAreaChoiceBox = new ComboBox<>();
     private final TextField tablesBrandField = new TextField();
     private final TextField playingAreaLengthField = new TextField();
     private final TextField playingAreaWidthField = new TextField();
@@ -51,12 +56,16 @@ public class EditTournamentRegulationDialog extends Stage {
     private final ComboBox<BallProvisionPolicy> ballProvisionPolicyBox = new ComboBox<>();
     private final TextField ballBrandAndTypeField = new TextField();
 
+    private final TextField registrationOpenTimeField = new TextField();
     private final TextField registrationDeadlineField = new TextField();
-    private final TextField checkInDeadlineField = new TextField();
-    private final TextField firstMatchesStartField = new TextField();
-    private final TextField expectedEndTimeField = new TextField();
+    private final TextField gymOpenTimeField = new TextField();
 
     private final Button saveButton = new Button("Enregistrer le règlement");
+
+    private Label organizerSectionBadge;
+    private Label playingAreaSectionBadge;
+    private Label ballSectionBadge;
+    private Label timingSectionBadge;
 
     public EditTournamentRegulationDialog(
             AppRouter nav,
@@ -89,12 +98,17 @@ public class EditTournamentRegulationDialog extends Stage {
         AppTheme.applyBody(subtitle);
         subtitle.setWrapText(true);
 
+        organizerSectionBadge = createSectionBadge(false);
+        playingAreaSectionBadge = createSectionBadge(false);
+        ballSectionBadge = createSectionBadge(false);
+        timingSectionBadge = createSectionBadge(false);
+
         VBox sections = new VBox(AppTheme.SPACE_MD);
         sections.getChildren().addAll(
-                buildCollapsibleSection("Contact organisateur", buildOrganizerSection(), isOrganizerComplete()),
-                buildCollapsibleSection("Aire de jeu et matériel", buildPlayingAreaSection(), isPlayingAreaComplete()),
-                buildCollapsibleSection("Balles", buildBallSection(), isBallSectionComplete()),
-                buildCollapsibleSection("Horaires réglementaires", buildTimingSection(), isTimingSectionComplete()));
+                buildCollapsibleSection("Contact organisateur", buildOrganizerSection(), organizerSectionBadge),
+                buildCollapsibleSection("Aire de jeu et matériel", buildPlayingAreaSection(), playingAreaSectionBadge),
+                buildCollapsibleSection("Balles", buildBallSection(), ballSectionBadge),
+                buildCollapsibleSection("Horaires réglementaires", buildTimingSection(), timingSectionBadge));
 
         Button cancelButton = new Button("Annuler");
         AppTheme.styleSecondary(cancelButton);
@@ -126,7 +140,6 @@ public class EditTournamentRegulationDialog extends Stage {
         addField(grid, row++, "Nom du contact", organizerContactNameField);
         addField(grid, row++, "Email organisateur", organizerEmailField);
         addField(grid, row++, "Téléphone organisateur", organizerPhoneField);
-
         return new VBox(AppTheme.SPACE_MD, grid);
     }
 
@@ -134,12 +147,11 @@ public class EditTournamentRegulationDialog extends Stage {
         GridPane grid = createFormGrid();
         int row = 0;
         addField(grid, row++, "Nombre de tables", numberOfTablesField);
-        addField(grid, row++, "Configuration aire de jeu", playingAreaPresetBox);
+        addField(grid, row++, "Aire de jeu", playingAreaChoiceBox);
         addField(grid, row++, "Rappel selon niveau", playingAreaHintLabel);
         addField(grid, row++, "Marque / type des tables", tablesBrandField);
         addField(grid, row++, "Longueur (m)", playingAreaLengthField);
         addField(grid, row++, "Largeur (m)", playingAreaWidthField);
-
         return new VBox(AppTheme.SPACE_MD, grid);
     }
 
@@ -148,36 +160,31 @@ public class EditTournamentRegulationDialog extends Stage {
         int row = 0;
         addField(grid, row++, "Marque / type de balle", ballBrandAndTypeField);
         addField(grid, row++, "Fourniture des balles", ballProvisionPolicyBox);
-
         return new VBox(AppTheme.SPACE_MD, grid);
     }
 
     private VBox buildTimingSection() {
         GridPane grid = createFormGrid();
         int row = 0;
-        addField(grid, row++, "Date/heure limite inscription", registrationDeadlineField);
-        addField(grid, row++, "Date/heure fin pointage", checkInDeadlineField);
-        addField(grid, row++, "Date/heure début premières parties", firstMatchesStartField);
-        addField(grid, row++, "Heure fin prévisionnelle", expectedEndTimeField);
-
+        addField(grid, row++, "Ouverture des inscriptions", registrationOpenTimeField);
+        addField(grid, row++, "Fermeture des inscriptions", registrationDeadlineField);
+        addField(grid, row++, "Ouverture du gymnase", gymOpenTimeField);
         return new VBox(AppTheme.SPACE_MD, grid);
     }
 
-    private VBox buildCollapsibleSection(String titleText, Node content, boolean initiallyComplete) {
+    private VBox buildCollapsibleSection(String titleText, Node content, Label badge) {
         Label arrow = new Label("▾");
-        arrow.setStyle("-fx-font-weight: bold; -fx-font-size: 18;");
+        arrow.setStyle("-fx-font-weight: bold; -fx-font-size: 20;");
 
         Label title = new Label(titleText);
         AppTheme.applyCardTitle(title);
-
-        Label badge = new Label(initiallyComplete ? "Complet" : "Informations manquantes");
-        badge.setStyle(AppTheme.badgeStyle(initiallyComplete ? "#2E7D32" : "#EF6C00"));
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         HBox header = new HBox(10, arrow, title, spacer, badge);
         header.setAlignment(Pos.CENTER_LEFT);
+        header.setStyle("-fx-cursor: hand;");
 
         VBox body = new VBox(content);
         body.setManaged(true);
@@ -196,6 +203,24 @@ public class EditTournamentRegulationDialog extends Stage {
         return card;
     }
 
+    private Label createSectionBadge(boolean complete) {
+        Label badge = new Label();
+        updateSectionBadge(badge, complete);
+        return badge;
+    }
+
+    private void updateSectionBadge(Label badge, boolean complete) {
+        badge.setText(complete ? "Complet" : "Informations manquantes");
+        badge.setStyle(AppTheme.badgeStyle(complete ? "#2E7D32" : "#EF6C00"));
+    }
+
+    private void refreshSectionBadges() {
+        updateSectionBadge(organizerSectionBadge, isOrganizerComplete());
+        updateSectionBadge(playingAreaSectionBadge, isPlayingAreaComplete());
+        updateSectionBadge(ballSectionBadge, isBallSectionComplete());
+        updateSectionBadge(timingSectionBadge, isTimingSectionComplete());
+    }
+
     private void configureDefaults() {
         organizerContactNameField.setPromptText("Nom de la personne référente");
         organizerEmailField.setPromptText("contact@club.fr");
@@ -203,45 +228,38 @@ public class EditTournamentRegulationDialog extends Stage {
 
         numberOfTablesField.setPromptText("Ex : 16");
         tablesBrandField.setPromptText("Ex : Cornilleau 740");
-
         playingAreaLengthField.setPromptText("Ex : 12");
         playingAreaWidthField.setPromptText("Ex : 6");
 
         ballBrandAndTypeField.setPromptText("Ex : Butterfly R40+ blanche");
+        registrationOpenTimeField.setPromptText("Ex : 2026-05-01T09:00");
         registrationDeadlineField.setPromptText("Ex : 2026-05-10T18:00");
-        checkInDeadlineField.setPromptText("Ex : 2026-05-18T08:30");
-        firstMatchesStartField.setPromptText("Ex : 2026-05-18T09:00");
-        expectedEndTimeField.setPromptText("Ex : 19:30");
+        gymOpenTimeField.setPromptText("Ex : 2026-05-18T07:30");
 
-        playingAreaPresetBox.getItems().setAll(PlayingAreaPreset.values());
-        ballProvisionPolicyBox.getItems().setAll(BallProvisionPolicy.values());
-
-        playingAreaPresetBox.setConverter(new StringConverter<>() {
+        playingAreaChoiceBox.getItems().setAll(PlayingAreaChoice.values());
+        playingAreaChoiceBox.setConverter(new StringConverter<>() {
             @Override
-            public String toString(PlayingAreaPreset value) {
-                if (value == null)
+            public String toString(PlayingAreaChoice value) {
+                if (value == null) {
                     return "";
+                }
                 return switch (value) {
-                    case DEPARTEMENTAL_STANDARD -> "Départemental standard";
-                    case REGIONAL_STANDARD -> "Régional standard";
-                    case NATIONAL_STANDARD -> "National standard";
-                    case INTERNATIONAL_STANDARD -> "International standard";
+                    case STANDARD -> "Standard recommandé";
                     case CUSTOM -> "Personnalisé";
                 };
             }
 
             @Override
-            public PlayingAreaPreset fromString(String string) {
+            public PlayingAreaChoice fromString(String string) {
                 return null;
             }
         });
 
+        ballProvisionPolicyBox.getItems().setAll(BallProvisionPolicy.values());
         ballProvisionPolicyBox.setConverter(new StringConverter<>() {
             @Override
             public String toString(BallProvisionPolicy value) {
-                if (value == null)
-                    return "";
-                return prettyBallProvisionPolicy(value);
+                return value == null ? "" : prettyBallProvisionPolicy(value);
             }
 
             @Override
@@ -257,7 +275,7 @@ public class EditTournamentRegulationDialog extends Stage {
         numberOfTablesField
                 .setText(regulation.numberOfTables() == null ? "" : String.valueOf(regulation.numberOfTables()));
 
-        selectPlayingAreaPreset();
+        selectPlayingAreaChoice();
         tablesBrandField.setText(nvl(regulation.playingAreaInfoText()));
         playingAreaLengthField.setText(regulation.playingAreaLengthMeters() == null ? ""
                 : String.valueOf(regulation.playingAreaLengthMeters()));
@@ -267,18 +285,35 @@ public class EditTournamentRegulationDialog extends Stage {
         selectBallProvisionPolicy();
         ballBrandAndTypeField.setText(nvl(regulation.ballBrandAndType()));
 
+        registrationOpenTimeField.setText(nvl(regulation.registrationOpenTime()));
         registrationDeadlineField.setText(nvl(regulation.registrationDeadline()));
-        checkInDeadlineField.setText(nvl(regulation.checkInDeadline()));
-        firstMatchesStartField.setText(nvl(regulation.firstMatchesStart()));
-        expectedEndTimeField.setText(nvl(regulation.expectedEndTime()));
+        gymOpenTimeField.setText(nvl(regulation.gymOpenTime()));
 
         refreshPlayingAreaHint();
-        applyPlayingAreaPresetDefaults();
+        applyPlayingAreaDefaults();
 
-        playingAreaPresetBox.valueProperty().addListener((obs, oldValue, newValue) -> {
+        organizerContactNameField.textProperty().addListener((obs, o, n) -> refreshSectionBadges());
+        organizerEmailField.textProperty().addListener((obs, o, n) -> refreshSectionBadges());
+        organizerPhoneField.textProperty().addListener((obs, o, n) -> refreshSectionBadges());
+
+        numberOfTablesField.textProperty().addListener((obs, o, n) -> refreshSectionBadges());
+        tablesBrandField.textProperty().addListener((obs, o, n) -> refreshSectionBadges());
+        playingAreaLengthField.textProperty().addListener((obs, o, n) -> refreshSectionBadges());
+        playingAreaWidthField.textProperty().addListener((obs, o, n) -> refreshSectionBadges());
+        playingAreaChoiceBox.valueProperty().addListener((obs, oldValue, newValue) -> {
             refreshPlayingAreaHint();
-            applyPlayingAreaPresetDefaults();
+            applyPlayingAreaDefaults();
+            refreshSectionBadges();
         });
+
+        ballBrandAndTypeField.textProperty().addListener((obs, o, n) -> refreshSectionBadges());
+        ballProvisionPolicyBox.valueProperty().addListener((obs, o, n) -> refreshSectionBadges());
+
+        registrationOpenTimeField.textProperty().addListener((obs, o, n) -> refreshSectionBadges());
+        registrationDeadlineField.textProperty().addListener((obs, o, n) -> refreshSectionBadges());
+        gymOpenTimeField.textProperty().addListener((obs, o, n) -> refreshSectionBadges());
+
+        refreshSectionBadges();
     }
 
     private void configureActions() {
@@ -287,17 +322,25 @@ public class EditTournamentRegulationDialog extends Stage {
 
     private void onSave() {
         try {
-            Integer numberOfTables = parseOptionalInteger(numberOfTablesField.getText(),
+            Integer numberOfTables = parseOptionalInteger(
+                    numberOfTablesField.getText(),
                     "Le nombre de tables est invalide.");
-            Integer playingAreaLength = parseOptionalInteger(playingAreaLengthField.getText(),
+            Integer playingAreaLength = parseOptionalInteger(
+                    playingAreaLengthField.getText(),
                     "La longueur de l'aire de jeu est invalide.");
-            Integer playingAreaWidth = parseOptionalInteger(playingAreaWidthField.getText(),
+            Integer playingAreaWidth = parseOptionalInteger(
+                    playingAreaWidthField.getText(),
                     "La largeur de l'aire de jeu est invalide.");
 
-            validateOptionalDateTime(registrationDeadlineField.getText(), "La date limite d'inscription est invalide.");
-            validateOptionalDateTime(checkInDeadlineField.getText(), "La date/heure de fin de pointage est invalide.");
-            validateOptionalDateTime(firstMatchesStartField.getText(),
-                    "La date/heure de début des premières parties est invalide.");
+            validateOptionalDateTime(
+                    registrationOpenTimeField.getText(),
+                    "La date/heure d'ouverture des inscriptions est invalide.");
+            validateOptionalDateTime(
+                    registrationDeadlineField.getText(),
+                    "La date/heure de fermeture des inscriptions est invalide.");
+            validateOptionalDateTime(
+                    gymOpenTimeField.getText(),
+                    "La date/heure d'ouverture du gymnase est invalide.");
 
             TournamentRegulationDto updated = new TournamentRegulationDto(
                     regulation.tournamentId(),
@@ -313,7 +356,7 @@ public class EditTournamentRegulationDialog extends Stage {
 
                     numberOfTables,
 
-                    playingAreaPresetBox.getValue() == null ? null : playingAreaPresetBox.getValue().name(),
+                    resolveActualPreset().name(),
                     optional(tablesBrandField.getText()),
                     playingAreaLength,
                     playingAreaWidth,
@@ -322,10 +365,9 @@ public class EditTournamentRegulationDialog extends Stage {
                     optional(ballBrandAndTypeField.getText()),
                     ballProvisionPolicyBox.getValue() == null ? null : ballProvisionPolicyBox.getValue().name(),
 
+                    optional(registrationOpenTimeField.getText()),
                     optional(registrationDeadlineField.getText()),
-                    optional(checkInDeadlineField.getText()),
-                    optional(firstMatchesStartField.getText()),
-                    optional(expectedEndTimeField.getText()),
+                    optional(gymOpenTimeField.getText()),
 
                     regulation.createdAt(),
                     regulation.updatedAt());
@@ -341,15 +383,12 @@ public class EditTournamentRegulationDialog extends Stage {
         }
     }
 
-    private void selectPlayingAreaPreset() {
-        if (!isBlank(regulation.playingAreaPreset())) {
-            try {
-                playingAreaPresetBox.setValue(PlayingAreaPreset.valueOf(regulation.playingAreaPreset()));
-                return;
-            } catch (Exception ignored) {
-            }
+    private void selectPlayingAreaChoice() {
+        if ("CUSTOM".equalsIgnoreCase(nvl(regulation.playingAreaPreset()))) {
+            playingAreaChoiceBox.setValue(PlayingAreaChoice.CUSTOM);
+        } else {
+            playingAreaChoiceBox.setValue(PlayingAreaChoice.STANDARD);
         }
-        playingAreaPresetBox.setValue(inferPresetFromTournamentLevel());
     }
 
     private void selectBallProvisionPolicy() {
@@ -363,8 +402,7 @@ public class EditTournamentRegulationDialog extends Stage {
     }
 
     private void refreshPlayingAreaHint() {
-        PlayingAreaPreset preset = playingAreaPresetBox.getValue();
-        String text = switch (preset == null ? inferPresetFromTournamentLevel() : preset) {
+        String text = switch (resolveActualPreset()) {
             case DEPARTEMENTAL_STANDARD ->
                 "Aires de jeu conformes à la réglementation FFTT (configuration départementale).";
             case REGIONAL_STANDARD ->
@@ -374,7 +412,7 @@ public class EditTournamentRegulationDialog extends Stage {
             case INTERNATIONAL_STANDARD ->
                 "Aires de jeu conformes aux standards internationaux (configuration internationale).";
             case CUSTOM ->
-                "Aires de jeu : configuration personnalisée (voir détails).";
+                "Aires de jeu personnalisées : renseignez librement les dimensions.";
         };
 
         AppTheme.applyBody(playingAreaHintLabel);
@@ -382,26 +420,21 @@ public class EditTournamentRegulationDialog extends Stage {
         playingAreaHintLabel.setText(text);
     }
 
-    private void applyPlayingAreaPresetDefaults() {
-        PlayingAreaPreset preset = playingAreaPresetBox.getValue();
-        if (preset == null) {
-            return;
-        }
-
-        boolean custom = preset == PlayingAreaPreset.CUSTOM;
+    private void applyPlayingAreaDefaults() {
+        boolean custom = playingAreaChoiceBox.getValue() == PlayingAreaChoice.CUSTOM;
 
         playingAreaLengthField.setDisable(!custom);
         playingAreaWidthField.setDisable(!custom);
 
         if (!custom) {
-            switch (preset) {
+            switch (inferPresetFromTournamentLevel()) {
                 case DEPARTEMENTAL_STANDARD -> {
                     playingAreaLengthField.setText("10");
                     playingAreaWidthField.setText("5");
                 }
                 case REGIONAL_STANDARD -> {
                     playingAreaLengthField.setText("10");
-                    playingAreaWidthField.setText("5.5");
+                    playingAreaWidthField.setText("5");
                 }
                 case NATIONAL_STANDARD -> {
                     playingAreaLengthField.setText("12");
@@ -412,6 +445,8 @@ public class EditTournamentRegulationDialog extends Stage {
                     playingAreaWidthField.setText("7");
                 }
                 case CUSTOM -> {
+                    playingAreaLengthField.clear();
+                    playingAreaWidthField.clear();
                 }
             }
         } else {
@@ -422,6 +457,12 @@ public class EditTournamentRegulationDialog extends Stage {
                 playingAreaWidthField.clear();
             }
         }
+    }
+
+    private PlayingAreaPreset resolveActualPreset() {
+        return playingAreaChoiceBox.getValue() == PlayingAreaChoice.CUSTOM
+                ? PlayingAreaPreset.CUSTOM
+                : inferPresetFromTournamentLevel();
     }
 
     private PlayingAreaPreset inferPresetFromTournamentLevel() {
@@ -456,7 +497,7 @@ public class EditTournamentRegulationDialog extends Stage {
 
     private boolean isPlayingAreaComplete() {
         return !isBlank(numberOfTablesField.getText())
-                && playingAreaPresetBox.getValue() != null
+                && playingAreaChoiceBox.getValue() != null
                 && !isBlank(playingAreaLengthField.getText())
                 && !isBlank(playingAreaWidthField.getText());
     }
@@ -467,18 +508,25 @@ public class EditTournamentRegulationDialog extends Stage {
     }
 
     private boolean isTimingSectionComplete() {
-        return !isBlank(registrationDeadlineField.getText())
-                && !isBlank(checkInDeadlineField.getText())
-                && !isBlank(firstMatchesStartField.getText())
-                && !isBlank(expectedEndTimeField.getText());
+        return !isBlank(registrationOpenTimeField.getText())
+                && !isBlank(registrationDeadlineField.getText())
+                && !isBlank(gymOpenTimeField.getText());
     }
 
     private String prettyBallProvisionPolicy(BallProvisionPolicy value) {
-        String raw = value.name().toLowerCase().replace('_', ' ');
-        if (raw.isEmpty()) {
-            return "";
-        }
-        return Character.toUpperCase(raw.charAt(0)) + raw.substring(1);
+        String raw = value.name();
+        return switch (raw) {
+            case "CLUB_PROVIDED", "ORGANIZER_PROVIDED", "CLUB" -> "Club fournit";
+            case "PARTICIPANT_PROVIDED", "PLAYER_PROVIDED", "PARTICIPANT" -> "Participant fournit";
+            case "MIXED", "SHARED", "MIXED_CLUB_PARTICIPANT" -> "Mixte club et participant";
+            default -> {
+                String text = raw.toLowerCase().replace('_', ' ');
+                if (text.isEmpty()) {
+                    yield "";
+                }
+                yield Character.toUpperCase(text.charAt(0)) + text.substring(1);
+            }
+        };
     }
 
     private GridPane createFormGrid() {
@@ -515,9 +563,6 @@ public class EditTournamentRegulationDialog extends Stage {
             return null;
         }
         try {
-            if (value.contains(".")) {
-                throw new NumberFormatException();
-            }
             return Integer.parseInt(value);
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException(message);

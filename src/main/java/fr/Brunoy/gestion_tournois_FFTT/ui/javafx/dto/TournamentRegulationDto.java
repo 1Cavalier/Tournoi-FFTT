@@ -4,33 +4,33 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto;
  * DTO UI / persistence pour le bloc règlement d'un tournoi.
  */
 public record TournamentRegulationDto(
-        String tournamentId,
 
-        String organizerContactName,
-        String organizerEmail,
-        String organizerPhone,
+                String tournamentId,
 
-        String venueName,
-        String venueStreet,
-        String venueZip,
-        String venueCity,
+                String organizerContactName,
+                String organizerEmail,
+                String organizerPhone,
 
-        Integer numberOfTables,
+                String venueName,
+                String venueStreet,
+                String venueZip,
+                String venueCity,
 
-        String playingAreaPreset,
-        String playingAreaInfoText,
-        Integer playingAreaLengthMeters,
-        Integer playingAreaWidthMeters,
-        Boolean playingAreaCompliant,
+                Integer numberOfTables,
 
-        String ballBrandAndType,
-        String ballProvisionPolicy,
+                String playingAreaPreset,
+                String playingAreaInfoText,
+                Integer playingAreaLengthMeters,
+                Integer playingAreaWidthMeters,
+                Boolean playingAreaCompliant,
 
-        String registrationDeadline,
-        String checkInDeadline,
-        String firstMatchesStart,
-        String expectedEndTime,
+                String ballBrandAndType,
+                String ballProvisionPolicy,
 
-        String createdAt,
-        String updatedAt) {
+                String registrationOpenTime,
+                String registrationDeadline,
+                String gymOpenTime,
+
+                String createdAt,
+                String updatedAt) {
 }

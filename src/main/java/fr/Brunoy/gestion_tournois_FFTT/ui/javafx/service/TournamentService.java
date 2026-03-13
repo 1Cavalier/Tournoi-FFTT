@@ -21,7 +21,6 @@ public class TournamentService {
     public TournamentService(
             TournamentRepository tournamentRepository,
             TournamentRegulationRepository tournamentRegulationRepository) {
-
         this.tournamentRepository = Objects.requireNonNull(tournamentRepository);
         this.tournamentRegulationRepository = Objects.requireNonNull(tournamentRegulationRepository);
     }
@@ -91,7 +90,6 @@ public class TournamentService {
                 null,
                 null,
 
-                null,
                 null,
                 null,
                 null,
@@ -168,10 +166,9 @@ public class TournamentService {
                 optional(existing.ballBrandAndType()),
                 optional(existing.ballProvisionPolicy()),
 
+                optional(existing.registrationOpenTime()),
                 optional(existing.registrationDeadline()),
-                optional(existing.checkInDeadline()),
-                optional(existing.firstMatchesStart()),
-                optional(existing.expectedEndTime()),
+                optional(existing.gymOpenTime()),
 
                 required(existing.createdAt()),
                 LocalDateTime.now().toString());

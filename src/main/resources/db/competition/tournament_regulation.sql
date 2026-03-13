@@ -29,10 +29,9 @@ CREATE TABLE IF NOT EXISTS tournament_regulation (
   ball_brand_and_type   TEXT,
   ball_provision_policy TEXT,
 
+  registration_open_time TEXT,
   registration_deadline TEXT,
-  check_in_deadline     TEXT,
-  first_matches_start   TEXT,
-  expected_end_time     TEXT,
+  gym_open_time TEXT,
 
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,

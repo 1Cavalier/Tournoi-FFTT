@@ -28,7 +28,7 @@ public class TournamentDashboardCard extends VBox {
     public TournamentDashboardCard(AppRouter nav, TournamentDto tournament, TournamentRegulationDto regulation) {
         this.nav = Objects.requireNonNull(nav, "nav must not be null");
         this.tournament = Objects.requireNonNull(tournament, "tournament must not be null");
-        this.regulation = regulation; // peut être null temporairement si besoin
+        this.regulation = regulation;
         build();
     }
 
@@ -120,12 +120,12 @@ public class TournamentDashboardCard extends VBox {
         AppTheme.applyCardTitle(title);
 
         content.getChildren().addAll(
-                infoRow("État", regulationCompletionLabel()),
-                infoRow("Contact", regulationValue(regulation == null ? null : regulation.organizerEmail())),
-                infoRow("Salle", regulationValue(regulation == null ? null : regulation.venueName())),
-                infoRow("Tables", regulation == null ? null : regulation.numberOfTables()),
-                infoRow("Balles", regulationValue(regulation == null ? null : regulation.ballBrandAndType())),
-                infoRow("Aire de jeu", regulationValue(regulation == null ? null : regulation.playingAreaPreset())));
+                infoRow("Contact", buildContactValue()),
+                infoRow("Nbr table", regulation == null ? null : regulation.numberOfTables()),
+                infoRow("Balle", regulation == null ? null : regulation.ballBrandAndType()),
+                infoRow("Ouverture insc.", regulation == null ? null : regulation.registrationOpenTime()),
+                infoRow("Fermeture insc.", regulation == null ? null : regulation.registrationDeadline()),
+                infoRow("Ouverture gymnase", regulation == null ? null : regulation.gymOpenTime()));
 
         Button edit = new Button("Modifier le règlement");
         AppTheme.styleSecondary(edit);
@@ -222,11 +222,15 @@ public class TournamentDashboardCard extends VBox {
         AppTheme.applyBody(keyLabel);
         keyLabel.setMinWidth(110);
 
-        Label valueLabel = new Label(formatValue(value));
+        String displayValue = formatValue(value);
+
+        Label valueLabel = new Label(displayValue);
         AppTheme.applyBody(valueLabel);
         valueLabel.setWrapText(true);
 
-        if (isMissing(value)) {
+        boolean missing = "information manquante".equalsIgnoreCase(displayValue);
+
+        if (missing) {
             valueLabel.setStyle("-fx-text-fill:#D32F2F; -fx-font-weight: bold;");
         } else {
             valueLabel.setStyle("-fx-text-fill:#2E7D32; -fx-font-weight: bold;");
@@ -250,36 +254,25 @@ public class TournamentDashboardCard extends VBox {
         return "DRAFT".equalsIgnoreCase(nvl(tournament.status()));
     }
 
-    private String regulationCompletionLabel() {
+    private String buildContactValue() {
         if (regulation == null) {
             return "information manquante";
         }
 
-        int filled = 0;
-        int total = 6;
+        String name = optionalDisplay(regulation.organizerContactName());
+        String phone = optionalDisplay(regulation.organizerPhone());
 
-        if (!isBlank(regulation.organizerEmail()))
-            filled++;
-        if (!isBlank(regulation.venueName()))
-            filled++;
-        if (regulation.numberOfTables() != null)
-            filled++;
-        if (!isBlank(regulation.playingAreaPreset()))
-            filled++;
-        if (!isBlank(regulation.ballBrandAndType()))
-            filled++;
-        if (!isBlank(regulation.firstMatchesStart()))
-            filled++;
-
-        if (filled == 0)
-            return "Non renseigné";
-        if (filled == total)
-            return "Complet";
-        return "Partiel";
+        if (name == null && phone == null) {
+            return "information manquante";
+        }
+        if (name != null && phone != null) {
+            return name + " - " + phone;
+        }
+        return name != null ? name : phone;
     }
 
-    private String regulationValue(Object value) {
-        return formatValue(value);
+    private String optionalDisplay(String value) {
+        return isBlank(value) ? null : value.trim();
     }
 
     private String prettyLevel(String value) {
@@ -331,10 +324,6 @@ public class TournamentDashboardCard extends VBox {
             return s.isBlank() ? "information manquante" : s;
         }
         return String.valueOf(value);
-    }
-
-    private boolean isMissing(Object value) {
-        return value == null || (value instanceof String s && s.isBlank());
     }
 
     private boolean isBlank(String value) {

@@ -164,6 +164,12 @@ Le domaine protège lui-même ses règles.
 
 ---
 
+## Création du Reglement
+
+![Création tableau](docs/screenshots/create_reglement.png)
+
+---
+
 ## Création d’un tableau
 
 ![Création tableau](docs/screenshots/create_tableau.png)
