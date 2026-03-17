@@ -5,8 +5,11 @@ import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.PlayingAre
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.TournamentLevel;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentOfficialAssignmentDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRegulationDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -16,6 +19,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
@@ -28,6 +33,7 @@ import javafx.stage.Stage;
 import javafx.util.StringConverter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 
 public class EditTournamentRegulationDialog extends Stage {
@@ -60,12 +66,25 @@ public class EditTournamentRegulationDialog extends Stage {
     private final TextField registrationDeadlineField = new TextField();
     private final TextField gymOpenTimeField = new TextField();
 
+    // -------------------------------------------------------------------------
+    // OFFICIELS UI
+    // -------------------------------------------------------------------------
+
+    private final TextField judgeSearchField = new TextField();
+    private final TextField refereeSearchField = new TextField();
+
+    private final TableView<OfficialSearchRow> judgeTable = new TableView<>();
+    private final TableView<OfficialSearchRow> refereeTable = new TableView<>();
+
+    private final Label officialsRequirementLabel = new Label();
+
     private final Button saveButton = new Button("Enregistrer le règlement");
 
     private Label organizerSectionBadge;
     private Label playingAreaSectionBadge;
     private Label ballSectionBadge;
     private Label timingSectionBadge;
+    private Label officialsSectionBadge;
 
     public EditTournamentRegulationDialog(
             AppRouter nav,
@@ -102,13 +121,15 @@ public class EditTournamentRegulationDialog extends Stage {
         playingAreaSectionBadge = createSectionBadge(false);
         ballSectionBadge = createSectionBadge(false);
         timingSectionBadge = createSectionBadge(false);
+        officialsSectionBadge = createSectionBadge(false);
 
         VBox sections = new VBox(AppTheme.SPACE_MD);
         sections.getChildren().addAll(
                 buildCollapsibleSection("Contact organisateur", buildOrganizerSection(), organizerSectionBadge),
                 buildCollapsibleSection("Aire de jeu et matériel", buildPlayingAreaSection(), playingAreaSectionBadge),
                 buildCollapsibleSection("Balles", buildBallSection(), ballSectionBadge),
-                buildCollapsibleSection("Horaires réglementaires", buildTimingSection(), timingSectionBadge));
+                buildCollapsibleSection("Horaires réglementaires", buildTimingSection(), timingSectionBadge),
+                buildCollapsibleSection("Juge-arbitre et arbitres", buildOfficialsSection(), officialsSectionBadge));
 
         Button cancelButton = new Button("Annuler");
         AppTheme.styleSecondary(cancelButton);
@@ -128,10 +149,10 @@ public class EditTournamentRegulationDialog extends Stage {
         scroll.setFitToWidth(true);
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
 
-        Scene scene = new Scene(scroll, 920, 760);
+        Scene scene = new Scene(scroll, 1040, 820);
         setScene(scene);
-        setMinWidth(760);
-        setMinHeight(540);
+        setMinWidth(840);
+        setMinHeight(620);
     }
 
     private VBox buildOrganizerSection() {
@@ -170,6 +191,93 @@ public class EditTournamentRegulationDialog extends Stage {
         addField(grid, row++, "Fermeture des inscriptions", registrationDeadlineField);
         addField(grid, row++, "Ouverture du gymnase", gymOpenTimeField);
         return new VBox(AppTheme.SPACE_MD, grid);
+    }
+
+    private VBox buildOfficialsSection() {
+        Label introTitle = new Label("Juge-arbitre et arbitres");
+        AppTheme.applyCardTitle(introTitle);
+
+        AppTheme.applyBody(officialsRequirementLabel);
+        officialsRequirementLabel.setWrapText(true);
+        officialsRequirementLabel.setStyle(
+                "-fx-padding: 10 12 10 12;"
+                        + "-fx-background-color: white;"
+                        + "-fx-border-color: #B0BEC5;"
+                        + "-fx-border-radius: 10;"
+                        + "-fx-background-radius: 10;");
+
+        configureOfficialTable(judgeTable, true);
+        configureOfficialTable(refereeTable, false);
+
+        Label judgeTitle = new Label("Juges-arbitres");
+        AppTheme.applyCardTitle(judgeTitle);
+
+        Label refereeTitle = new Label("Arbitres");
+        AppTheme.applyCardTitle(refereeTitle);
+
+        judgeSearchField.setPromptText("Nom, prénom ou licence");
+        refereeSearchField.setPromptText("Nom, prénom ou licence");
+
+        Button judgeSearchButton = new Button("Rechercher");
+        Button refereeSearchButton = new Button("Rechercher");
+        AppTheme.styleSecondary(judgeSearchButton);
+        AppTheme.styleSecondary(refereeSearchButton);
+
+        HBox judgeSearchRow = new HBox(8, judgeSearchField, judgeSearchButton);
+        HBox.setHgrow(judgeSearchField, Priority.ALWAYS);
+
+        HBox refereeSearchRow = new HBox(8, refereeSearchField, refereeSearchButton);
+        HBox.setHgrow(refereeSearchField, Priority.ALWAYS);
+
+        VBox judgeBox = new VBox(
+                10,
+                judgeTitle,
+                judgeSearchRow,
+                judgeTable);
+        VBox.setVgrow(judgeTable, Priority.ALWAYS);
+
+        VBox refereeBox = new VBox(
+                10,
+                refereeTitle,
+                refereeSearchRow,
+                refereeTable);
+        VBox.setVgrow(refereeTable, Priority.ALWAYS);
+
+        HBox tablesRow = new HBox(16, judgeBox, refereeBox);
+        HBox.setHgrow(judgeBox, Priority.ALWAYS);
+        HBox.setHgrow(refereeBox, Priority.ALWAYS);
+
+        judgeBox.setMaxWidth(Double.MAX_VALUE);
+        refereeBox.setMaxWidth(Double.MAX_VALUE);
+
+        judgeTable.setPrefHeight(260);
+        refereeTable.setPrefHeight(260);
+
+        judgeSearchButton.setOnAction(e -> onSearchJudges());
+        refereeSearchButton.setOnAction(e -> onSearchReferees());
+
+        judgeSearchField.setOnAction(e -> onSearchJudges());
+        refereeSearchField.setOnAction(e -> onSearchReferees());
+
+        VBox content = new VBox(14, introTitle, officialsRequirementLabel, tablesRow);
+        return content;
+    }
+
+    private void configureOfficialTable(TableView<OfficialSearchRow> table, boolean judgeMode) {
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
+        table.setPlaceholder(new Label("Aucun résultat pour le moment."));
+
+        TableColumn<OfficialSearchRow, String> lastNameCol = new TableColumn<>("Nom");
+        lastNameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().lastName()));
+
+        TableColumn<OfficialSearchRow, String> firstNameCol = new TableColumn<>("Prénom");
+        firstNameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().firstName()));
+
+        TableColumn<OfficialSearchRow, String> licenseCol = new TableColumn<>("Licence");
+        licenseCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().licenseNumber()));
+
+        TableColumn<OfficialSearchRow, String> gradeCol = new TableColumn<>(judgeMode ? "Grade JA" : "Grade arbitre");
+        gradeCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().grade()));
     }
 
     private VBox buildCollapsibleSection(String titleText, Node content, Label badge) {
@@ -219,6 +327,7 @@ public class EditTournamentRegulationDialog extends Stage {
         updateSectionBadge(playingAreaSectionBadge, isPlayingAreaComplete());
         updateSectionBadge(ballSectionBadge, isBallSectionComplete());
         updateSectionBadge(timingSectionBadge, isTimingSectionComplete());
+        updateSectionBadge(officialsSectionBadge, true); // bloc UI prêt, vraie validation plus tard
     }
 
     private void configureDefaults() {
@@ -279,8 +388,8 @@ public class EditTournamentRegulationDialog extends Stage {
         tablesBrandField.setText(nvl(regulation.playingAreaInfoText()));
         playingAreaLengthField.setText(regulation.playingAreaLengthMeters() == null ? ""
                 : String.valueOf(regulation.playingAreaLengthMeters()));
-        playingAreaWidthField.setText(
-                regulation.playingAreaWidthMeters() == null ? "" : String.valueOf(regulation.playingAreaWidthMeters()));
+        playingAreaWidthField.setText(regulation.playingAreaWidthMeters() == null ? ""
+                : String.valueOf(regulation.playingAreaWidthMeters()));
 
         selectBallProvisionPolicy();
         ballBrandAndTypeField.setText(nvl(regulation.ballBrandAndType()));
@@ -291,6 +400,7 @@ public class EditTournamentRegulationDialog extends Stage {
 
         refreshPlayingAreaHint();
         applyPlayingAreaDefaults();
+        refreshOfficialsRequirementText();
 
         organizerContactNameField.textProperty().addListener((obs, o, n) -> refreshSectionBadges());
         organizerEmailField.textProperty().addListener((obs, o, n) -> refreshSectionBadges());
@@ -369,6 +479,12 @@ public class EditTournamentRegulationDialog extends Stage {
                     optional(registrationDeadlineField.getText()),
                     optional(gymOpenTimeField.getText()),
 
+                    regulation.requiredJudgeGrade(),
+                    regulation.recommendedJudgeCount(),
+                    regulation.recommendedRefereeGrade(),
+                    regulation.recommendedRefereeCount(),
+                    safeAssignedOfficials(),
+
                     regulation.createdAt(),
                     regulation.updatedAt());
 
@@ -381,6 +497,67 @@ public class EditTournamentRegulationDialog extends Stage {
             ex.printStackTrace();
             showError("Erreur", safeMessage(ex));
         }
+    }
+
+    private List<TournamentOfficialAssignmentDto> safeAssignedOfficials() {
+        return regulation.assignedOfficials() == null ? List.of() : regulation.assignedOfficials();
+    }
+
+    private void onSearchJudges() {
+        String query = optional(judgeSearchField.getText());
+
+        // Placeholder UI : sera remplacé plus tard par vraie recherche.
+        if (query == null) {
+            judgeTable.setItems(FXCollections.observableArrayList());
+            return;
+        }
+
+        judgeTable.setItems(FXCollections.observableArrayList(
+                new OfficialSearchRow("DUPONT", "Martin", "123456", "JA3"),
+                new OfficialSearchRow("BERNARD", "Sophie", "654321", "JAN")));
+    }
+
+    private void onSearchReferees() {
+        String query = optional(refereeSearchField.getText());
+
+        // Placeholder UI : sera remplacé plus tard par vraie recherche.
+        if (query == null) {
+            refereeTable.setItems(FXCollections.observableArrayList());
+            return;
+        }
+
+        refereeTable.setItems(FXCollections.observableArrayList(
+                new OfficialSearchRow("MARTIN", "Lucas", "111222", "REGIONAL"),
+                new OfficialSearchRow("ROBERT", "Emma", "333444", "NATIONAL")));
+    }
+
+    private void refreshOfficialsRequirementText() {
+        TournamentLevel level = parseTournamentLevel(tournament.level());
+
+        String text;
+        if (level == null) {
+            text = "Le niveau du tournoi n'est pas reconnu. Les exigences JA / arbitres ne peuvent pas être déterminées automatiquement.";
+        } else {
+            text = switch (level) {
+                case DEPARTEMENTAL ->
+                    "Tournoi départemental : au minimum 1 juge-arbitre JA3. "
+                            + "Aucun arbitre n'est imposé automatiquement, mais il est conseillé de prévoir au moins 2 arbitres pour les demi-finales et finales.";
+                case REGIONAL ->
+                    "Tournoi régional : au minimum 1 juge-arbitre JA3. "
+                            + "Pour l'organisation, il est conseillé de prévoir au moins 2 arbitres régionaux.";
+                case NATIONAL_B ->
+                    "Tournoi national B : au minimum 1 juge-arbitre JA3. "
+                            + "Pour l'organisation, il est conseillé d'avoir un second JA3 ou JAN en appui, ainsi que 2 arbitres régionaux et 1 arbitre national pour la finale.";
+                case NATIONAL_A ->
+                    "Tournoi national A : au minimum 1 juge-arbitre JAN. "
+                            + "Pour l'organisation, il est conseillé d'avoir 1 à 2 JA supplémentaires en appui ainsi qu'au moins 2 arbitres nationaux.";
+                case INTERNATIONAL ->
+                    "Tournoi international : au minimum 1 juge-arbitre JAN. "
+                            + "Pour l'organisation, il est conseillé de prévoir 2 JAN ou JAI et au moins 4 arbitres nationaux.";
+            };
+        }
+
+        officialsRequirementLabel.setText(text);
     }
 
     private void selectPlayingAreaChoice() {
@@ -609,5 +786,12 @@ public class EditTournamentRegulationDialog extends Stage {
         return ex.getMessage() == null || ex.getMessage().isBlank()
                 ? "Impossible d'enregistrer le règlement."
                 : ex.getMessage();
+    }
+
+    private record OfficialSearchRow(
+            String lastName,
+            String firstName,
+            String licenseNumber,
+            String grade) {
     }
 }

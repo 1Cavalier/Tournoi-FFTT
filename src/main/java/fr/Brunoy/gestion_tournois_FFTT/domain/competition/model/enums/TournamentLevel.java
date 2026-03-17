@@ -11,9 +11,8 @@ public enum TournamentLevel {
 
     public JudgeRefereeGrade requiredJudgeRefereeGrade() {
         return switch (this) {
-            case DEPARTEMENTAL, REGIONAL -> JudgeRefereeGrade.JA3;
-            case NATIONAL_B, NATIONAL_A -> JudgeRefereeGrade.JAN;
-            case INTERNATIONAL -> JudgeRefereeGrade.JAI;
+            case DEPARTEMENTAL, REGIONAL, NATIONAL_B -> JudgeRefereeGrade.JA3;
+            case NATIONAL_A, INTERNATIONAL -> JudgeRefereeGrade.JAN;
         };
     }
 }

@@ -2,6 +2,7 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service;
 
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.TournamentStatus;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentOfficialAssignmentDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRegulationDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TournamentRegulationRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TournamentRepository;
@@ -94,6 +95,12 @@ public class TournamentService {
                 null,
                 null,
 
+                null, // requiredJudgeGrade
+                null, // recommendedJudgeCount
+                null, // recommendedRefereeGrade
+                null, // recommendedRefereeCount
+                List.<TournamentOfficialAssignmentDto>of(), // assignedOfficials
+
                 now,
                 now);
 
@@ -170,6 +177,12 @@ public class TournamentService {
                 optional(existing.registrationDeadline()),
                 optional(existing.gymOpenTime()),
 
+                optional(existing.requiredJudgeGrade()),
+                existing.recommendedJudgeCount(),
+                optional(existing.recommendedRefereeGrade()),
+                existing.recommendedRefereeCount(),
+                safeOfficialAssignments(existing.assignedOfficials()),
+
                 required(existing.createdAt()),
                 LocalDateTime.now().toString());
 
@@ -195,6 +208,11 @@ public class TournamentService {
 
     public void delete(String id) {
         tournamentRepository.delete(id);
+    }
+
+    private List<TournamentOfficialAssignmentDto> safeOfficialAssignments(
+            List<TournamentOfficialAssignmentDto> assignments) {
+        return assignments == null ? List.of() : List.copyOf(assignments);
     }
 
     private LocalDate parseRequiredDate(String value, String message) {

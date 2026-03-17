@@ -33,6 +33,12 @@ CREATE TABLE IF NOT EXISTS tournament_regulation (
   registration_deadline TEXT,
   gym_open_time TEXT,
 
+  required_judge_grade        TEXT,
+  recommended_judge_count     INTEGER,
+  recommended_referee_grade   TEXT,
+  recommended_referee_count   INTEGER,
+  assigned_officials_json     TEXT,
+
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
 

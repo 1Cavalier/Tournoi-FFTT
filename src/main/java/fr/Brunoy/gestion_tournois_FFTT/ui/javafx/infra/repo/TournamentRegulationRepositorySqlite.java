@@ -1,11 +1,17 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo;
 
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentOfficialAssignmentDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRegulationDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.db.SqliteDb;
 
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 public class TournamentRegulationRepositorySqlite implements TournamentRegulationRepository {
@@ -28,9 +34,12 @@ public class TournamentRegulationRepositorySqlite implements TournamentRegulatio
                     playing_area_length_meters, playing_area_width_meters, playing_area_compliant,
                     ball_brand_and_type, ball_provision_policy,
                     registration_open_time, registration_deadline, gym_open_time,
+                    required_judge_grade, recommended_judge_count,
+                    recommended_referee_grade, recommended_referee_count,
+                    assigned_officials_json,
                     created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection c = db.openConnection();
@@ -81,8 +90,26 @@ public class TournamentRegulationRepositorySqlite implements TournamentRegulatio
             ps.setString(18, r.registrationDeadline());
             ps.setString(19, r.gymOpenTime());
 
-            ps.setString(20, r.createdAt());
-            ps.setString(21, r.updatedAt());
+            ps.setString(20, r.requiredJudgeGrade());
+
+            if (r.recommendedJudgeCount() != null) {
+                ps.setInt(21, r.recommendedJudgeCount());
+            } else {
+                ps.setObject(21, null);
+            }
+
+            ps.setString(22, r.recommendedRefereeGrade());
+
+            if (r.recommendedRefereeCount() != null) {
+                ps.setInt(23, r.recommendedRefereeCount());
+            } else {
+                ps.setObject(23, null);
+            }
+
+            ps.setString(24, serializeAssignedOfficials(r.assignedOfficials()));
+
+            ps.setString(25, r.createdAt());
+            ps.setString(26, r.updatedAt());
 
             ps.executeUpdate();
             return r;
@@ -136,6 +163,11 @@ public class TournamentRegulationRepositorySqlite implements TournamentRegulatio
                     registration_open_time = ?,
                     registration_deadline = ?,
                     gym_open_time = ?,
+                    required_judge_grade = ?,
+                    recommended_judge_count = ?,
+                    recommended_referee_grade = ?,
+                    recommended_referee_count = ?,
+                    assigned_officials_json = ?,
                     updated_at = ?
                 WHERE tournament_id = ?
                 """;
@@ -186,8 +218,26 @@ public class TournamentRegulationRepositorySqlite implements TournamentRegulatio
             ps.setString(17, r.registrationDeadline());
             ps.setString(18, r.gymOpenTime());
 
-            ps.setString(19, r.updatedAt());
-            ps.setString(20, r.tournamentId());
+            ps.setString(19, r.requiredJudgeGrade());
+
+            if (r.recommendedJudgeCount() != null) {
+                ps.setInt(20, r.recommendedJudgeCount());
+            } else {
+                ps.setObject(20, null);
+            }
+
+            ps.setString(21, r.recommendedRefereeGrade());
+
+            if (r.recommendedRefereeCount() != null) {
+                ps.setInt(22, r.recommendedRefereeCount());
+            } else {
+                ps.setObject(22, null);
+            }
+
+            ps.setString(23, serializeAssignedOfficials(r.assignedOfficials()));
+
+            ps.setString(24, r.updatedAt());
+            ps.setString(25, r.tournamentId());
 
             int updated = ps.executeUpdate();
             if (updated == 0) {
@@ -233,6 +283,14 @@ public class TournamentRegulationRepositorySqlite implements TournamentRegulatio
             playingAreaCompliant = rs.getInt("playing_area_compliant") == 1;
         }
 
+        Integer recommendedJudgeCount = rs.getObject("recommended_judge_count") == null
+                ? null
+                : rs.getInt("recommended_judge_count");
+
+        Integer recommendedRefereeCount = rs.getObject("recommended_referee_count") == null
+                ? null
+                : rs.getInt("recommended_referee_count");
+
         return new TournamentRegulationDto(
                 rs.getString("tournament_id"),
 
@@ -260,7 +318,92 @@ public class TournamentRegulationRepositorySqlite implements TournamentRegulatio
                 rs.getString("registration_deadline"),
                 rs.getString("gym_open_time"),
 
+                rs.getString("required_judge_grade"),
+                recommendedJudgeCount,
+                rs.getString("recommended_referee_grade"),
+                recommendedRefereeCount,
+                deserializeAssignedOfficials(rs.getString("assigned_officials_json")),
+
                 rs.getString("created_at"),
                 rs.getString("updated_at"));
+    }
+
+    private String serializeAssignedOfficials(List<TournamentOfficialAssignmentDto> officials) {
+        if (officials == null || officials.isEmpty()) {
+            return null;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (TournamentOfficialAssignmentDto o : officials) {
+            if (sb.length() > 0) {
+                sb.append("\n");
+            }
+
+            sb.append(enc(o.playerLicenseNumber())).append("|")
+                    .append(enc(o.firstName())).append("|")
+                    .append(enc(o.lastName())).append("|")
+                    .append(enc(o.clubName())).append("|")
+                    .append(enc(o.officialRoleType())).append("|")
+                    .append(enc(o.judgeGrade())).append("|")
+                    .append(enc(o.refereeGrade())).append("|")
+                    .append(enc(boolToString(o.designatedMainJudge()))).append("|")
+                    .append(enc(boolToString(o.assistantJudge()))).append("|")
+                    .append(enc(boolToString(o.activeForFinalsOnly())));
+        }
+        return sb.toString();
+    }
+
+    private List<TournamentOfficialAssignmentDto> deserializeAssignedOfficials(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+
+        List<TournamentOfficialAssignmentDto> result = new ArrayList<>();
+        String[] lines = raw.split("\\R");
+
+        for (String line : lines) {
+            if (line == null || line.isBlank()) {
+                continue;
+            }
+
+            String[] parts = line.split("\\|", -1);
+            if (parts.length < 10) {
+                continue;
+            }
+
+            result.add(new TournamentOfficialAssignmentDto(
+                    dec(parts[0]),
+                    dec(parts[1]),
+                    dec(parts[2]),
+                    dec(parts[3]),
+                    dec(parts[4]),
+                    dec(parts[5]),
+                    dec(parts[6]),
+                    parseBoolean(dec(parts[7])),
+                    parseBoolean(dec(parts[8])),
+                    parseBoolean(dec(parts[9]))));
+        }
+
+        return List.copyOf(result);
+    }
+
+    private String enc(String value) {
+        return URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8);
+    }
+
+    private String dec(String value) {
+        String decoded = URLDecoder.decode(value == null ? "" : value, StandardCharsets.UTF_8);
+        return decoded.isEmpty() ? null : decoded;
+    }
+
+    private String boolToString(Boolean value) {
+        return value == null ? "" : value.toString();
+    }
+
+    private Boolean parseBoolean(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return Boolean.parseBoolean(value);
     }
 }
