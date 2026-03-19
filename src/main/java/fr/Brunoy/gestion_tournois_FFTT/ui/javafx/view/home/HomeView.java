@@ -18,6 +18,8 @@ import java.util.Objects;
 public class HomeView extends BorderPane {
 
     private static final double CARD_WIDTH = 420;
+    private static final double CARDS_CONTAINER_MAX_WIDTH = 920;
+    private static final double HERO_MAX_WIDTH = 760;
 
     private final AppRouter nav;
 
@@ -28,25 +30,19 @@ public class HomeView extends BorderPane {
         setPadding(new Insets(AppTheme.PADDING_PAGE));
 
         setTop(buildTopBar());
-        setCenter(buildCenterContent());
+        setCenter(buildCenterWrapper());
     }
 
     private HBox buildTopBar() {
         HBox topBar = new HBox(12);
         topBar.setAlignment(Pos.CENTER_LEFT);
+        topBar.setPadding(new Insets(0, 0, AppTheme.SPACE_LG, 0));
 
         ImageView logo = AppTheme.logoView(44);
         if (logo != null) {
             topBar.getChildren().add(logo);
         } else {
-            Label fallback = new Label("PM");
-            fallback.setStyle(
-                    "-fx-background-color: " + AppTheme.COLOR_PRIMARY + ";" +
-                            "-fx-text-fill: white;" +
-                            "-fx-font-weight: 900;" +
-                            "-fx-padding: 10 12;" +
-                            "-fx-background-radius: 10;");
-            topBar.getChildren().add(fallback);
+            topBar.getChildren().add(buildLogoFallback());
         }
 
         Label appName = new Label("PingManager");
@@ -56,33 +52,46 @@ public class HomeView extends BorderPane {
         return topBar;
     }
 
+    /**
+     * Wrapper central pour garantir un vrai centrage vertical et horizontal.
+     */
+    private BorderPane buildCenterWrapper() {
+        BorderPane wrapper = new BorderPane();
+        wrapper.setCenter(buildCenterContent());
+        return wrapper;
+    }
+
     private VBox buildCenterContent() {
         VBox center = new VBox(AppTheme.SPACE_LG);
         center.setAlignment(Pos.CENTER);
+        center.setFillWidth(false);
         center.setPadding(new Insets(10, 0, 10, 0));
 
-        VBox hero = buildHeroSection();
-        HBox cards = buildCardsSection();
+        center.getChildren().addAll(
+                buildHeroSection(),
+                buildCardsSection());
 
-        center.getChildren().addAll(hero, cards);
         return center;
     }
 
     private VBox buildHeroSection() {
         VBox hero = new VBox(AppTheme.SPACE_SM);
         hero.setAlignment(Pos.CENTER);
-        hero.setMaxWidth(760);
+        hero.setMaxWidth(HERO_MAX_WIDTH);
 
         Label title = new Label("Bienvenue sur PingManager");
         AppTheme.applyTitle(title);
+        title.setAlignment(Pos.CENTER);
 
         Label subtitle = new Label(
                 "La solution desktop pour préparer, organiser et suivre vos tournois de tennis de table.");
         AppTheme.applySubtitle(subtitle);
+        subtitle.setAlignment(Pos.CENTER);
 
         Label hint = new Label(
                 "Choisissez votre espace pour accéder aux fonctionnalités adaptées à votre profil.");
         AppTheme.applyBody(hint);
+        hint.setAlignment(Pos.CENTER);
 
         hero.getChildren().addAll(title, subtitle, hint);
         return hero;
@@ -91,16 +100,13 @@ public class HomeView extends BorderPane {
     private HBox buildCardsSection() {
         HBox cards = new HBox(18);
         cards.setAlignment(Pos.CENTER);
-        cards.setMaxWidth(920);
+        cards.setMaxWidth(CARDS_CONTAINER_MAX_WIDTH);
 
         VBox organizerCard = buildOrganizerCard();
         VBox playerCard = buildPlayerCard();
 
-        organizerCard.setPrefWidth(CARD_WIDTH);
-        organizerCard.setMaxWidth(CARD_WIDTH);
-
-        playerCard.setPrefWidth(CARD_WIDTH);
-        playerCard.setMaxWidth(CARD_WIDTH);
+        configureCardWidth(organizerCard);
+        configureCardWidth(playerCard);
 
         cards.getChildren().addAll(organizerCard, playerCard);
         return cards;
@@ -119,8 +125,13 @@ public class HomeView extends BorderPane {
         AppTheme.stylePrimary(button);
         button.setOnAction(e -> nav.showOrganizerLogin());
 
-        VBox card = AppTheme.card(title, description, spacer(), button);
-        VBox.setVgrow(card, Priority.ALWAYS);
+        VBox card = AppTheme.card(
+                title,
+                description,
+                verticalSpacer(),
+                button);
+        card.setFillWidth(true);
+
         return card;
     }
 
@@ -137,12 +148,35 @@ public class HomeView extends BorderPane {
         AppTheme.styleSecondary(button);
         button.setDisable(true);
 
-        VBox card = AppTheme.card(title, description, spacer(), button);
-        VBox.setVgrow(card, Priority.ALWAYS);
+        VBox card = AppTheme.card(
+                title,
+                description,
+                verticalSpacer(),
+                button);
+        card.setFillWidth(true);
+
         return card;
     }
 
-    private Region spacer() {
+    private Label buildLogoFallback() {
+        Label fallback = new Label("PM");
+        fallback.setStyle(
+                "-fx-background-color: " + AppTheme.COLOR_PRIMARY + ";" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: 900;" +
+                        "-fx-padding: 10 12;" +
+                        "-fx-background-radius: 10;");
+        return fallback;
+    }
+
+    private void configureCardWidth(VBox card) {
+        card.setPrefWidth(CARD_WIDTH);
+        card.setMinWidth(CARD_WIDTH);
+        card.setMaxWidth(CARD_WIDTH);
+        VBox.setVgrow(card, Priority.ALWAYS);
+    }
+
+    private Region verticalSpacer() {
         Region region = new Region();
         VBox.setVgrow(region, Priority.ALWAYS);
         return region;

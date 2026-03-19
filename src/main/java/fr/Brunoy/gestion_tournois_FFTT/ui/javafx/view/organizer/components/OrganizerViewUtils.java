@@ -6,16 +6,11 @@ public final class OrganizerViewUtils {
     }
 
     public static String nvl(String value) {
-        return value == null || value.isBlank() ? "—" : value;
+        return isBlank(value) ? "—" : value.trim();
     }
 
     public static String safe(String value) {
-        if (value == null) {
-            return "";
-        }
-
-        String v = value.trim();
-        return v.isEmpty() ? "" : v;
+        return isBlank(value) ? "" : value.trim();
     }
 
     public static String fullNameOrDash(String firstName, String lastName) {
@@ -33,5 +28,9 @@ public final class OrganizerViewUtils {
         }
 
         return first + " " + last;
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }

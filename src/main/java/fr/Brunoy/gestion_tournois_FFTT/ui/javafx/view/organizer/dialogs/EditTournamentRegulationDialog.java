@@ -66,10 +66,6 @@ public class EditTournamentRegulationDialog extends Stage {
     private final TextField registrationDeadlineField = new TextField();
     private final TextField gymOpenTimeField = new TextField();
 
-    // -------------------------------------------------------------------------
-    // OFFICIELS UI
-    // -------------------------------------------------------------------------
-
     private final TextField judgeSearchField = new TextField();
     private final TextField refereeSearchField = new TextField();
 
@@ -77,7 +73,6 @@ public class EditTournamentRegulationDialog extends Stage {
     private final TableView<OfficialSearchRow> refereeTable = new TableView<>();
 
     private final Label officialsRequirementLabel = new Label();
-
     private final Button saveButton = new Button("Enregistrer le règlement");
 
     private Label organizerSectionBadge;
@@ -96,6 +91,7 @@ public class EditTournamentRegulationDialog extends Stage {
         this.regulation = Objects.requireNonNull(regulation, "regulation must not be null");
 
         initModality(Modality.APPLICATION_MODAL);
+        initOwner(nav.primaryStage());
         setTitle("Modifier le règlement");
 
         build();
@@ -149,10 +145,8 @@ public class EditTournamentRegulationDialog extends Stage {
         scroll.setFitToWidth(true);
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
 
-        Scene scene = new Scene(scroll, 1040, 820);
-        setScene(scene);
-        setMinWidth(840);
-        setMinHeight(620);
+        setScene(new Scene(scroll));
+        AppTheme.applyLargeDialogWindow(this);
     }
 
     private VBox buildOrganizerSection() {
@@ -229,18 +223,10 @@ public class EditTournamentRegulationDialog extends Stage {
         HBox refereeSearchRow = new HBox(8, refereeSearchField, refereeSearchButton);
         HBox.setHgrow(refereeSearchField, Priority.ALWAYS);
 
-        VBox judgeBox = new VBox(
-                10,
-                judgeTitle,
-                judgeSearchRow,
-                judgeTable);
-        VBox.setVgrow(judgeTable, Priority.ALWAYS);
+        VBox judgeBox = new VBox(10, judgeTitle, judgeSearchRow, judgeTable);
+        VBox refereeBox = new VBox(10, refereeTitle, refereeSearchRow, refereeTable);
 
-        VBox refereeBox = new VBox(
-                10,
-                refereeTitle,
-                refereeSearchRow,
-                refereeTable);
+        VBox.setVgrow(judgeTable, Priority.ALWAYS);
         VBox.setVgrow(refereeTable, Priority.ALWAYS);
 
         HBox tablesRow = new HBox(16, judgeBox, refereeBox);
@@ -259,8 +245,7 @@ public class EditTournamentRegulationDialog extends Stage {
         judgeSearchField.setOnAction(e -> onSearchJudges());
         refereeSearchField.setOnAction(e -> onSearchReferees());
 
-        VBox content = new VBox(14, introTitle, officialsRequirementLabel, tablesRow);
-        return content;
+        return new VBox(14, introTitle, officialsRequirementLabel, tablesRow);
     }
 
     private void configureOfficialTable(TableView<OfficialSearchRow> table, boolean judgeMode) {
@@ -278,6 +263,8 @@ public class EditTournamentRegulationDialog extends Stage {
 
         TableColumn<OfficialSearchRow, String> gradeCol = new TableColumn<>(judgeMode ? "Grade JA" : "Grade arbitre");
         gradeCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().grade()));
+
+        table.getColumns().setAll(lastNameCol, firstNameCol, licenseCol, gradeCol);
     }
 
     private VBox buildCollapsibleSection(String titleText, Node content, Label badge) {
@@ -327,7 +314,7 @@ public class EditTournamentRegulationDialog extends Stage {
         updateSectionBadge(playingAreaSectionBadge, isPlayingAreaComplete());
         updateSectionBadge(ballSectionBadge, isBallSectionComplete());
         updateSectionBadge(timingSectionBadge, isTimingSectionComplete());
-        updateSectionBadge(officialsSectionBadge, true); // bloc UI prêt, vraie validation plus tard
+        updateSectionBadge(officialsSectionBadge, true);
     }
 
     private void configureDefaults() {
@@ -381,15 +368,16 @@ public class EditTournamentRegulationDialog extends Stage {
         organizerEmailField.setText(nvl(regulation.organizerEmail()));
         organizerPhoneField.setText(nvl(regulation.organizerPhone()));
 
-        numberOfTablesField
-                .setText(regulation.numberOfTables() == null ? "" : String.valueOf(regulation.numberOfTables()));
+        numberOfTablesField.setText(
+                regulation.numberOfTables() == null ? "" : String.valueOf(regulation.numberOfTables()));
 
         selectPlayingAreaChoice();
         tablesBrandField.setText(nvl(regulation.playingAreaInfoText()));
-        playingAreaLengthField.setText(regulation.playingAreaLengthMeters() == null ? ""
-                : String.valueOf(regulation.playingAreaLengthMeters()));
-        playingAreaWidthField.setText(regulation.playingAreaWidthMeters() == null ? ""
-                : String.valueOf(regulation.playingAreaWidthMeters()));
+        playingAreaLengthField.setText(
+                regulation.playingAreaLengthMeters() == null ? ""
+                        : String.valueOf(regulation.playingAreaLengthMeters()));
+        playingAreaWidthField.setText(
+                regulation.playingAreaWidthMeters() == null ? "" : String.valueOf(regulation.playingAreaWidthMeters()));
 
         selectBallProvisionPolicy();
         ballBrandAndTypeField.setText(nvl(regulation.ballBrandAndType()));
@@ -410,6 +398,7 @@ public class EditTournamentRegulationDialog extends Stage {
         tablesBrandField.textProperty().addListener((obs, o, n) -> refreshSectionBadges());
         playingAreaLengthField.textProperty().addListener((obs, o, n) -> refreshSectionBadges());
         playingAreaWidthField.textProperty().addListener((obs, o, n) -> refreshSectionBadges());
+
         playingAreaChoiceBox.valueProperty().addListener((obs, oldValue, newValue) -> {
             refreshPlayingAreaHint();
             applyPlayingAreaDefaults();
@@ -506,7 +495,6 @@ public class EditTournamentRegulationDialog extends Stage {
     private void onSearchJudges() {
         String query = optional(judgeSearchField.getText());
 
-        // Placeholder UI : sera remplacé plus tard par vraie recherche.
         if (query == null) {
             judgeTable.setItems(FXCollections.observableArrayList());
             return;
@@ -520,7 +508,6 @@ public class EditTournamentRegulationDialog extends Stage {
     private void onSearchReferees() {
         String query = optional(refereeSearchField.getText());
 
-        // Placeholder UI : sera remplacé plus tard par vraie recherche.
         if (query == null) {
             refereeTable.setItems(FXCollections.observableArrayList());
             return;
@@ -605,11 +592,7 @@ public class EditTournamentRegulationDialog extends Stage {
 
         if (!custom) {
             switch (inferPresetFromTournamentLevel()) {
-                case DEPARTEMENTAL_STANDARD -> {
-                    playingAreaLengthField.setText("10");
-                    playingAreaWidthField.setText("5");
-                }
-                case REGIONAL_STANDARD -> {
+                case DEPARTEMENTAL_STANDARD, REGIONAL_STANDARD -> {
                     playingAreaLengthField.setText("10");
                     playingAreaWidthField.setText("5");
                 }
@@ -776,6 +759,7 @@ public class EditTournamentRegulationDialog extends Stage {
 
     private void showError(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.initOwner(nav.primaryStage());
         alert.setTitle(title);
         alert.setHeaderText(title);
         alert.setContentText(message == null || message.isBlank() ? "Erreur inconnue." : message);

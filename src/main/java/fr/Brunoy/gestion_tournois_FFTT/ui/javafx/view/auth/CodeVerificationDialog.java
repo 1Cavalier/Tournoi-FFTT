@@ -1,5 +1,6 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.auth;
 
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -12,6 +13,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 
 import java.util.Objects;
 import java.util.function.Function;
@@ -26,35 +28,34 @@ import java.util.function.Function;
 public class CodeVerificationDialog extends Stage {
 
     private static final String ERROR_STYLE = "-fx-text-fill: #b00020; -fx-font-weight: 700;";
-    private static final double WIDTH = 420;
-    private static final double HEIGHT = 220;
     private static final int CODE_LENGTH = 6;
 
     private boolean success;
 
     public CodeVerificationDialog(
+            Window owner,
             String title,
             String infoText,
             Function<String, Boolean> verifyAction) {
 
-        Objects.requireNonNull(title, "title must not be null");
         Objects.requireNonNull(infoText, "infoText must not be null");
         Objects.requireNonNull(verifyAction, "verifyAction must not be null");
 
-        setTitle(title);
+        if (owner != null) {
+            initOwner(owner);
+        }
+
+        setTitle(Objects.requireNonNull(title, "title must not be null"));
         initModality(Modality.APPLICATION_MODAL);
-        setResizable(false);
 
         Label infoLabel = new Label(infoText);
         infoLabel.setWrapText(true);
 
         TextField codeField = new TextField();
         codeField.setPromptText("Code à 6 chiffres");
+        codeField.setMaxWidth(Double.MAX_VALUE);
         codeField.textProperty().addListener((obs, oldValue, newValue) -> {
-            String digitsOnly = newValue == null ? "" : newValue.replaceAll("\\D", "");
-            if (digitsOnly.length() > CODE_LENGTH) {
-                digitsOnly = digitsOnly.substring(0, CODE_LENGTH);
-            }
+            String digitsOnly = sanitizeCode(newValue);
             if (!digitsOnly.equals(newValue)) {
                 codeField.setText(digitsOnly);
             }
@@ -63,14 +64,15 @@ public class CodeVerificationDialog extends Stage {
         Label messageLabel = new Label();
         messageLabel.setStyle(ERROR_STYLE);
         messageLabel.setWrapText(true);
-        messageLabel.setManaged(false);
-        messageLabel.setVisible(false);
+        hideMessage(messageLabel);
 
         Button verifyButton = new Button("Valider");
+        AppTheme.stylePrimary(verifyButton);
         verifyButton.setDefaultButton(true);
         verifyButton.setOnAction(e -> runVerification(codeField, messageLabel, verifyAction));
 
         Button cancelButton = new Button("Annuler");
+        AppTheme.styleSecondary(cancelButton);
         cancelButton.setCancelButton(true);
         cancelButton.setOnAction(e -> close());
 
@@ -79,13 +81,16 @@ public class CodeVerificationDialog extends Stage {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        HBox buttons = new HBox(10, spacer, cancelButton, verifyButton);
+        HBox buttons = new HBox(AppTheme.SPACE_SM, spacer, cancelButton, verifyButton);
         buttons.setAlignment(Pos.CENTER_RIGHT);
 
-        VBox root = new VBox(12, infoLabel, codeField, messageLabel, buttons);
+        VBox root = new VBox(AppTheme.SPACE_MD, infoLabel, codeField, messageLabel, buttons);
         root.setPadding(new Insets(18));
+        AppTheme.applyPage(root);
 
-        setScene(new Scene(root, WIDTH, HEIGHT));
+        setScene(new Scene(root));
+        AppTheme.applySmallDialogWindow(this);
+
         setOnShown(e -> codeField.requestFocus());
     }
 
@@ -100,7 +105,7 @@ public class CodeVerificationDialog extends Stage {
 
         hideMessage(messageLabel);
 
-        String code = codeField.getText() == null ? "" : codeField.getText().trim();
+        String code = sanitizeCode(codeField.getText());
 
         if (code.isEmpty()) {
             showError(messageLabel, "Saisis le code reçu par email.");
@@ -112,29 +117,33 @@ public class CodeVerificationDialog extends Stage {
             return;
         }
 
-        boolean verified;
         try {
-            verified = verifyAction.apply(code);
-        } catch (Exception ex) {
-            verified = false;
-        }
-
-        if (verified) {
-            success = true;
-            close();
-            return;
+            if (Boolean.TRUE.equals(verifyAction.apply(code))) {
+                success = true;
+                close();
+                return;
+            }
+        } catch (Exception ignored) {
+            // Le message affiché reste volontairement générique
         }
 
         showError(messageLabel, "Code invalide ou expiré.");
     }
 
-    private void showError(Label messageLabel, String text) {
+    private static String sanitizeCode(String raw) {
+        String digitsOnly = raw == null ? "" : raw.replaceAll("\\D", "");
+        return digitsOnly.length() > CODE_LENGTH
+                ? digitsOnly.substring(0, CODE_LENGTH)
+                : digitsOnly;
+    }
+
+    private static void showError(Label messageLabel, String text) {
         messageLabel.setText(text);
         messageLabel.setManaged(true);
         messageLabel.setVisible(true);
     }
 
-    private void hideMessage(Label messageLabel) {
+    private static void hideMessage(Label messageLabel) {
         messageLabel.setText("");
         messageLabel.setManaged(false);
         messageLabel.setVisible(false);

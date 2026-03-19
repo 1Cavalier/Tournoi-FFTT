@@ -3,11 +3,12 @@ package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRegulationDto;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubAccessRepository;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TournamentRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service.OrganizerAuthService;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service.TournamentService;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.auth.OrganizerLoginView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.auth.OrganizerRegisterView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.home.HomeView;
@@ -15,23 +16,20 @@ import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs.CreateTo
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs.EditTournamentRegulationDialog;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs.OrganizerProfileDialog;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.pages.OrganizerDashboardView;
-
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.stage.Stage;
 
 import java.util.Objects;
 
 /**
  * Router central de navigation JavaFX.
+ *
+ * Le Stage principal est conservé tout au long de l'application.
+ * Les tailles de fenêtre sont gérées par AppTheme.
  */
 public final class AppRouter {
-
-    private static final double DEFAULT_WIDTH = 900;
-    private static final double DEFAULT_HEIGHT = 600;
-
-    private static final double DASHBOARD_WIDTH = 1200;
-    private static final double DASHBOARD_HEIGHT = 700;
 
     private final Stage stage;
     private final ApplicationContext ctx;
@@ -97,37 +95,28 @@ public final class AppRouter {
     // -------------------------------------------------------------------------
 
     public void showHome() {
-        setScene(
+        setMainScene(
                 new HomeView(this),
-                DEFAULT_WIDTH,
-                DEFAULT_HEIGHT,
                 "PingManager — Accueil");
     }
 
     public void showOrganizerLogin() {
-        setScene(
+        setMainScene(
                 new OrganizerLoginView(this),
-                DEFAULT_WIDTH,
-                DEFAULT_HEIGHT,
                 "PingManager — Connexion organisateur");
     }
 
     public void showOrganizerRegister() {
-        setScene(
+        setMainScene(
                 new OrganizerRegisterView(this),
-                DEFAULT_WIDTH,
-                DEFAULT_HEIGHT,
                 "PingManager — Inscription organisateur");
     }
 
     public void showOrganizerDashboard() {
-
         requireOrganizer();
 
-        setScene(
+        setMainScene(
                 new OrganizerDashboardView(this),
-                DASHBOARD_WIDTH,
-                DASHBOARD_HEIGHT,
                 "PingManager — Tableau de bord organisateur");
     }
 
@@ -136,7 +125,6 @@ public final class AppRouter {
     // -------------------------------------------------------------------------
 
     public void showOrganizerProfileDialog() {
-
         requireOrganizer();
 
         OrganizerProfileDialog dialog = new OrganizerProfileDialog(this);
@@ -146,7 +134,6 @@ public final class AppRouter {
     }
 
     public void showCreateTournamentDialog() {
-
         requireOrganizer();
 
         CreateTournamentDialog dialog = new CreateTournamentDialog(this);
@@ -155,8 +142,7 @@ public final class AppRouter {
         showOrganizerDashboard();
     }
 
-    public void showEditTournamentGeneralDialog(
-            fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto tournament) {
+    public void showEditTournamentGeneralDialog(TournamentDto tournament) {
         requireOrganizer();
 
         CreateTournamentDialog dialog = new CreateTournamentDialog(this, tournament);
@@ -166,7 +152,6 @@ public final class AppRouter {
     }
 
     public void showEditTournamentRegulationDialog(TournamentDto tournament) {
-
         requireOrganizer();
 
         TournamentRegulationDto regulation = tournamentService().getRegulation(tournament.id());
@@ -182,24 +167,36 @@ public final class AppRouter {
     // HELPERS UI
     // -------------------------------------------------------------------------
 
+    public Stage primaryStage() {
+        return stage;
+    }
+
     public void showInfo(String title, String message) {
-
-        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
-                javafx.scene.control.Alert.AlertType.INFORMATION);
-
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.initOwner(stage);
         alert.setTitle(title);
         alert.setHeaderText(title);
         alert.setContentText(message);
-
         alert.showAndWait();
     }
 
-    private void setScene(Parent root, double width, double height, String title) {
+    private void setMainScene(Parent root, String title) {
+        Objects.requireNonNull(root, "root");
+        Objects.requireNonNull(title, "title");
 
-        Scene scene = new Scene(root, width, height);
+        Scene currentScene = stage.getScene();
+        Scene newScene;
 
-        stage.setScene(scene);
+        if (currentScene == null) {
+            newScene = new Scene(root);
+        } else {
+            newScene = new Scene(root, currentScene.getWidth(), currentScene.getHeight());
+        }
+
+        stage.setScene(newScene);
         stage.setTitle(title);
+
+        AppTheme.applyMainWindow(stage);
         stage.show();
     }
 }

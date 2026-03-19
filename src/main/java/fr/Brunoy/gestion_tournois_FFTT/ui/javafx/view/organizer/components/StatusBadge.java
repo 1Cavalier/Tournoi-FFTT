@@ -4,15 +4,15 @@ import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.Tournament
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import javafx.scene.control.Label;
 
-public class StatusBadge extends Label {
+public final class StatusBadge extends Label {
 
     public StatusBadge(String status) {
         this(parse(status));
     }
 
     public StatusBadge(TournamentStatus status) {
-        super(label(status));
-        setStyle(AppTheme.badgeStyle(color(status)));
+        super(label(normalize(status)));
+        setStyle(AppTheme.badgeStyle(color(normalize(status))));
     }
 
     private static TournamentStatus parse(String status) {
@@ -27,14 +27,16 @@ public class StatusBadge extends Label {
         }
     }
 
+    private static TournamentStatus normalize(TournamentStatus status) {
+        return status == null ? TournamentStatus.DRAFT : status;
+    }
+
     private static String label(TournamentStatus status) {
-        return (status == null ? TournamentStatus.DRAFT : status).name();
+        return status.name();
     }
 
     private static String color(TournamentStatus status) {
-        TournamentStatus s = status == null ? TournamentStatus.DRAFT : status;
-
-        return switch (s) {
+        return switch (status) {
             case DRAFT -> "#64748B";
             case OPEN -> AppTheme.COLOR_PRIMARY;
             case RUNNING -> "#16A34A";

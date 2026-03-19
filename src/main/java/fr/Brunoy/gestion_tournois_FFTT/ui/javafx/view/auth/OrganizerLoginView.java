@@ -35,11 +35,12 @@ public class OrganizerLoginView extends BorderPane {
         VBox root = new VBox(AppTheme.SPACE_LG);
         root.setAlignment(Pos.TOP_CENTER);
 
-        VBox header = buildHeader();
-        VBox card = buildLoginCard();
-        HBox bottomActions = buildBottomActions();
+        root.getChildren().addAll(
+                buildHeader(),
+                buildLoginCard(),
+                buildBottomActions()
+        );
 
-        root.getChildren().addAll(header, card, bottomActions);
         setCenter(root);
     }
 
@@ -68,10 +69,7 @@ public class OrganizerLoginView extends BorderPane {
         passwordField.setPromptText("Mot de passe");
         passwordField.setMaxWidth(Double.MAX_VALUE);
 
-        messageLabel.setManaged(false);
-        messageLabel.setVisible(false);
-        messageLabel.setWrapText(true);
-        messageLabel.setStyle(ERROR_STYLE);
+        initMessageLabel();
 
         Button loginButton = new Button("Se connecter");
         AppTheme.stylePrimary(loginButton);
@@ -86,9 +84,8 @@ public class OrganizerLoginView extends BorderPane {
         linksRow.setAlignment(Pos.CENTER_LEFT);
 
         loginButton.setOnAction(e -> doLogin(emailField, passwordField));
-        passwordField.setOnAction(e -> doLogin(emailField, passwordField));
         emailField.setOnAction(e -> doLogin(emailField, passwordField));
-
+        passwordField.setOnAction(e -> doLogin(emailField, passwordField));
         forgotPasswordButton.setOnAction(e -> handleForgotPassword(emailField));
 
         VBox card = AppTheme.card(
@@ -97,7 +94,8 @@ public class OrganizerLoginView extends BorderPane {
                 passwordField,
                 linksRow,
                 loginButton,
-                messageLabel);
+                messageLabel
+        );
         card.setMaxWidth(520);
 
         emailField.requestFocus();
@@ -130,7 +128,7 @@ public class OrganizerLoginView extends BorderPane {
 
         try {
             String email = normalizeEmail(emailField.getText());
-            String password = passwordField.getText();
+            String password = safeText(passwordField.getText());
 
             requireNotBlank(email, "Email obligatoire.");
             requireNotBlank(password, "Mot de passe obligatoire.");
@@ -158,6 +156,7 @@ public class OrganizerLoginView extends BorderPane {
         AtomicReference<OrganizerDto> organizerRef = new AtomicReference<>();
 
         CodeVerificationDialog dialog = new CodeVerificationDialog(
+                nav.primaryStage(),
                 "Code de connexion",
                 "Un code de connexion a été envoyé à : " + email,
                 code -> {
@@ -168,15 +167,11 @@ public class OrganizerLoginView extends BorderPane {
                     } catch (IllegalArgumentException ex) {
                         return false;
                     }
-                });
+                }
+        );
 
         dialog.showAndWait();
-
-        if (!dialog.isSuccess()) {
-            return null;
-        }
-
-        return organizerRef.get();
+        return dialog.isSuccess() ? organizerRef.get() : null;
     }
 
     private void handleForgotPassword(TextField emailField) {
@@ -191,11 +186,16 @@ public class OrganizerLoginView extends BorderPane {
         showSuccess("Fonction bientôt disponible : réinitialisation du mot de passe.");
     }
 
+    private void initMessageLabel() {
+        messageLabel.setWrapText(true);
+        hideMessage();
+        messageLabel.setStyle(ERROR_STYLE);
+    }
+
     private void clearMessage() {
         messageLabel.setText("");
         messageLabel.setStyle(ERROR_STYLE);
-        messageLabel.setManaged(false);
-        messageLabel.setVisible(false);
+        hideMessage();
     }
 
     private void showError(String text) {
@@ -212,8 +212,17 @@ public class OrganizerLoginView extends BorderPane {
         messageLabel.setVisible(true);
     }
 
+    private void hideMessage() {
+        messageLabel.setManaged(false);
+        messageLabel.setVisible(false);
+    }
+
     private static String normalizeEmail(String raw) {
-        return raw == null ? "" : raw.trim().toLowerCase();
+        return safeText(raw).toLowerCase();
+    }
+
+    private static String safeText(String raw) {
+        return raw == null ? "" : raw.trim();
     }
 
     private static void requireNotBlank(String value, String message) {

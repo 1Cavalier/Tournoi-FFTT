@@ -41,11 +41,11 @@ public class OrganizerRegisterView extends BorderPane {
         VBox root = new VBox(AppTheme.SPACE_LG);
         root.setAlignment(Pos.TOP_CENTER);
 
-        VBox header = buildHeader();
-        VBox card = buildRegisterCard();
-        HBox bottomActions = buildBottomActions();
+        root.getChildren().addAll(
+                buildHeader(),
+                buildRegisterCard(),
+                buildBottomActions());
 
-        root.getChildren().addAll(header, card, bottomActions);
         setCenter(root);
     }
 
@@ -66,17 +66,9 @@ public class OrganizerRegisterView extends BorderPane {
     }
 
     private VBox buildRegisterCard() {
-        TextField firstNameField = new TextField();
-        firstNameField.setPromptText("Prénom");
-        firstNameField.setMaxWidth(Double.MAX_VALUE);
-
-        TextField lastNameField = new TextField();
-        lastNameField.setPromptText("Nom");
-        lastNameField.setMaxWidth(Double.MAX_VALUE);
-
-        TextField emailField = new TextField();
-        emailField.setPromptText("Adresse email");
-        emailField.setMaxWidth(Double.MAX_VALUE);
+        TextField firstNameField = textField("Prénom");
+        TextField lastNameField = textField("Nom");
+        TextField emailField = textField("Adresse email");
 
         PasswordField passwordField = new PasswordField();
         passwordField.setPromptText("Mot de passe");
@@ -90,40 +82,16 @@ public class OrganizerRegisterView extends BorderPane {
                 "Recherchez votre club par nom ou numéro FFTT, puis sélectionnez-le dans la liste.");
         AppTheme.applyBody(clubSectionHint);
 
-        TextField searchField = new TextField();
-        searchField.setPromptText("Recherche club (nom ou numéro)");
-        searchField.setMaxWidth(Double.MAX_VALUE);
+        TextField searchField = textField("Recherche club (nom ou numéro)");
 
         Button searchButton = new Button("Rechercher");
         AppTheme.styleSecondary(searchButton);
 
-        ListView<ClubDto> resultsList = new ListView<>();
-        resultsList.setPrefHeight(180);
-        resultsList.setCellFactory(lv -> new ListCell<>() {
-            @Override
-            protected void updateItem(ClubDto item, boolean empty) {
-                super.updateItem(item, empty);
-
-                if (empty || item == null) {
-                    setText(null);
-                    return;
-                }
-
-                String number = safeText(item.clubNumber(), "?");
-                String name = safeText(item.clubName(), "(sans nom)");
-                String city = safeText(item.city(), "ville inconnue");
-
-                setText(number + " — " + name + " — " + city);
-            }
-        });
-
+        ListView<ClubDto> resultsList = buildClubResultsList();
         HBox searchRow = new HBox(10, searchField, searchButton);
         HBox.setHgrow(searchField, Priority.ALWAYS);
 
-        messageLabel.setManaged(false);
-        messageLabel.setVisible(false);
-        messageLabel.setWrapText(true);
-        messageLabel.setStyle(ERROR_STYLE);
+        initMessageLabel();
 
         Button createAccountButton = new Button("Créer le compte");
         AppTheme.stylePrimary(createAccountButton);
@@ -131,16 +99,16 @@ public class OrganizerRegisterView extends BorderPane {
         searchButton.setOnAction(e -> performClubSearch(searchField, resultsList));
         searchField.setOnAction(e -> performClubSearch(searchField, resultsList));
 
-        firstNameField.setOnAction(
-                e -> createAccount(firstNameField, lastNameField, emailField, passwordField, resultsList));
-        lastNameField.setOnAction(
-                e -> createAccount(firstNameField, lastNameField, emailField, passwordField, resultsList));
-        emailField.setOnAction(
-                e -> createAccount(firstNameField, lastNameField, emailField, passwordField, resultsList));
-        passwordField.setOnAction(
-                e -> createAccount(firstNameField, lastNameField, emailField, passwordField, resultsList));
-        createAccountButton.setOnAction(
-                e -> createAccount(firstNameField, lastNameField, emailField, passwordField, resultsList));
+        firstNameField
+                .setOnAction(e -> createAccount(firstNameField, lastNameField, emailField, passwordField, resultsList));
+        lastNameField
+                .setOnAction(e -> createAccount(firstNameField, lastNameField, emailField, passwordField, resultsList));
+        emailField
+                .setOnAction(e -> createAccount(firstNameField, lastNameField, emailField, passwordField, resultsList));
+        passwordField
+                .setOnAction(e -> createAccount(firstNameField, lastNameField, emailField, passwordField, resultsList));
+        createAccountButton
+                .setOnAction(e -> createAccount(firstNameField, lastNameField, emailField, passwordField, resultsList));
 
         VBox card = AppTheme.card(
                 sectionTitle("Compte organisateur"),
@@ -173,10 +141,40 @@ public class OrganizerRegisterView extends BorderPane {
         return bottom;
     }
 
+    private ListView<ClubDto> buildClubResultsList() {
+        ListView<ClubDto> resultsList = new ListView<>();
+        resultsList.setPrefHeight(180);
+        resultsList.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(ClubDto item, boolean empty) {
+                super.updateItem(item, empty);
+
+                if (empty || item == null) {
+                    setText(null);
+                    return;
+                }
+
+                String number = safeText(item.clubNumber(), "?");
+                String name = safeText(item.clubName(), "(sans nom)");
+                String city = safeText(item.city(), "ville inconnue");
+
+                setText(number + " — " + name + " — " + city);
+            }
+        });
+        return resultsList;
+    }
+
     private Label sectionTitle(String text) {
         Label label = new Label(text);
         AppTheme.applyCardTitle(label);
         return label;
+    }
+
+    private TextField textField(String prompt) {
+        TextField field = new TextField();
+        field.setPromptText(prompt);
+        field.setMaxWidth(Double.MAX_VALUE);
+        return field;
     }
 
     private void performClubSearch(TextField searchField, ListView<ClubDto> resultsList) {
@@ -210,7 +208,7 @@ public class OrganizerRegisterView extends BorderPane {
             String firstName = safeTrim(firstNameField.getText());
             String lastName = safeTrim(lastNameField.getText());
             String email = normalizeEmail(emailField.getText());
-            String password = passwordField.getText();
+            String password = safeText(passwordField.getText());
 
             requireNotBlank(firstName, "Prénom obligatoire.");
             requireNotBlank(lastName, "Nom obligatoire.");
@@ -224,28 +222,7 @@ public class OrganizerRegisterView extends BorderPane {
                 throw new IllegalArgumentException("Sélectionne un club dans la liste.");
             }
 
-            String clubName = safeText(selectedClub.clubName(), "Club inconnu");
-            String clubNumber = safeText(selectedClub.clubNumber(), "numéro inconnu");
-            String clubCity = safeText(selectedClub.city(), "ville inconnue");
-
-            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-            confirm.setTitle("Confirmation de la demande");
-            confirm.setHeaderText("Création du compte organisateur");
-            confirm.setContentText(
-                    "Vous êtes sur le point de créer un compte pour :\n\n"
-                            + firstName + " " + lastName + "\n"
-                            + email + "\n\n"
-                            + "Club sélectionné :\n"
-                            + clubName + "\n"
-                            + "Numéro FFTT : " + clubNumber + "\n"
-                            + "Ville : " + clubCity + "\n\n"
-                            + "Un code de vérification sera envoyé à l'adresse officielle du club.\n"
-                            + "Êtes-vous sûr de vouloir continuer ?");
-
-            confirm.getButtonTypes().setAll(ButtonType.CANCEL, ButtonType.OK);
-
-            var result = confirm.showAndWait();
-            if (result.isEmpty() || result.get() != ButtonType.OK) {
+            if (!confirmRegistration(firstName, lastName, email, selectedClub)) {
                 return;
             }
 
@@ -257,6 +234,7 @@ public class OrganizerRegisterView extends BorderPane {
                     selectedClub.id());
 
             CodeVerificationDialog dialog = new CodeVerificationDialog(
+                    nav.primaryStage(),
                     "Vérification email",
                     "Saisissez le code de vérification transmis au club pour valider ce compte.",
                     code -> nav.organizerAuth().verifyEmail(account.getEmail(), code));
@@ -278,11 +256,42 @@ public class OrganizerRegisterView extends BorderPane {
         }
     }
 
+    private boolean confirmRegistration(String firstName, String lastName, String email, ClubDto selectedClub) {
+        String clubName = safeText(selectedClub.clubName(), "Club inconnu");
+        String clubNumber = safeText(selectedClub.clubNumber(), "numéro inconnu");
+        String clubCity = safeText(selectedClub.city(), "ville inconnue");
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.initOwner(nav.primaryStage());
+        confirm.setTitle("Confirmation de la demande");
+        confirm.setHeaderText("Création du compte organisateur");
+        confirm.setContentText(
+                "Vous êtes sur le point de créer un compte pour :\n\n"
+                        + firstName + " " + lastName + "\n"
+                        + email + "\n\n"
+                        + "Club sélectionné :\n"
+                        + clubName + "\n"
+                        + "Numéro FFTT : " + clubNumber + "\n"
+                        + "Ville : " + clubCity + "\n\n"
+                        + "Un code de vérification sera envoyé à l'adresse officielle du club.\n"
+                        + "Êtes-vous sûr de vouloir continuer ?");
+
+        confirm.getButtonTypes().setAll(ButtonType.CANCEL, ButtonType.OK);
+
+        var result = confirm.showAndWait();
+        return result.isPresent() && result.get() == ButtonType.OK;
+    }
+
+    private void initMessageLabel() {
+        messageLabel.setWrapText(true);
+        hideMessage();
+        messageLabel.setStyle(ERROR_STYLE);
+    }
+
     private void clearMessage() {
         messageLabel.setText("");
         messageLabel.setStyle(ERROR_STYLE);
-        messageLabel.setManaged(false);
-        messageLabel.setVisible(false);
+        hideMessage();
     }
 
     private void showError(String text) {
@@ -299,11 +308,20 @@ public class OrganizerRegisterView extends BorderPane {
         messageLabel.setVisible(true);
     }
 
+    private void hideMessage() {
+        messageLabel.setManaged(false);
+        messageLabel.setVisible(false);
+    }
+
     private static String normalizeEmail(String raw) {
         return safeTrim(raw).toLowerCase();
     }
 
     private static String safeTrim(String s) {
+        return s == null ? "" : s.trim();
+    }
+
+    private static String safeText(String s) {
         return s == null ? "" : s.trim();
     }
 

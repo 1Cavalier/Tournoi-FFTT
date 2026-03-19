@@ -20,6 +20,9 @@ import java.util.Objects;
 public class TournamentDashboardCard extends VBox {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final String MISSING_INFO = "information manquante";
+    private static final double SECTION_WIDTH = 240;
+    private static final double SECTION_SPACING = 6;
 
     private final AppRouter nav;
     private final TournamentDto tournament;
@@ -34,10 +37,10 @@ public class TournamentDashboardCard extends VBox {
 
     private void build() {
         VBox content = new VBox(AppTheme.SPACE_MD);
-
-        content.getChildren().add(buildHeader());
-        content.getChildren().add(buildMainRow());
-        content.getChildren().add(buildActionsRow());
+        content.getChildren().addAll(
+                buildHeader(),
+                buildMainRow(),
+                buildActionsRow());
 
         VBox card = AppTheme.card(content);
         card.setMaxWidth(Double.MAX_VALUE);
@@ -49,14 +52,13 @@ public class TournamentDashboardCard extends VBox {
         HBox box = new HBox(10);
         box.setAlignment(Pos.CENTER_LEFT);
 
-        Label title = new Label(nvl(tournament.name()));
+        Label title = new Label(OrganizerViewUtils.nvl(tournament.name()));
         AppTheme.applyCardTitle(title);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Label statusBadge = new Label(prettyStatus(tournament.status()));
-        statusBadge.setStyle(AppTheme.badgeStyle(resolveStatusColor(tournament.status())));
+        StatusBadge statusBadge = new StatusBadge(tournament.status());
 
         box.getChildren().addAll(title, spacer, statusBadge);
         return box;
@@ -71,27 +73,23 @@ public class TournamentDashboardCard extends VBox {
         VBox tableaux = buildTableauxSection();
         VBox registrations = buildRegistrationSection();
 
-        HBox.setHgrow(general, Priority.ALWAYS);
-        HBox.setHgrow(regulationBox, Priority.ALWAYS);
-        HBox.setHgrow(tableaux, Priority.ALWAYS);
-        HBox.setHgrow(registrations, Priority.ALWAYS);
-
-        general.setMaxWidth(Double.MAX_VALUE);
-        regulationBox.setMaxWidth(Double.MAX_VALUE);
-        tableaux.setMaxWidth(Double.MAX_VALUE);
-        registrations.setMaxWidth(Double.MAX_VALUE);
+        configureSectionGrow(general);
+        configureSectionGrow(regulationBox);
+        configureSectionGrow(tableaux);
+        configureSectionGrow(registrations);
 
         row.getChildren().addAll(general, regulationBox, tableaux, registrations);
         return row;
     }
 
     private VBox buildGeneralSection() {
-        VBox content = new VBox(6);
+        VBox content = new VBox(SECTION_SPACING);
 
         Label title = new Label("Général");
         AppTheme.applyCardTitle(title);
 
         content.getChildren().addAll(
+                title,
                 infoRow("Nom", tournament.name()),
                 infoRow("Département", tournament.department()),
                 infoRow("Adresse 1", tournament.address1()),
@@ -100,67 +98,53 @@ public class TournamentDashboardCard extends VBox {
                 infoRow("Niveau", prettyLevel(tournament.level())),
                 infoRow("Phase", prettyPhase(tournament.phase())),
                 infoRow("Date", buildDates()),
-                infoRow("Homologation", tournament.homologationNumber()));
-
-        Button edit = new Button("Modifier le tournoi");
-        AppTheme.styleSecondary(edit);
-        edit.setMaxWidth(Double.MAX_VALUE);
-        edit.setOnAction(e -> nav.showEditTournamentGeneralDialog(tournament));
-
-        content.getChildren().add(verticalSpacer(6));
-        content.getChildren().add(edit);
+                infoRow("Homologation", tournament.homologationNumber()),
+                verticalSpacer(6),
+                fullWidthSecondaryButton("Modifier le tournoi", e -> nav.showEditTournamentGeneralDialog(tournament)));
 
         return buildSection(content);
     }
 
     private VBox buildRegulationSection() {
-        VBox content = new VBox(6);
+        VBox content = new VBox(SECTION_SPACING);
 
         Label title = new Label("Règlement");
         AppTheme.applyCardTitle(title);
 
         content.getChildren().addAll(
+                title,
                 infoRow("Contact", buildContactValue()),
                 infoRow("Nbr table", regulation == null ? null : regulation.numberOfTables()),
                 infoRow("Balle", regulation == null ? null : regulation.ballBrandAndType()),
                 infoRow("Ouverture insc.", regulation == null ? null : regulation.registrationOpenTime()),
                 infoRow("Fermeture insc.", regulation == null ? null : regulation.registrationDeadline()),
-                infoRow("Ouverture gymnase", regulation == null ? null : regulation.gymOpenTime()));
-
-        Button edit = new Button("Modifier le règlement");
-        AppTheme.styleSecondary(edit);
-        edit.setMaxWidth(Double.MAX_VALUE);
-        edit.setOnAction(e -> nav.showEditTournamentRegulationDialog(tournament));
-
-        content.getChildren().add(verticalSpacer(6));
-        content.getChildren().add(edit);
+                infoRow("Ouverture gymnase", regulation == null ? null : regulation.gymOpenTime()),
+                verticalSpacer(6),
+                fullWidthSecondaryButton("Modifier le règlement",
+                        e -> nav.showEditTournamentRegulationDialog(tournament)));
 
         return buildSection(content);
     }
 
     private VBox buildTableauxSection() {
-        VBox content = new VBox(6);
+        VBox content = new VBox(SECTION_SPACING);
 
         Label title = new Label("Tableaux");
         AppTheme.applyCardTitle(title);
 
         content.getChildren().addAll(
+                title,
                 infoRow("État", "À configurer"),
-                infoRow("Disponibilité", isDraft() ? "Brouillon" : "Disponible"));
-
-        Button view = new Button("Voir les tableaux");
-        AppTheme.styleSecondary(view);
-        view.setMaxWidth(Double.MAX_VALUE);
-        view.setOnAction(e -> nav.showInfo("À venir", "Ouverture de la gestion des tableaux."));
-
-        content.getChildren().add(verticalSpacer(6));
-        content.getChildren().add(view);
+                infoRow("Disponibilité", isDraft() ? "Brouillon" : "Disponible"),
+                verticalSpacer(6),
+                fullWidthSecondaryButton("Voir les tableaux",
+                        e -> nav.showInfo("À venir", "Ouverture de la gestion des tableaux.")));
 
         return buildSection(content);
     }
 
     private VBox buildRegistrationSection() {
-        VBox content = new VBox(6);
+        VBox content = new VBox(SECTION_SPACING);
 
         Label title = new Label("Inscriptions");
         AppTheme.applyCardTitle(title);
@@ -178,7 +162,7 @@ public class TournamentDashboardCard extends VBox {
         manage.setDisable(isDraft());
         manage.setOnAction(e -> nav.showInfo("À venir", "Gestion des inscriptions."));
 
-        content.getChildren().addAll(text, verticalSpacer(6), manage);
+        content.getChildren().addAll(title, text, verticalSpacer(6), manage);
 
         return buildSection(content);
     }
@@ -193,8 +177,10 @@ public class TournamentDashboardCard extends VBox {
         delete.setStyle(
                 "-fx-background-color: #C62828;" +
                         "-fx-text-fill: white;" +
-                        "-fx-font-weight: bold;" +
-                        "-fx-background-radius: " + AppTheme.RADIUS + ";");
+                        "-fx-font-weight: 800;" +
+                        "-fx-background-radius: " + AppTheme.RADIUS + ";" +
+                        "-fx-padding: 10 14;" +
+                        "-fx-cursor: hand;");
         delete.setOnAction(e -> nav.showInfo("À venir", "Suppression du tournoi."));
 
         HBox row = new HBox(10, publish, delete);
@@ -203,14 +189,14 @@ public class TournamentDashboardCard extends VBox {
     }
 
     private VBox buildSection(VBox content) {
-        VBox box = new VBox(8, content);
+        VBox box = new VBox(content);
         box.setPadding(new Insets(10));
+        box.setPrefWidth(SECTION_WIDTH);
         box.setStyle(
-                "-fx-background-color:" + AppTheme.COLOR_SURFACE + ";" +
-                        "-fx-background-radius:" + AppTheme.RADIUS + ";" +
-                        "-fx-border-color:" + AppTheme.COLOR_BORDER + ";" +
-                        "-fx-border-radius:" + AppTheme.RADIUS + ";");
-        box.setPrefWidth(240);
+                "-fx-background-color: " + AppTheme.COLOR_SURFACE + ";" +
+                        "-fx-background-radius: " + AppTheme.RADIUS + ";" +
+                        "-fx-border-color: " + AppTheme.COLOR_BORDER + ";" +
+                        "-fx-border-radius: " + AppTheme.RADIUS + ";");
         return box;
     }
 
@@ -228,12 +214,10 @@ public class TournamentDashboardCard extends VBox {
         AppTheme.applyBody(valueLabel);
         valueLabel.setWrapText(true);
 
-        boolean missing = "information manquante".equalsIgnoreCase(displayValue);
-
-        if (missing) {
-            valueLabel.setStyle("-fx-text-fill:#D32F2F; -fx-font-weight: bold;");
+        if (MISSING_INFO.equalsIgnoreCase(displayValue)) {
+            valueLabel.setStyle("-fx-text-fill: #D32F2F; -fx-font-weight: 700;");
         } else {
-            valueLabel.setStyle("-fx-text-fill:#2E7D32; -fx-font-weight: bold;");
+            valueLabel.setStyle("-fx-text-fill: #2E7D32; -fx-font-weight: 700;");
         }
 
         row.getChildren().addAll(keyLabel, valueLabel);
@@ -242,28 +226,29 @@ public class TournamentDashboardCard extends VBox {
 
     private String buildDates() {
         try {
-            LocalDate start = LocalDate.parse(tournament.startDate());
-            LocalDate end = LocalDate.parse(tournament.endDate());
+            LocalDate start = LocalDate.parse(OrganizerViewUtils.safe(tournament.startDate()));
+            LocalDate end = LocalDate.parse(OrganizerViewUtils.safe(tournament.endDate()));
             return DATE_FORMAT.format(start) + " -> " + DATE_FORMAT.format(end);
         } catch (Exception e) {
-            return nvl(tournament.startDate()) + " -> " + nvl(tournament.endDate());
+            return OrganizerViewUtils.nvl(tournament.startDate()) + " -> "
+                    + OrganizerViewUtils.nvl(tournament.endDate());
         }
     }
 
     private boolean isDraft() {
-        return "DRAFT".equalsIgnoreCase(nvl(tournament.status()));
+        return "DRAFT".equalsIgnoreCase(OrganizerViewUtils.safe(tournament.status()));
     }
 
     private String buildContactValue() {
         if (regulation == null) {
-            return "information manquante";
+            return MISSING_INFO;
         }
 
         String name = optionalDisplay(regulation.organizerContactName());
         String phone = optionalDisplay(regulation.organizerPhone());
 
         if (name == null && phone == null) {
-            return "information manquante";
+            return MISSING_INFO;
         }
         if (name != null && phone != null) {
             return name + " - " + phone;
@@ -272,66 +257,51 @@ public class TournamentDashboardCard extends VBox {
     }
 
     private String optionalDisplay(String value) {
-        return isBlank(value) ? null : value.trim();
+        String safe = OrganizerViewUtils.safe(value);
+        return safe.isEmpty() ? null : safe;
     }
 
     private String prettyLevel(String value) {
-        return switch (nvl(value)) {
+        return switch (OrganizerViewUtils.safe(value)) {
             case "DEPARTEMENTAL" -> "Départemental";
             case "REGIONAL" -> "Régional";
             case "NATIONAL_B" -> "National B";
             case "NATIONAL_A" -> "National A";
             case "INTERNATIONAL" -> "International";
-            default -> nvl(value);
+            default -> OrganizerViewUtils.nvl(value);
         };
     }
 
     private String prettyPhase(String value) {
-        return switch (nvl(value)) {
+        return switch (OrganizerViewUtils.safe(value)) {
             case "PHASE_1" -> "Phase 1";
             case "PHASE_2" -> "Phase 2";
-            default -> nvl(value);
-        };
-    }
-
-    private String prettyStatus(String value) {
-        return switch (nvl(value)) {
-            case "DRAFT" -> "Brouillon";
-            case "OPEN" -> "Ouvert";
-            case "RUNNING" -> "En cours";
-            case "FINISHED" -> "Terminé";
-            case "CANCELLED" -> "Annulé";
-            default -> nvl(value);
-        };
-    }
-
-    private String resolveStatusColor(String value) {
-        return switch (nvl(value)) {
-            case "DRAFT" -> AppTheme.COLOR_PRIMARY;
-            case "OPEN" -> "#2E7D32";
-            case "RUNNING" -> "#EF6C00";
-            case "FINISHED" -> "#455A64";
-            case "CANCELLED" -> "#C62828";
-            default -> AppTheme.COLOR_PRIMARY;
+            default -> OrganizerViewUtils.nvl(value);
         };
     }
 
     private String formatValue(Object value) {
         if (value == null) {
-            return "information manquante";
+            return MISSING_INFO;
         }
         if (value instanceof String s) {
-            return s.isBlank() ? "information manquante" : s;
+            String safe = OrganizerViewUtils.safe(s);
+            return safe.isEmpty() ? MISSING_INFO : safe;
         }
         return String.valueOf(value);
     }
 
-    private boolean isBlank(String value) {
-        return value == null || value.trim().isBlank();
+    private void configureSectionGrow(VBox section) {
+        HBox.setHgrow(section, Priority.ALWAYS);
+        section.setMaxWidth(Double.MAX_VALUE);
     }
 
-    private String nvl(String value) {
-        return value == null ? "" : value.trim();
+    private Button fullWidthSecondaryButton(String text, javafx.event.EventHandler<javafx.event.ActionEvent> action) {
+        Button button = new Button(text);
+        AppTheme.styleSecondary(button);
+        button.setMaxWidth(Double.MAX_VALUE);
+        button.setOnAction(action);
+        return button;
     }
 
     private Region verticalSpacer(double height) {

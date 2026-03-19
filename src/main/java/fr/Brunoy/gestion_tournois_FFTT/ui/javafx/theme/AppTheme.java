@@ -1,6 +1,7 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme;
 
 import javafx.geometry.Insets;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -10,6 +11,8 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.stage.Screen;
+import javafx.stage.Stage;
 
 /**
  * Thème UI centralisé (tokens + helpers).
@@ -75,6 +78,38 @@ public final class AppTheme {
 
         public static final double TOPBAR_HEIGHT = 58;
         public static final double SIDEBAR_WIDTH = 310;
+
+        // -------------------------------------------------------------------------
+        // WINDOW FORMATS
+        // -------------------------------------------------------------------------
+
+        /**
+         * Taille minimale de la fenêtre principale.
+         */
+        public static final double MAIN_WINDOW_MIN_WIDTH = 1280;
+        public static final double MAIN_WINDOW_MIN_HEIGHT = 720;
+
+        /**
+         * Grand format secondaire.
+         */
+        public static final double LARGE_DIALOG_WIDTH = 1180;
+        public static final double LARGE_DIALOG_HEIGHT = 760;
+        public static final double LARGE_DIALOG_MIN_WIDTH = 980;
+        public static final double LARGE_DIALOG_MIN_HEIGHT = 620;
+
+        /**
+         * Format moyen secondaire.
+         */
+        public static final double MEDIUM_DIALOG_WIDTH = 760;
+        public static final double MEDIUM_DIALOG_HEIGHT = 520;
+        public static final double MEDIUM_DIALOG_MIN_WIDTH = 640;
+        public static final double MEDIUM_DIALOG_MIN_HEIGHT = 420;
+
+        /**
+         * Petit pop-up standard.
+         */
+        public static final double SMALL_DIALOG_WIDTH = 520;
+        public static final double SMALL_DIALOG_HEIGHT = 360;
 
         // -------------------------------------------------------------------------
         // TYPOGRAPHY
@@ -239,7 +274,7 @@ public final class AppTheme {
                         "-fx-alignment: CENTER-LEFT;";
 
         // -------------------------------------------------------------------------
-        // HELPERS
+        // HELPERS - BADGES / STYLE
         // -------------------------------------------------------------------------
 
         public static String badgeStyle(String bg) {
@@ -278,12 +313,17 @@ public final class AppTheme {
                                 "-fx-background-radius: 999;";
         }
 
+        // -------------------------------------------------------------------------
+        // HELPERS - IMAGES
+        // -------------------------------------------------------------------------
+
         public static ImageView logoView(double height) {
                 try {
                         var url = AppTheme.class.getResource(LOGO_RESOURCE);
                         if (url == null) {
                                 return null;
                         }
+
                         ImageView iv = new ImageView(new Image(url.toExternalForm(), true));
                         iv.setFitHeight(height);
                         iv.setPreserveRatio(true);
@@ -294,6 +334,10 @@ public final class AppTheme {
                         return null;
                 }
         }
+
+        // -------------------------------------------------------------------------
+        // HELPERS - TEXT / PAGE
+        // -------------------------------------------------------------------------
 
         public static void applyPage(Region root) {
                 root.setStyle(PAGE_STYLE);
@@ -359,6 +403,10 @@ public final class AppTheme {
                 label.setWrapText(true);
         }
 
+        // -------------------------------------------------------------------------
+        // HELPERS - BUTTONS
+        // -------------------------------------------------------------------------
+
         public static void stylePrimary(Button btn) {
                 btn.setStyle(PRIMARY_BUTTON_STYLE);
                 btn.setPrefHeight(BTN_HEIGHT);
@@ -422,6 +470,153 @@ public final class AppTheme {
                                 + COLOR_SIDEBAR_ITEM_HOVER + ";"));
                 btn.setOnMouseExited(e -> btn.setStyle(SIDEBAR_TOURNAMENT_ITEM_STYLE));
         }
+
+        // -------------------------------------------------------------------------
+        // HELPERS - WINDOW FORMATS
+        // -------------------------------------------------------------------------
+
+        /**
+         * Fenêtre principale :
+         * - jamais en vrai plein écran
+         * - barre des tâches toujours visible
+         * - au premier affichage : fenêtre maximisée proprement par Windows
+         * - si l'utilisateur a déjà redimensionné la fenêtre, on conserve ce format
+         */
+        public static void applyMainWindow(Stage stage) {
+                if (stage == null) {
+                        return;
+                }
+
+                stage.setFullScreen(false);
+                stage.setIconified(false);
+                stage.setResizable(true);
+                stage.setMinWidth(MAIN_WINDOW_MIN_WIDTH);
+                stage.setMinHeight(MAIN_WINDOW_MIN_HEIGHT);
+
+                boolean hasCustomSize = stage.getWidth() >= MAIN_WINDOW_MIN_WIDTH
+                                && stage.getHeight() >= MAIN_WINDOW_MIN_HEIGHT
+                                && !stage.isMaximized();
+
+                if (!hasCustomSize) {
+                        stage.setMaximized(true);
+                } else {
+                        keepStageInsideVisibleBounds(stage);
+                }
+        }
+
+        /**
+         * Grand format de travail secondaire.
+         * Si déjà redimensionné, on garde la taille actuelle.
+         */
+        public static void applyLargeDialogWindow(Stage stage) {
+                if (stage == null) {
+                        return;
+                }
+
+                stage.setFullScreen(false);
+                stage.setIconified(false);
+                stage.setResizable(true);
+                stage.setMinWidth(LARGE_DIALOG_MIN_WIDTH);
+                stage.setMinHeight(LARGE_DIALOG_MIN_HEIGHT);
+
+                boolean hasValidCustomSize = stage.getWidth() >= LARGE_DIALOG_MIN_WIDTH
+                                && stage.getHeight() >= LARGE_DIALOG_MIN_HEIGHT;
+
+                if (!hasValidCustomSize) {
+                        stage.setWidth(LARGE_DIALOG_WIDTH);
+                        stage.setHeight(LARGE_DIALOG_HEIGHT);
+                        centerOnScreen(stage);
+                }
+
+                keepStageInsideVisibleBounds(stage);
+        }
+
+        /**
+         * Format moyen secondaire.
+         * Si déjà redimensionné, on garde la taille actuelle.
+         */
+        public static void applyMediumDialogWindow(Stage stage) {
+                if (stage == null) {
+                        return;
+                }
+
+                stage.setFullScreen(false);
+                stage.setIconified(false);
+                stage.setResizable(true);
+                stage.setMinWidth(MEDIUM_DIALOG_MIN_WIDTH);
+                stage.setMinHeight(MEDIUM_DIALOG_MIN_HEIGHT);
+
+                boolean hasValidCustomSize = stage.getWidth() >= MEDIUM_DIALOG_MIN_WIDTH
+                                && stage.getHeight() >= MEDIUM_DIALOG_MIN_HEIGHT;
+
+                if (!hasValidCustomSize) {
+                        stage.setWidth(MEDIUM_DIALOG_WIDTH);
+                        stage.setHeight(MEDIUM_DIALOG_HEIGHT);
+                        centerOnScreen(stage);
+                }
+
+                keepStageInsideVisibleBounds(stage);
+        }
+
+        /**
+         * Petit pop-up :
+         * format imposé, indépendant de la taille personnalisée de la fenêtre
+         * principale.
+         */
+        public static void applySmallDialogWindow(Stage stage) {
+                if (stage == null) {
+                        return;
+                }
+
+                stage.setFullScreen(false);
+                stage.setIconified(false);
+                stage.setResizable(false);
+                stage.setWidth(SMALL_DIALOG_WIDTH);
+                stage.setHeight(SMALL_DIALOG_HEIGHT);
+                centerOnScreen(stage);
+        }
+
+        public static void centerOnScreen(Stage stage) {
+                Rectangle2D bounds = Screen.getPrimary().getVisualBounds();
+
+                stage.setX(bounds.getMinX() + (bounds.getWidth() - stage.getWidth()) / 2.0);
+                stage.setY(bounds.getMinY() + (bounds.getHeight() - stage.getHeight()) / 2.0);
+        }
+
+        public static void keepStageInsideVisibleBounds(Stage stage) {
+                if (stage == null || stage.isMaximized()) {
+                        return;
+                }
+
+                Rectangle2D bounds = Screen.getPrimary().getVisualBounds();
+
+                double width = stage.getWidth() > 0 ? stage.getWidth() : MAIN_WINDOW_MIN_WIDTH;
+                double height = stage.getHeight() > 0 ? stage.getHeight() : MAIN_WINDOW_MIN_HEIGHT;
+
+                if (width > bounds.getWidth()) {
+                        stage.setWidth(bounds.getWidth());
+                }
+                if (height > bounds.getHeight()) {
+                        stage.setHeight(bounds.getHeight());
+                }
+
+                if (stage.getX() < bounds.getMinX()) {
+                        stage.setX(bounds.getMinX());
+                }
+                if (stage.getY() < bounds.getMinY()) {
+                        stage.setY(bounds.getMinY());
+                }
+                if (stage.getX() + stage.getWidth() > bounds.getMaxX()) {
+                        stage.setX(bounds.getMaxX() - stage.getWidth());
+                }
+                if (stage.getY() + stage.getHeight() > bounds.getMaxY()) {
+                        stage.setY(bounds.getMaxY() - stage.getHeight());
+                }
+        }
+
+        // -------------------------------------------------------------------------
+        // HELPERS - CARDS
+        // -------------------------------------------------------------------------
 
         /**
          * Card standard avec padding + ombre légère.

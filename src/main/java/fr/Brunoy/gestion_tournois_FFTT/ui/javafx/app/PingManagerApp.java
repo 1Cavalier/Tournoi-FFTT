@@ -1,5 +1,6 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app;
 
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
@@ -13,30 +14,27 @@ import java.io.StringWriter;
  * Point d'entrée JavaFX.
  *
  * Responsabilités :
- * - Démarrer l'application JavaFX
- * - Installer un handler global pour les exceptions non gérées
- * - Créer le contexte applicatif (ApplicationContext)
- * - Démarrer la navigation (AppRouter)
+ * - démarrer l'application JavaFX
+ * - installer un handler global pour les exceptions non gérées
+ * - créer le contexte applicatif
+ * - démarrer la navigation principale
  */
 public class PingManagerApp extends Application {
 
     @Override
     public void start(Stage stage) {
-
-        // Capture toutes les exceptions non gérées
         Thread.setDefaultUncaughtExceptionHandler((thread, ex) -> {
             ex.printStackTrace();
             Platform.runLater(() -> showError("Erreur non gérée", ex));
         });
 
         try {
-            // Contexte applicatif (DB, repos, services)
             ApplicationContext context = new ApplicationContext();
-
-            // Router principal de navigation
             AppRouter router = new AppRouter(stage, context);
 
-            // Démarrage de l'application
+            stage.setMinWidth(AppTheme.MAIN_WINDOW_MIN_WIDTH);
+            stage.setMinHeight(AppTheme.MAIN_WINDOW_MIN_HEIGHT);
+
             router.showHome();
 
         } catch (Exception ex) {
@@ -46,7 +44,6 @@ public class PingManagerApp extends Application {
     }
 
     private void showError(String title, Throwable ex) {
-
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);
         alert.setHeaderText(ex.getClass().getName());
