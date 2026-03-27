@@ -71,14 +71,12 @@ public class TournamentDashboardCard extends VBox {
         VBox general = buildGeneralSection();
         VBox regulationBox = buildRegulationSection();
         VBox tableaux = buildTableauxSection();
-        VBox registrations = buildRegistrationSection();
 
         configureSectionGrow(general);
         configureSectionGrow(regulationBox);
         configureSectionGrow(tableaux);
-        configureSectionGrow(registrations);
 
-        row.getChildren().addAll(general, regulationBox, tableaux, registrations);
+        row.getChildren().addAll(general, regulationBox, tableaux);
         return row;
     }
 
@@ -138,31 +136,7 @@ public class TournamentDashboardCard extends VBox {
                 infoRow("Disponibilité", isDraft() ? "Brouillon" : "Disponible"),
                 verticalSpacer(6),
                 fullWidthSecondaryButton("Voir les tableaux",
-                        e -> nav.showInfo("À venir", "Ouverture de la gestion des tableaux.")));
-
-        return buildSection(content);
-    }
-
-    private VBox buildRegistrationSection() {
-        VBox content = new VBox(SECTION_SPACING);
-
-        Label title = new Label("Inscriptions");
-        AppTheme.applyCardTitle(title);
-
-        Label text = new Label(
-                isDraft()
-                        ? "Disponibles après publication."
-                        : "Les inscriptions sont disponibles.");
-        AppTheme.applyBody(text);
-        text.setWrapText(true);
-
-        Button manage = new Button("Gérer les inscriptions");
-        AppTheme.styleSecondary(manage);
-        manage.setMaxWidth(Double.MAX_VALUE);
-        manage.setDisable(isDraft());
-        manage.setOnAction(e -> nav.showInfo("À venir", "Gestion des inscriptions."));
-
-        content.getChildren().addAll(title, text, verticalSpacer(6), manage);
+                        e -> nav.showTableauxManagementDialog(tournament)));
 
         return buildSection(content);
     }

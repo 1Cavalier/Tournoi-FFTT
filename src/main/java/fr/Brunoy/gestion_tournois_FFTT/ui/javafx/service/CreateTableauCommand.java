@@ -1,10 +1,11 @@
-package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto;
+package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service;
+
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.PrizeTierDto;
 
 import java.util.List;
 
-public record TableauDto(
+public record CreateTableauCommand(
 
-        String id,
         String tournamentId,
 
         String code,
@@ -31,8 +32,5 @@ public record TableauDto(
         Integer prepaidFee,
         Integer onSiteFee,
 
-        List<PrizeTierDto> prizeTiers,
-
-        String createdAt,
-        String updatedAt) {
+        List<PrizeTierDto> prizeTiers) {
 }

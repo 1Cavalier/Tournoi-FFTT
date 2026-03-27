@@ -15,6 +15,7 @@ import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.home.HomeView;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs.CreateTournamentDialog;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs.EditTournamentRegulationDialog;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs.OrganizerProfileDialog;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs.TableauxManagementDialog;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.pages.OrganizerDashboardView;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -157,7 +158,17 @@ public final class AppRouter {
         TournamentRegulationDto regulation = tournamentService().getRegulation(tournament.id());
 
         EditTournamentRegulationDialog dialog = new EditTournamentRegulationDialog(this, tournament, regulation);
+        dialog.showAndWait();
 
+        showOrganizerDashboard();
+    }
+
+    public void showTableauxManagementDialog(TournamentDto tournament) {
+        requireOrganizer();
+
+        TournamentRegulationDto regulation = tournamentService().getRegulation(tournament.id());
+
+        TableauxManagementDialog dialog = new TableauxManagementDialog(this, tournament, regulation);
         dialog.showAndWait();
 
         showOrganizerDashboard();
