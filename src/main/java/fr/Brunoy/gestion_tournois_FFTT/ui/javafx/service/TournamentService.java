@@ -1,9 +1,11 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service;
 
 import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.TournamentStatus;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TableauDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentOfficialAssignmentDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRegulationDto;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TableauRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TournamentRegulationRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TournamentRepository;
 
@@ -18,12 +20,15 @@ public class TournamentService {
 
     private final TournamentRepository tournamentRepository;
     private final TournamentRegulationRepository tournamentRegulationRepository;
+    private final TableauRepository tableauRepository;
 
     public TournamentService(
             TournamentRepository tournamentRepository,
-            TournamentRegulationRepository tournamentRegulationRepository) {
+            TournamentRegulationRepository tournamentRegulationRepository,
+            TableauRepository tableauRepository) {
         this.tournamentRepository = Objects.requireNonNull(tournamentRepository);
         this.tournamentRegulationRepository = Objects.requireNonNull(tournamentRegulationRepository);
+        this.tableauRepository = Objects.requireNonNull(tableauRepository);
     }
 
     public TournamentDto createDraft(CreateTournamentDraftCommand cmd) {
@@ -95,11 +100,11 @@ public class TournamentService {
                 null,
                 null,
 
-                null, // requiredJudgeGrade
-                null, // recommendedJudgeCount
-                null, // recommendedRefereeGrade
-                null, // recommendedRefereeCount
-                List.<TournamentOfficialAssignmentDto>of(), // assignedOfficials
+                null,
+                null,
+                null,
+                null,
+                List.<TournamentOfficialAssignmentDto>of(),
 
                 now,
                 now);
@@ -190,6 +195,85 @@ public class TournamentService {
         return updated;
     }
 
+    public TableauDto createTableau(TableauDto tableau) {
+        Objects.requireNonNull(tableau);
+
+        String now = LocalDateTime.now().toString();
+
+        TableauDto toInsert = new TableauDto(
+                tableau.id() == null || tableau.id().isBlank() ? UUID.randomUUID().toString() : tableau.id().trim(),
+                required(tableau.tournamentId()),
+                optional(tableau.code()),
+                optional(tableau.designation()),
+                optional(tableau.date()),
+                optional(tableau.genderPolicy()),
+                optional(tableau.agePolicyType()),
+                optional(tableau.ageMinCategory()),
+                optional(tableau.ageMaxCategory()),
+                safeStringList(tableau.allowedAgeCategories()),
+                optional(tableau.pointsRuleType()),
+                tableau.minPoints(),
+                tableau.maxPoints(),
+                tableau.maxPlayers(),
+                tableau.waitlistCapacity(),
+                optional(tableau.checkInEnd()),
+                optional(tableau.startTime()),
+                tableau.prepaidFee(),
+                tableau.onSiteFee(),
+                safePrizeTiers(tableau.prizeTiers()),
+                now,
+                now);
+
+        tableauRepository.insert(toInsert);
+        return toInsert;
+    }
+
+    public TableauDto updateTableau(TableauDto tableau) {
+        Objects.requireNonNull(tableau);
+
+        TableauDto existing = tableauRepository.findById(required(tableau.id()))
+                .orElseThrow(() -> new IllegalArgumentException("Tableau introuvable : " + tableau.id()));
+
+        TableauDto updated = new TableauDto(
+                required(existing.id()),
+                required(tableau.tournamentId()),
+                optional(tableau.code()),
+                optional(tableau.designation()),
+                optional(tableau.date()),
+                optional(tableau.genderPolicy()),
+                optional(tableau.agePolicyType()),
+                optional(tableau.ageMinCategory()),
+                optional(tableau.ageMaxCategory()),
+                safeStringList(tableau.allowedAgeCategories()),
+                optional(tableau.pointsRuleType()),
+                tableau.minPoints(),
+                tableau.maxPoints(),
+                tableau.maxPlayers(),
+                tableau.waitlistCapacity(),
+                optional(tableau.checkInEnd()),
+                optional(tableau.startTime()),
+                tableau.prepaidFee(),
+                tableau.onSiteFee(),
+                safePrizeTiers(tableau.prizeTiers()),
+                required(existing.createdAt()),
+                LocalDateTime.now().toString());
+
+        tableauRepository.update(updated);
+        return updated;
+    }
+
+    public Optional<TableauDto> findTableauById(String id) {
+        return tableauRepository.findById(id);
+    }
+
+    public List<TableauDto> findTableauxByTournamentId(String tournamentId) {
+        return tableauRepository.findByTournamentId(required(tournamentId));
+    }
+
+    public void deleteTableau(String id) {
+        tableauRepository.delete(required(id));
+    }
+
     public Optional<TournamentDto> findById(String id) {
         return tournamentRepository.findById(id);
     }
@@ -213,6 +297,15 @@ public class TournamentService {
     private List<TournamentOfficialAssignmentDto> safeOfficialAssignments(
             List<TournamentOfficialAssignmentDto> assignments) {
         return assignments == null ? List.of() : List.copyOf(assignments);
+    }
+
+    private List<String> safeStringList(List<String> values) {
+        return values == null ? List.of() : List.copyOf(values);
+    }
+
+    private List<fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.PrizeTierDto> safePrizeTiers(
+            List<fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.PrizeTierDto> tiers) {
+        return tiers == null ? List.of() : List.copyOf(tiers);
     }
 
     private LocalDate parseRequiredDate(String value, String message) {

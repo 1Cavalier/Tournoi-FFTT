@@ -5,35 +5,37 @@ PRAGMA foreign_keys = ON;
 -- Tableaux d'un tournoi
 -- =====================================================
 
+PRAGMA foreign_keys = ON;
+
 CREATE TABLE IF NOT EXISTS tableau (
 
   id TEXT PRIMARY KEY,
 
   tournament_id TEXT NOT NULL,
 
-  code        TEXT NOT NULL,
-  designation TEXT NOT NULL,
-  date        TEXT NOT NULL,
+  code TEXT,
+  designation TEXT,
+  date TEXT,
 
-  gender_policy TEXT NOT NULL,
+  gender_policy TEXT,
 
-  points_rule_type TEXT NOT NULL,
-  min_points       INTEGER,
-  max_points       INTEGER,
+  age_policy_type TEXT,
+  age_min_category TEXT,
+  age_max_category TEXT,
+  allowed_age_categories TEXT,
 
-  age_category_policy_type   TEXT,
-  age_category_policy_values TEXT,
+  points_rule_type TEXT,
+  min_points INTEGER,
+  max_points INTEGER,
 
-  max_players       INTEGER NOT NULL,
-  waitlist_capacity INTEGER NOT NULL,
+  max_players INTEGER,
+  waitlist_capacity INTEGER,
 
-  fee_amount_cents INTEGER,
-  fee_label        TEXT,
+  prepaid_fee INTEGER,
+  on_site_fee INTEGER,
 
-  check_in_end TEXT NOT NULL,
-  start_time   TEXT NOT NULL,
-
-  prize_summary TEXT,
+  check_in_end TEXT,
+  start_time TEXT,
 
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,

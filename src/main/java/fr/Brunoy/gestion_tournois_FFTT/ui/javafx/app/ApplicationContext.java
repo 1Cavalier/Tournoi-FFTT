@@ -5,17 +5,24 @@ import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.db.SqliteDb;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.mail.ConsoleEmailSender;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.mail.EmailSender;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.mail.EmailVerificationService;
-import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.*;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubAccessRepository;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubAccessRepositorySqlite;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubRepository;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubRepositorySqlite;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.OrganizerRepository;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.OrganizerRepositorySqlite;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TableauRepository;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TableauRepositorySqlite;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TournamentRegulationRepository;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TournamentRegulationRepositorySqlite;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TournamentRepository;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TournamentRepositorySqlite;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service.OrganizerAuthService;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service.TournamentService;
 
 import java.nio.file.Path;
 import java.sql.Connection;
 
-/**
- * Contexte applicatif.
- * Initialise les bases SQLite, repositories et services.
- */
 public final class ApplicationContext {
 
     private final SqliteDb clubDb;
@@ -27,8 +34,7 @@ public final class ApplicationContext {
 
     private final TournamentRepository tournamentRepository;
     private final TournamentRegulationRepository tournamentRegulationRepository;
-    // private final TournamentPolicyRepository tournamentPolicyRepository;
-    // private final TableauRepository tableauRepository;
+    private final TableauRepository tableauRepository;
 
     private final EmailSender emailSender;
     private final EmailVerificationService emailVerificationService;
@@ -37,7 +43,6 @@ public final class ApplicationContext {
     private final TournamentService tournamentService;
 
     public ApplicationContext() {
-
         Path clubDbFile = Path.of("data", "club.db");
         Path competitionDbFile = Path.of("data", "competition.db");
 
@@ -53,9 +58,7 @@ public final class ApplicationContext {
 
         this.tournamentRepository = new TournamentRepositorySqlite(competitionDb);
         this.tournamentRegulationRepository = new TournamentRegulationRepositorySqlite(competitionDb);
-        // this.tournamentPolicyRepository = new
-        // TournamentPolicyRepositorySqlite(competitionDb);
-        // this.tableauRepository = new TableauRepositorySqlite(competitionDb);
+        this.tableauRepository = new TableauRepositorySqlite(competitionDb);
 
         this.emailSender = new ConsoleEmailSender();
         this.emailVerificationService = new EmailVerificationService(
@@ -70,7 +73,8 @@ public final class ApplicationContext {
 
         this.tournamentService = new TournamentService(
                 tournamentRepository,
-                tournamentRegulationRepository);
+                tournamentRegulationRepository,
+                tableauRepository);
     }
 
     private void initClubDatabase() {
@@ -83,6 +87,7 @@ public final class ApplicationContext {
         applySql(competitionDb, "/db/competition/tournament_regulation.sql");
         applySql(competitionDb, "/db/competition/tournament_policy.sql");
         applySql(competitionDb, "/db/competition/tableau.sql");
+        applySql(competitionDb, "/db/competition/tableau_prize_tier.sql");
         applySql(competitionDb, "/db/competition/app_state.sql");
     }
 
@@ -93,10 +98,6 @@ public final class ApplicationContext {
             throw new RuntimeException("DB init failed: " + resourceSqlPath, e);
         }
     }
-
-    // -------------------------------------------------------------------------
-    // SERVICES
-    // -------------------------------------------------------------------------
 
     public OrganizerAuthService organizerAuthService() {
         return organizerAuthService;
@@ -109,10 +110,6 @@ public final class ApplicationContext {
     public EmailVerificationService emailVerificationService() {
         return emailVerificationService;
     }
-
-    // -------------------------------------------------------------------------
-    // REPOSITORIES
-    // -------------------------------------------------------------------------
 
     public ClubRepository clubRepository() {
         return clubRepository;
@@ -134,17 +131,9 @@ public final class ApplicationContext {
         return tournamentRegulationRepository;
     }
 
-    // public TournamentPolicyRepository tournamentPolicyRepository() {
-    // return tournamentPolicyRepository;
-    // }
-
-    // public TableauRepository tableauRepository() {
-    // return tableauRepository;
-    // }
-
-    // -------------------------------------------------------------------------
-    // MAIL
-    // -------------------------------------------------------------------------
+    public TableauRepository tableauRepository() {
+        return tableauRepository;
+    }
 
     public EmailSender emailSender() {
         return emailSender;

@@ -49,6 +49,7 @@ public class TableauxManagementDialog extends Stage {
 
         build();
         configureTable();
+        loadTableaux();
     }
 
     private void build() {
@@ -66,20 +67,7 @@ public class TableauxManagementDialog extends Stage {
 
         Button addButton = new Button("Ajouter un tableau");
         AppTheme.stylePrimary(addButton);
-        addButton.setOnAction(e -> {
-            CreateOrEditTableauDialog dialog = new CreateOrEditTableauDialog(
-                    nav,
-                    tournament.id(),
-                    buildTournamentDays(),
-                    regulation,
-                    null);
-            dialog.showAndWait();
-
-            TableauDto created = dialog.result();
-            if (created != null) {
-                table.getItems().add(toRow(created));
-            }
-        });
+        addButton.setOnAction(e -> onAddTableau());
 
         Region topSpacer = new Region();
         HBox.setHgrow(topSpacer, Priority.ALWAYS);
@@ -95,6 +83,10 @@ public class TableauxManagementDialog extends Stage {
         AppTheme.styleSecondary(planningButton);
         planningButton.setOnAction(e -> nav.showInfo("À venir", "Visualisation du planning des tableaux."));
 
+        Button refreshButton = new Button("Rafraîchir");
+        AppTheme.styleSecondary(refreshButton);
+        refreshButton.setOnAction(e -> loadTableaux());
+
         Button closeButton = new Button("Fermer");
         AppTheme.styleSecondary(closeButton);
         closeButton.setOnAction(e -> close());
@@ -102,7 +94,7 @@ public class TableauxManagementDialog extends Stage {
         Region bottomSpacer = new Region();
         HBox.setHgrow(bottomSpacer, Priority.ALWAYS);
 
-        HBox bottomActions = new HBox(12, planningButton, bottomSpacer, closeButton);
+        HBox bottomActions = new HBox(12, planningButton, refreshButton, bottomSpacer, closeButton);
         bottomActions.setAlignment(Pos.CENTER_LEFT);
 
         VBox card = AppTheme.card(table);
@@ -175,6 +167,41 @@ public class TableauxManagementDialog extends Stage {
                 scheduleCol,
                 capacityCol,
                 feeCol);
+    }
+
+    private void onAddTableau() {
+        CreateOrEditTableauDialog dialog = new CreateOrEditTableauDialog(
+                nav,
+                tournament.id(),
+                buildTournamentDays(),
+                regulation,
+                null);
+        dialog.showAndWait();
+
+        TableauDto created = dialog.result();
+        if (created == null) {
+            return;
+        }
+
+        try {
+            nav.tournamentService().createTableau(created);
+            loadTableaux();
+        } catch (Exception ex) {
+            nav.showInfo("Erreur", safeMessage(ex));
+        }
+    }
+
+    private void loadTableaux() {
+        table.getItems().clear();
+
+        try {
+            List<TableauDto> tableaux = nav.tournamentService().findTableauxByTournamentId(tournament.id());
+            for (TableauDto dto : tableaux) {
+                table.getItems().add(toRow(dto));
+            }
+        } catch (Exception ex) {
+            nav.showInfo("Erreur", safeMessage(ex));
+        }
     }
 
     private List<LocalDate> buildTournamentDays() {
@@ -305,6 +332,11 @@ public class TableauxManagementDialog extends Stage {
             return "—";
         }
         return safeNumber(dto.prepaidFee()) + "€ / " + safeNumber(dto.onSiteFee()) + "€";
+    }
+
+    private String safeMessage(Exception ex) {
+        String message = ex.getMessage();
+        return (message == null || message.isBlank()) ? "Une erreur est survenue." : message;
     }
 
     private static boolean isBlank(String value) {
