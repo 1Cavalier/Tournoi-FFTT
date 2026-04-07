@@ -674,19 +674,9 @@ public class EditTournamentRegulationDialog extends Stage {
     }
 
     private String prettyBallProvisionPolicy(BallProvisionPolicy value) {
-        String raw = value.name();
-        return switch (raw) {
-            case "CLUB_PROVIDED", "ORGANIZER_PROVIDED", "CLUB" -> "Club fournit";
-            case "PARTICIPANT_PROVIDED", "PLAYER_PROVIDED", "PARTICIPANT" -> "Participant fournit";
-            case "MIXED", "SHARED", "MIXED_CLUB_PARTICIPANT" -> "Mixte club et participant";
-            default -> {
-                String text = raw.toLowerCase().replace('_', ' ');
-                if (text.isEmpty()) {
-                    yield "";
-                }
-                yield Character.toUpperCase(text.charAt(0)) + text.substring(1);
-            }
-        };
+        if (value == null)
+            return "";
+        return value.label();
     }
 
     private GridPane createFormGrid() {

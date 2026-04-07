@@ -49,6 +49,9 @@ public class TournamentService {
         if (cmd.phase() == null) {
             throw new IllegalArgumentException("La phase est obligatoire.");
         }
+        if (cmd.address1() == null || cmd.address1().isBlank()) {
+            throw new IllegalArgumentException("L'adresse 1 du tournoi est obligatoire.");
+        }
 
         String tournamentId = UUID.randomUUID().toString();
         String now = LocalDateTime.now().toString();
@@ -58,7 +61,7 @@ public class TournamentService {
                 required(cmd.clubId()),
                 required(cmd.organizerId()),
                 required(cmd.name()),
-                optional(cmd.address1()),
+                required(cmd.address1()),
                 optional(cmd.address2()),
                 required(cmd.city()),
                 required(cmd.department()),

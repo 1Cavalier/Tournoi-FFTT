@@ -170,10 +170,18 @@ public class TableauxManagementDialog extends Stage {
     }
 
     private void onAddTableau() {
+        List<LocalDate> days = buildTournamentDays();
+
+        if (days.isEmpty()) {
+            nav.showInfo("Dates manquantes",
+                    "Veuillez d'abord définir les dates du tournoi avant d'ajouter un tableau.");
+            return;
+        }
+
         CreateOrEditTableauDialog dialog = new CreateOrEditTableauDialog(
                 nav,
                 tournament.id(),
-                buildTournamentDays(),
+                days,
                 regulation,
                 null);
         dialog.showAndWait();
@@ -205,18 +213,32 @@ public class TableauxManagementDialog extends Stage {
     }
 
     private List<LocalDate> buildTournamentDays() {
-        List<LocalDate> days = new ArrayList<>();
+        String rawStart = tournament.startDate();
+        String rawEnd = tournament.endDate();
 
-        LocalDate start = LocalDate.parse(tournament.startDate());
-        LocalDate end = LocalDate.parse(tournament.endDate());
-
-        LocalDate current = start;
-        while (!current.isAfter(end)) {
-            days.add(current);
-            current = current.plusDays(1);
+        if (rawStart == null || rawStart.isBlank() || rawEnd == null || rawEnd.isBlank()) {
+            return List.of();
         }
 
-        return days;
+        try {
+            LocalDate start = LocalDate.parse(rawStart.trim());
+            LocalDate end = LocalDate.parse(rawEnd.trim());
+
+            if (end.isBefore(start)) {
+                return List.of();
+            }
+
+            List<LocalDate> days = new ArrayList<>();
+            LocalDate current = start;
+            while (!current.isAfter(end)) {
+                days.add(current);
+                current = current.plusDays(1);
+            }
+            return days;
+
+        } catch (Exception e) {
+            return List.of();
+        }
     }
 
     private TableauRow toRow(TableauDto dto) {
