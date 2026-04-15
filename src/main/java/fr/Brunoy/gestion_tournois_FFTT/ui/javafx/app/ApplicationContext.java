@@ -11,6 +11,8 @@ import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubRepositorySqlite;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.OrganizerRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.OrganizerRepositorySqlite;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.PlayerRepository;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.PlayerRepositorySqlite;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TableauRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TableauRepositorySqlite;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TournamentRegulationRepository;
@@ -31,6 +33,7 @@ public final class ApplicationContext {
     private final ClubRepository clubRepository;
     private final ClubAccessRepository clubAccessRepository;
     private final OrganizerRepository organizerRepository;
+    private final PlayerRepository playerRepository;
 
     private final TournamentRepository tournamentRepository;
     private final TournamentRegulationRepository tournamentRegulationRepository;
@@ -55,6 +58,7 @@ public final class ApplicationContext {
         this.clubRepository = new ClubRepositorySqlite(clubDb);
         this.clubAccessRepository = new ClubAccessRepositorySqlite(clubDb);
         this.organizerRepository = new OrganizerRepositorySqlite(clubDb);
+        this.playerRepository = new PlayerRepositorySqlite(clubDb);
 
         this.tournamentRepository = new TournamentRepositorySqlite(competitionDb);
         this.tournamentRegulationRepository = new TournamentRegulationRepositorySqlite(competitionDb);
@@ -77,9 +81,15 @@ public final class ApplicationContext {
                 tableauRepository);
     }
 
+    // -------------------------------------------------------------------------
+    // INIT DB
+    // -------------------------------------------------------------------------
+
     private void initClubDatabase() {
         applySql(clubDb, "/db/Club.sql");
+        applySql(clubDb, "/db/Player.sql");
         applySql(clubDb, "/db/SeedData.sql");
+        applySql(clubDb, "/db/SeedData_Officials.sql");
     }
 
     private void initCompetitionDatabase() {
@@ -98,6 +108,10 @@ public final class ApplicationContext {
             throw new RuntimeException("DB init failed: " + resourceSqlPath, e);
         }
     }
+
+    // -------------------------------------------------------------------------
+    // GETTERS
+    // -------------------------------------------------------------------------
 
     public OrganizerAuthService organizerAuthService() {
         return organizerAuthService;
@@ -121,6 +135,10 @@ public final class ApplicationContext {
 
     public OrganizerRepository organizerRepository() {
         return organizerRepository;
+    }
+
+    public PlayerRepository playerRepository() {
+        return playerRepository;
     }
 
     public TournamentRepository tournamentRepository() {

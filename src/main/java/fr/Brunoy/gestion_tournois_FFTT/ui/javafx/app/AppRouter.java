@@ -5,6 +5,7 @@ import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentRegulationDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubAccessRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubRepository;
+import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.PlayerRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.infra.repo.TournamentRepository;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service.OrganizerAuthService;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.service.TournamentService;
@@ -68,6 +69,10 @@ public final class AppRouter {
 
     public TournamentRepository tournamentRepo() {
         return ctx.tournamentRepository();
+    }
+
+    public PlayerRepository playerRepo() {
+        return ctx.playerRepository();
     }
 
     // -------------------------------------------------------------------------
