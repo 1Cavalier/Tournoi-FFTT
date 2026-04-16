@@ -1,9 +1,11 @@
 package fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value;
 
-import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
-import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
-import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.PaymentMode;
 import org.junit.jupiter.api.Test;
+
+import fr.pingmanager.gestion_tournois_FFTT.common.exception.BusinessException;
+import fr.pingmanager.gestion_tournois_FFTT.common.exception.ErrorCode;
+import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.enums.PaymentMode;
+import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.value.RegistrationFee;
 
 import static org.junit.jupiter.api.Assertions.*;
 

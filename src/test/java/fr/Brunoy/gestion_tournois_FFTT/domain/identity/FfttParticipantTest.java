@@ -1,10 +1,14 @@
 package fr.Brunoy.gestion_tournois_FFTT.domain.identity;
 
-import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.AgeCategory;
-import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.Gender;
-import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.MedicalCertificateStatus;
-import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.RankingPhase;
 import fr.Brunoy.gestion_tournois_FFTT.testutil.TestDataFactory;
+import fr.pingmanager.gestion_tournois_FFTT.domain.identity.FfttParticipant;
+import fr.pingmanager.gestion_tournois_FFTT.domain.identity.Participant;
+import fr.pingmanager.gestion_tournois_FFTT.domain.identity.Player;
+import fr.pingmanager.gestion_tournois_FFTT.domain.refdata.AgeCategory;
+import fr.pingmanager.gestion_tournois_FFTT.domain.refdata.Gender;
+import fr.pingmanager.gestion_tournois_FFTT.domain.refdata.MedicalCertificateStatus;
+import fr.pingmanager.gestion_tournois_FFTT.domain.refdata.RankingPhase;
+
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

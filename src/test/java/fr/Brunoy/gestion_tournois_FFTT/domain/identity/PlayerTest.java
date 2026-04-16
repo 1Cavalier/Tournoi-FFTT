@@ -1,10 +1,12 @@
 package fr.Brunoy.gestion_tournois_FFTT.domain.identity;
 
-import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
-import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
-import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.MedicalCertificateStatus;
-import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.RankingPhase;
 import fr.Brunoy.gestion_tournois_FFTT.testutil.TestDataFactory;
+import fr.pingmanager.gestion_tournois_FFTT.common.exception.BusinessException;
+import fr.pingmanager.gestion_tournois_FFTT.common.exception.ErrorCode;
+import fr.pingmanager.gestion_tournois_FFTT.domain.identity.Player;
+import fr.pingmanager.gestion_tournois_FFTT.domain.refdata.MedicalCertificateStatus;
+import fr.pingmanager.gestion_tournois_FFTT.domain.refdata.RankingPhase;
+
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -17,11 +19,11 @@ class PlayerTest {
                 "  08911132X ",
                 "  QUENTIN ",
                 " SOUMET  ",
-                fr.Brunoy.gestion_tournois_FFTT.domain.refdata.Gender.MALE,
+                fr.pingmanager.gestion_tournois_FFTT.domain.refdata.Gender.MALE,
                 " fr ",
                 TestDataFactory.clubBrunoy(),
-                fr.Brunoy.gestion_tournois_FFTT.domain.refdata.AgeCategory.SENIOR,
-                fr.Brunoy.gestion_tournois_FFTT.domain.refdata.LicenseType.COMPETITION,
+                fr.pingmanager.gestion_tournois_FFTT.domain.refdata.AgeCategory.SENIOR,
+                fr.pingmanager.gestion_tournois_FFTT.domain.refdata.LicenseType.COMPETITION,
                 false,
                 MedicalCertificateStatus.VALIDE,
                 100,
@@ -88,40 +90,40 @@ class PlayerTest {
     void requiredFieldsShouldThrowBusinessExceptionWithProperCode() {
         assertCode(ErrorCode.PLAYER_LICENSE_REQUIRED, () -> new Player(
                 " ", "A", "B",
-                fr.Brunoy.gestion_tournois_FFTT.domain.refdata.Gender.MALE,
+                fr.pingmanager.gestion_tournois_FFTT.domain.refdata.Gender.MALE,
                 "FR", TestDataFactory.clubBrunoy(),
-                fr.Brunoy.gestion_tournois_FFTT.domain.refdata.AgeCategory.SENIOR,
-                fr.Brunoy.gestion_tournois_FFTT.domain.refdata.LicenseType.COMPETITION,
+                fr.pingmanager.gestion_tournois_FFTT.domain.refdata.AgeCategory.SENIOR,
+                fr.pingmanager.gestion_tournois_FFTT.domain.refdata.LicenseType.COMPETITION,
                 false,
                 MedicalCertificateStatus.VALIDE,
                 10, 10));
 
         assertCode(ErrorCode.PLAYER_FIRST_NAME_REQUIRED, () -> new Player(
                 "X", " ", "B",
-                fr.Brunoy.gestion_tournois_FFTT.domain.refdata.Gender.MALE,
+                fr.pingmanager.gestion_tournois_FFTT.domain.refdata.Gender.MALE,
                 "FR", TestDataFactory.clubBrunoy(),
-                fr.Brunoy.gestion_tournois_FFTT.domain.refdata.AgeCategory.SENIOR,
-                fr.Brunoy.gestion_tournois_FFTT.domain.refdata.LicenseType.COMPETITION,
+                fr.pingmanager.gestion_tournois_FFTT.domain.refdata.AgeCategory.SENIOR,
+                fr.pingmanager.gestion_tournois_FFTT.domain.refdata.LicenseType.COMPETITION,
                 false,
                 MedicalCertificateStatus.VALIDE,
                 10, 10));
 
         assertCode(ErrorCode.PLAYER_LAST_NAME_REQUIRED, () -> new Player(
                 "X", "A", " ",
-                fr.Brunoy.gestion_tournois_FFTT.domain.refdata.Gender.MALE,
+                fr.pingmanager.gestion_tournois_FFTT.domain.refdata.Gender.MALE,
                 "FR", TestDataFactory.clubBrunoy(),
-                fr.Brunoy.gestion_tournois_FFTT.domain.refdata.AgeCategory.SENIOR,
-                fr.Brunoy.gestion_tournois_FFTT.domain.refdata.LicenseType.COMPETITION,
+                fr.pingmanager.gestion_tournois_FFTT.domain.refdata.AgeCategory.SENIOR,
+                fr.pingmanager.gestion_tournois_FFTT.domain.refdata.LicenseType.COMPETITION,
                 false,
                 MedicalCertificateStatus.VALIDE,
                 10, 10));
 
         assertCode(ErrorCode.PLAYER_POINTS_NEGATIVE, () -> new Player(
                 "X", "A", "B",
-                fr.Brunoy.gestion_tournois_FFTT.domain.refdata.Gender.MALE,
+                fr.pingmanager.gestion_tournois_FFTT.domain.refdata.Gender.MALE,
                 "FR", TestDataFactory.clubBrunoy(),
-                fr.Brunoy.gestion_tournois_FFTT.domain.refdata.AgeCategory.SENIOR,
-                fr.Brunoy.gestion_tournois_FFTT.domain.refdata.LicenseType.COMPETITION,
+                fr.pingmanager.gestion_tournois_FFTT.domain.refdata.AgeCategory.SENIOR,
+                fr.pingmanager.gestion_tournois_FFTT.domain.refdata.LicenseType.COMPETITION,
                 false,
                 MedicalCertificateStatus.VALIDE,
                 -1, 10));

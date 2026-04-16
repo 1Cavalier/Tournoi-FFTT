@@ -1,8 +1,12 @@
 package fr.Brunoy.gestion_tournois_FFTT.domain.organization;
 
-import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
-import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
 import org.junit.jupiter.api.Test;
+
+import fr.pingmanager.gestion_tournois_FFTT.common.exception.BusinessException;
+import fr.pingmanager.gestion_tournois_FFTT.common.exception.ErrorCode;
+import fr.pingmanager.gestion_tournois_FFTT.domain.organization.Club;
+import fr.pingmanager.gestion_tournois_FFTT.domain.organization.Departement;
+import fr.pingmanager.gestion_tournois_FFTT.domain.organization.Region;
 
 import static org.junit.jupiter.api.Assertions.*;
 

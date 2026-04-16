@@ -1,10 +1,12 @@
 package fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value;
 
-import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
-import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
-import fr.Brunoy.gestion_tournois_FFTT.domain.identity.*;
-import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.*;
 import fr.Brunoy.gestion_tournois_FFTT.testutil.TestDataFactory;
+import fr.pingmanager.gestion_tournois_FFTT.common.exception.BusinessException;
+import fr.pingmanager.gestion_tournois_FFTT.common.exception.ErrorCode;
+import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.value.ParticipantEligibilityPolicy;
+import fr.pingmanager.gestion_tournois_FFTT.domain.identity.*;
+import fr.pingmanager.gestion_tournois_FFTT.domain.refdata.*;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;

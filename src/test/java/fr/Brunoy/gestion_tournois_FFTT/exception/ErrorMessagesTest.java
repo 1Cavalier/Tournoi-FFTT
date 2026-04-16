@@ -2,8 +2,8 @@ package fr.Brunoy.gestion_tournois_FFTT.exception;
 
 import org.junit.jupiter.api.Test;
 
-import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
-import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorMessages;
+import fr.pingmanager.gestion_tournois_FFTT.common.exception.ErrorCode;
+import fr.pingmanager.gestion_tournois_FFTT.common.exception.ErrorMessages;
 
 import java.util.HashMap;
 import java.util.Map;

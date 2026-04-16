@@ -1,12 +1,16 @@
 package fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.entity;
 
-import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
-import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
-import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.*;
-import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.*;
-import fr.Brunoy.gestion_tournois_FFTT.domain.identity.Participant;
-import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.RankingPhase;
 import fr.Brunoy.gestion_tournois_FFTT.testutil.TestDataFactory;
+import fr.pingmanager.gestion_tournois_FFTT.common.exception.BusinessException;
+import fr.pingmanager.gestion_tournois_FFTT.common.exception.ErrorCode;
+import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.entity.Registration;
+import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.entity.Tableau;
+import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.entity.Tournament;
+import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.enums.*;
+import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.value.*;
+import fr.pingmanager.gestion_tournois_FFTT.domain.identity.Participant;
+import fr.pingmanager.gestion_tournois_FFTT.domain.refdata.RankingPhase;
+
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;

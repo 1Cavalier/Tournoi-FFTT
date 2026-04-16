@@ -1,12 +1,12 @@
 package fr.Brunoy.gestion_tournois_FFTT.testutil;
 
-import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value.ParticipantEligibilityPolicy;
-import fr.Brunoy.gestion_tournois_FFTT.domain.identity.*;
-import fr.Brunoy.gestion_tournois_FFTT.domain.organization.*;
-import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.*;
-
 import java.util.Locale;
 import java.util.Set;
+
+import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.value.ParticipantEligibilityPolicy;
+import fr.pingmanager.gestion_tournois_FFTT.domain.identity.*;
+import fr.pingmanager.gestion_tournois_FFTT.domain.organization.*;
+import fr.pingmanager.gestion_tournois_FFTT.domain.refdata.*;
 
 public final class TestDataFactory {
 

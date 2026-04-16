@@ -1,9 +1,11 @@
 package fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.value;
 
-import fr.Brunoy.gestion_tournois_FFTT.common.exception.BusinessException;
-import fr.Brunoy.gestion_tournois_FFTT.common.exception.ErrorCode;
-import fr.Brunoy.gestion_tournois_FFTT.domain.refdata.AgeCategory;
 import org.junit.jupiter.api.Test;
+
+import fr.pingmanager.gestion_tournois_FFTT.common.exception.BusinessException;
+import fr.pingmanager.gestion_tournois_FFTT.common.exception.ErrorCode;
+import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.value.AgeCategoryPolicy;
+import fr.pingmanager.gestion_tournois_FFTT.domain.refdata.AgeCategory;
 
 import java.util.EnumSet;
 import java.util.Set;
