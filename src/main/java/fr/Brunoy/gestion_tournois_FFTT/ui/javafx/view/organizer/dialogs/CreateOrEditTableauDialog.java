@@ -49,7 +49,6 @@ public class CreateOrEditTableauDialog extends Stage {
         ALLOWED_SET
     }
 
-    private final AppRouter nav;
     private final String tournamentId;
     private final List<LocalDate> tournamentDays;
     private final TournamentRegulationDto regulation;
@@ -100,7 +99,7 @@ public class CreateOrEditTableauDialog extends Stage {
             TournamentRegulationDto regulation,
             TableauDto existingTableau) {
 
-        this.nav = Objects.requireNonNull(nav, "nav must not be null");
+        Objects.requireNonNull(nav, "nav must not be null");
         this.tournamentId = Objects.requireNonNull(tournamentId, "tournamentId must not be null");
         this.tournamentDays = List.copyOf(Objects.requireNonNull(tournamentDays, "tournamentDays must not be null"));
         this.regulation = Objects.requireNonNull(regulation, "regulation must not be null");
@@ -166,7 +165,7 @@ public class CreateOrEditTableauDialog extends Stage {
     }
 
     private VBox buildGeneralSection() {
-        Label sectionTitle = new Label("Tableau général");
+        Label sectionTitle = new Label("Identification du tableau");
         AppTheme.applyCardTitle(sectionTitle);
 
         GridPane grid = createFormGrid();
@@ -176,7 +175,7 @@ public class CreateOrEditTableauDialog extends Stage {
         addField(grid, row++, "Nom / désignation", designationField);
         addField(grid, row++, "", autoDesignationCheck);
         addField(grid, row++, "Date", datePicker);
-        addField(grid, row++, "Type de tableau", genderPolicyBox);
+        addField(grid, row++, "Genre", genderPolicyBox);
         addField(grid, row++, "Politique d'âge", agePolicyBox);
         addField(grid, row++, "", ageRangeBox);
         addField(grid, row++, "", ageAllowedSetBox);
@@ -272,7 +271,36 @@ public class CreateOrEditTableauDialog extends Stage {
         agePolicyBox.setValue(AgePolicyChoice.ANY);
 
         ageMinBox.setItems(FXCollections.observableArrayList(AgeCategory.values()));
+        ageMinBox.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(AgeCategory item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.label());
+            }
+        });
+        ageMinBox.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(AgeCategory item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.label());
+            }
+        });
+
         ageMaxBox.setItems(FXCollections.observableArrayList(AgeCategory.values()));
+        ageMaxBox.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(AgeCategory item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.label());
+            }
+        });
+        ageMaxBox.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(AgeCategory item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.label());
+            }
+        });
 
         ageRangeBox.setSpacing(AppTheme.SPACE_SM);
         ageRangeBox.getChildren().setAll(
@@ -687,7 +715,8 @@ public class CreateOrEditTableauDialog extends Stage {
     private static String prettyGender(GenderPolicy policy) {
         return switch (policy) {
             case MIXTE -> "Mixte";
-            case FEMININ_ONLY -> "Féminin uniquement";
+            case MASCULIN -> "Masculin uniquement";
+            case FEMININ -> "Féminin uniquement";
         };
     }
 
@@ -708,7 +737,7 @@ public class CreateOrEditTableauDialog extends Stage {
     }
 
     private static String prettyAgeCategory(AgeCategory category) {
-        return category.name().replace('_', ' ');
+        return category.label();
     }
 
     private static String safe(String value) {

@@ -17,14 +17,15 @@ class AgeCategoryPolicyTest {
         AgeCategoryPolicy p = AgeCategoryPolicy.any();
 
         for (AgeCategory c : AgeCategory.values()) {
-            assertTrue(p.accepts(c), "Doit accepter " + c);
+            assertTrue(p.accepts(c), "Doit accepter " + c.label());
         }
         assertFalse(p.accepts(null));
     }
 
     @Test
     void allowedSetShouldAcceptOnlyWhitelistedCategories() {
-        AgeCategoryPolicy p = AgeCategoryPolicy.allowed(EnumSet.of(AgeCategory.SENIOR, AgeCategory.VETERAN_45));
+        AgeCategoryPolicy p = AgeCategoryPolicy.allowed(
+                EnumSet.of(AgeCategory.SENIOR, AgeCategory.VETERAN_45));
 
         assertTrue(p.accepts(AgeCategory.SENIOR));
         assertTrue(p.accepts(AgeCategory.VETERAN_45));
@@ -34,20 +35,23 @@ class AgeCategoryPolicyTest {
 
     @Test
     void rangeShouldAcceptBetweenMinAndMaxInclusive() {
+        // Intervalle Cadet 1 → Junior 2
         AgeCategoryPolicy p = AgeCategoryPolicy.range(AgeCategory.CADET_1, AgeCategory.JUNIOR_2);
 
-        assertFalse(p.accepts(AgeCategory.MINIME_2));
+        assertFalse(p.accepts(AgeCategory.MINIME_2)); // avant CADET_1
         assertTrue(p.accepts(AgeCategory.CADET_1));
         assertTrue(p.accepts(AgeCategory.CADET_2));
         assertTrue(p.accepts(AgeCategory.JUNIOR_1));
         assertTrue(p.accepts(AgeCategory.JUNIOR_2));
+        assertFalse(p.accepts(AgeCategory.JUNIOR_3)); // après JUNIOR_2
         assertFalse(p.accepts(AgeCategory.SENIOR));
         assertFalse(p.accepts(null));
     }
 
     @Test
     void allowedSetWithEmptyShouldThrow() {
-        BusinessException ex = assertThrows(BusinessException.class, () -> AgeCategoryPolicy.allowed(Set.of()));
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> AgeCategoryPolicy.allowed(Set.of()));
         assertEquals(ErrorCode.TABLEAU_AGE_POLICY_INVALID, ex.getCode());
     }
 
@@ -61,7 +65,7 @@ class AgeCategoryPolicyTest {
                 () -> AgeCategoryPolicy.range(AgeCategory.SENIOR, null));
         assertEquals(ErrorCode.TABLEAU_AGE_POLICY_INVALID, ex2.getCode());
 
-        // inversé
+        // Bornes inversées : SENIOR > CADET_1
         BusinessException ex3 = assertThrows(BusinessException.class,
                 () -> AgeCategoryPolicy.range(AgeCategory.SENIOR, AgeCategory.CADET_1));
         assertEquals(ErrorCode.TABLEAU_AGE_POLICY_INVALID, ex3.getCode());

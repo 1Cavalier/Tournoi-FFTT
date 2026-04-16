@@ -83,7 +83,7 @@ class TournamentTest {
                                 code,
                                 "Tableau " + code,
                                 date,
-                                GenderPolicy.FEMININ_ONLY,
+                                GenderPolicy.FEMININ,
                                 null,
                                 TableauPointsRuleType.TOUTES_SERIES,
                                 null,

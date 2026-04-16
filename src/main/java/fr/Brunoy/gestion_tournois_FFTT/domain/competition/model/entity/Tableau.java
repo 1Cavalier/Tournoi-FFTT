@@ -172,7 +172,7 @@ public final class Tableau {
         }
 
         // genre
-        if (genderPolicy == GenderPolicy.FEMININ_ONLY && !isFemale) {
+        if (genderPolicy == GenderPolicy.FEMININ && !isFemale) {
             return false;
         }
 

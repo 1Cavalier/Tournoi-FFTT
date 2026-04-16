@@ -626,20 +626,20 @@ public class TournamentDashboardCard extends VBox {
     }
 
     private String prettyLevel(String value) {
-        return switch (OrganizerViewUtils.safe(value)) {
-            case "DEPARTEMENTAL" -> "Départemental";
-            case "REGIONAL" -> "Régional";
-            case "NATIONAL_B" -> "National B";
-            case "NATIONAL_A" -> "National A";
-            case "INTERNATIONAL" -> "International";
-            default -> OrganizerViewUtils.nvl(value);
-        };
+        String safe = OrganizerViewUtils.safe(value);
+        if (safe.isEmpty())
+            return OrganizerViewUtils.nvl(value);
+        try {
+            return fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.TournamentLevel.valueOf(safe).label();
+        } catch (Exception e) {
+            return safe;
+        }
     }
 
     private String prettyPhase(String value) {
         return switch (OrganizerViewUtils.safe(value)) {
-            case "PHASE_1" -> "Phase 1";
-            case "PHASE_2" -> "Phase 2";
+            case "PHASE_1" -> "Phase 1 (oct. → déc.)";
+            case "PHASE_2" -> "Phase 2 (janv. → juillet)";
             default -> OrganizerViewUtils.nvl(value);
         };
     }

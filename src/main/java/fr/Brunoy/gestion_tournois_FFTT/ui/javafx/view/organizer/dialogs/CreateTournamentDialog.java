@@ -214,7 +214,29 @@ public class CreateTournamentDialog extends Stage {
         endDatePicker.setPromptText("Date de fin");
 
         levelBox.getItems().setAll(TournamentLevel.values());
+        levelBox.setConverter(new javafx.util.StringConverter<>() {
+            @Override
+            public String toString(TournamentLevel level) {
+                return level == null ? "" : level.label();
+            }
+
+            @Override
+            public TournamentLevel fromString(String string) {
+                return null; // non utilisé (ComboBox non éditable)
+            }
+        });
         phaseBox.getItems().setAll(RankingPhase.values());
+        phaseBox.setConverter(new javafx.util.StringConverter<>() {
+            @Override
+            public String toString(RankingPhase phase) {
+                return phase == null ? "" : phase.label();
+            }
+
+            @Override
+            public RankingPhase fromString(String string) {
+                return null; // non utilisé (ComboBox non éditable)
+            }
+        });
 
         if (isEditMode()) {
             nameField.setText(nvl(existingTournament.name()));

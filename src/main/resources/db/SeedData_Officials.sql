@@ -118,7 +118,7 @@ INSERT INTO official_qualification (
   -- Bernard DUPUIS -> JA3
   (
     'qual-003', 'player-ja-003', 'JUGE_ARBITRE',
-    'JA3', NULL, NULL,
+    'JA2', NULL, NULL,
     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
   ),
  

@@ -1,5 +1,6 @@
 package fr.Brunoy.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs;
 
+import fr.Brunoy.gestion_tournois_FFTT.domain.competition.model.enums.GenderPolicy;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TableauDto;
 import fr.Brunoy.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
@@ -293,13 +294,13 @@ public class TableauxManagementDialog extends Stage {
     }
 
     private String formatGender(String value) {
-        if ("FEMININ_ONLY".equalsIgnoreCase(value)) {
-            return "Féminin";
+        if (value == null || value.isBlank())
+            return "—";
+        try {
+            return GenderPolicy.valueOf(value.trim().toUpperCase()).label();
+        } catch (Exception e) {
+            return safe(value);
         }
-        if ("MIXTE".equalsIgnoreCase(value)) {
-            return "Mixte";
-        }
-        return safe(value);
     }
 
     private String formatCategories(TableauDto dto) {
@@ -342,7 +343,7 @@ public class TableauxManagementDialog extends Stage {
         if ("—".equals(checkIn) && "—".equals(start)) {
             return "—";
         }
-        return "Pointage " + checkIn + " • Début " + start;
+        return "Pointage " + checkIn + " | Début " + start;
     }
 
     private String formatCapacity(TableauDto dto) {
