@@ -322,6 +322,74 @@ public final class ErrorMessages {
                 "Le grade du juge-arbitre (JA) est obligatoire";
             case TOURNAMENT_JA_GRADE_TOO_LOW_FOR_LEVEL ->
                 "Aucun juge-arbitre désigné n'a le grade requis pour le niveau du tournoi";
+
+            // ========================================================================
+            // POULE (phase de groupes)
+            // ========================================================================
+
+            // ---- structure ----
+            case POOL_INVALID_SIZE ->
+                "Une poule doit contenir 2 ou 3 joueurs";
+            case POOL_DUPLICATE_PARTICIPANT ->
+                "Un participant ne peut pas figurer deux fois dans la même poule";
+            case POOL_NOT_ALL_MATCHES_FINISHED ->
+                "Impossible de calculer le classement : tous les matchs de la poule ne sont pas terminés";
+
+            // ---- match ----
+            case POOL_MATCH_NOT_FOUND ->
+                "Le match demandé est introuvable dans cette poule";
+            case POOL_MATCH_SAME_PARTICIPANT ->
+                "Un joueur ne peut pas s'affronter lui-même";
+            case POOL_MATCH_ALREADY_FINISHED ->
+                "Ce match est déjà terminé, le score ne peut plus être modifié";
+            case POOL_MATCH_INVALID_TRANSITION ->
+                "Transition de statut invalide pour ce match";
+            case POOL_MATCH_PARTICIPANT_NOT_IN_MATCH ->
+                "Ce participant ne fait pas partie de ce match";
+
+            // ---- score ----
+            case POOL_MATCH_SCORE_EMPTY ->
+                "Le score doit contenir au moins une manche";
+            case POOL_MATCH_SCORE_INVALID ->
+                "Le score du match est invalide";
+            case POOL_MATCH_SCORE_INVALID_SET ->
+                "Une manche doit contenir exactement deux valeurs (points joueur 1, points joueur 2)";
+            case POOL_MATCH_SCORE_NEGATIVE_POINTS ->
+                "Les points d'une manche ne peuvent pas être négatifs";
+            case POOL_MATCH_SCORE_SET_NOT_FINISHED ->
+                "Une manche doit être jouée jusqu'à au moins 11 points";
+            case POOL_MATCH_SCORE_SET_INVALID_DEUCE ->
+                "En cas d'égalité à 10-10, la manche se joue avec 2 points d'écart exact";
+            case POOL_MATCH_SCORE_TOO_MANY_SETS ->
+                "Un match ne peut pas dépasser 5 manches (best of 5)";
+            case POOL_MATCH_SCORE_NOT_FINISHED ->
+                "Le match n'est pas terminé : aucun des deux joueurs n'a atteint 3 manches gagnées";
+
+            // ========================================================================
+            // DRAW (algorithme de tirage des poules)
+            // ========================================================================
+
+            case DRAW_NOT_ENOUGH_PLAYERS ->
+                "Impossible de constituer les poules : pas assez de joueurs inscrits";
+            case DRAW_ALGORITHM_REQUIRED ->
+                "L'algorithme de tirage des poules est obligatoire";
+
+            // ========================================================================
+            // BRACKET KO (tableau à élimination directe)
+            // ========================================================================
+
+            case BRACKET_NO_QUALIFIED_PLAYERS ->
+                "Impossible de construire le tableau KO : aucun joueur qualifié";
+            case BRACKET_MATCH_NOT_FOUND ->
+                "Le match demandé est introuvable dans le tableau";
+            case BRACKET_MATCH_ALREADY_FINISHED ->
+                "Ce match KO est déjà terminé, le score ne peut plus être modifié";
+            case BRACKET_MATCH_INVALID_TRANSITION ->
+                "Transition de statut invalide pour ce match KO";
+            case BRACKET_MATCH_PARTICIPANT_NOT_IN_MATCH ->
+                "Ce participant ne fait pas partie de ce match KO";
+            case BRACKET_MATCH_SCORE_REQUIRED ->
+                "Le score est obligatoire pour clôturer ce match KO";
         };
     }
 }

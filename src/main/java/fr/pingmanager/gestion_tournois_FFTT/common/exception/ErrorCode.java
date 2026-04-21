@@ -198,5 +198,49 @@ public enum ErrorCode {
     TOURNAMENT_JA_REQUIRED,
     TOURNAMENT_JA_DUPLICATE,
     TOURNAMENT_JA_GRADE_REQUIRED,
-    TOURNAMENT_JA_GRADE_TOO_LOW_FOR_LEVEL
+    TOURNAMENT_JA_GRADE_TOO_LOW_FOR_LEVEL,
+
+    // ========================================================================
+    // POULE (phase de groupes)
+    // ========================================================================
+
+    // ---- structure ----
+    POOL_INVALID_SIZE,
+    POOL_DUPLICATE_PARTICIPANT,
+    POOL_NOT_ALL_MATCHES_FINISHED,
+
+    // ---- match ----
+    POOL_MATCH_NOT_FOUND,
+    POOL_MATCH_SAME_PARTICIPANT,
+    POOL_MATCH_ALREADY_FINISHED,
+    POOL_MATCH_INVALID_TRANSITION,
+    POOL_MATCH_PARTICIPANT_NOT_IN_MATCH,
+
+    // ---- score ----
+    POOL_MATCH_SCORE_EMPTY,
+    POOL_MATCH_SCORE_INVALID,
+    POOL_MATCH_SCORE_INVALID_SET,
+    POOL_MATCH_SCORE_NEGATIVE_POINTS,
+    POOL_MATCH_SCORE_SET_NOT_FINISHED,
+    POOL_MATCH_SCORE_SET_INVALID_DEUCE,
+    POOL_MATCH_SCORE_TOO_MANY_SETS,
+    POOL_MATCH_SCORE_NOT_FINISHED,
+
+    // ========================================================================
+    // DRAW (algorithme de tirage des poules)
+    // ========================================================================
+
+    DRAW_NOT_ENOUGH_PLAYERS,
+    DRAW_ALGORITHM_REQUIRED,
+
+    // ========================================================================
+    // BRACKET KO (tableau à élimination directe)
+    // ========================================================================
+
+    BRACKET_NO_QUALIFIED_PLAYERS,
+    BRACKET_MATCH_NOT_FOUND,
+    BRACKET_MATCH_ALREADY_FINISHED,
+    BRACKET_MATCH_INVALID_TRANSITION,
+    BRACKET_MATCH_PARTICIPANT_NOT_IN_MATCH,
+    BRACKET_MATCH_SCORE_REQUIRED
 }
