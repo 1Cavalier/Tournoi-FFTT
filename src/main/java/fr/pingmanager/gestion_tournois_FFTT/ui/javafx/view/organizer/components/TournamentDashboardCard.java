@@ -1,5 +1,9 @@
 package fr.pingmanager.gestion_tournois_FFTT.ui.javafx.view.organizer.components;
 
+import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
+import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
+import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.TournamentRegulationDto;
+import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -10,16 +14,11 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
+import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.TableauDto;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.time.format.DateTimeFormatter;
 import java.util.Objects;
-
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.TournamentOfficialAssignmentDto;
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.TournamentRegulationDto;
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 
 public class TournamentDashboardCard extends VBox {
 
@@ -31,11 +30,14 @@ public class TournamentDashboardCard extends VBox {
     private final AppRouter nav;
     private final TournamentDto tournament;
     private final TournamentRegulationDto regulation;
+    private final List<TableauDto> tableaux;
 
-    public TournamentDashboardCard(AppRouter nav, TournamentDto tournament, TournamentRegulationDto regulation) {
+    public TournamentDashboardCard(AppRouter nav, TournamentDto tournament,
+            TournamentRegulationDto regulation, List<TableauDto> tableaux) {
         this.nav = Objects.requireNonNull(nav, "nav must not be null");
         this.tournament = Objects.requireNonNull(tournament, "tournament must not be null");
         this.regulation = regulation;
+        this.tableaux = tableaux != null ? tableaux : List.of();
         build();
     }
 
@@ -180,11 +182,28 @@ public class TournamentDashboardCard extends VBox {
         Label title = new Label("Tableaux");
         AppTheme.applyCardTitle(title);
 
+        BlockState blockState = computeTableauxBlockState();
+        int total = tableaux.size();
+        int complete = (int) tableaux.stream().filter(this::isTableauComplete).count();
+
+        String etatValue;
+        FieldState etatState;
+        if (total == 0) {
+            etatValue = "Aucun tableau";
+            etatState = FieldState.missing("Aucun tableau défini pour ce tournoi.");
+        } else if (complete == total) {
+            etatValue = total + " tableau" + (total > 1 ? "x" : "") + " complet" + (total > 1 ? "s" : "");
+            etatState = FieldState.valid("Tous les tableaux sont complets.");
+        } else {
+            etatValue = complete + " / " + total + " tableau" + (total > 1 ? "x" : "") + " complet"
+                    + (complete > 1 ? "s" : "");
+            etatState = FieldState.partial(complete + " tableau(x) complet(s) sur " + total + ".");
+        }
+
         VBox infoBox = new VBox(SECTION_SPACING);
         infoBox.getChildren().addAll(
-                buildSectionHeader(title, BlockState.PARTIAL),
-                infoRow("État", "À configurer",
-                        FieldState.partial("Information partiellement renseignée.")),
+                buildSectionHeader(title, blockState),
+                infoRow("État", etatValue, etatState),
                 infoRow("Disponibilité", isDraft() ? "Brouillon" : "Disponible",
                         FieldState.valid("Information complète.")));
 
@@ -195,6 +214,27 @@ public class TournamentDashboardCard extends VBox {
         VBox.setVgrow(infoBox, Priority.ALWAYS);
 
         return buildSection(content);
+    }
+
+    /**
+     * Un tableau est considéré complet s'il a au minimum un code, une désignation,
+     * une date, une politique de genre et une heure de début.
+     */
+    private boolean isTableauComplete(TableauDto t) {
+        return hasText(t.code())
+                && hasText(t.designation())
+                && hasText(t.date())
+                && hasText(t.genderPolicy())
+                && hasText(t.startTime());
+    }
+
+    private BlockState computeTableauxBlockState() {
+        if (tableaux.isEmpty())
+            return BlockState.PARTIAL;
+        long complete = tableaux.stream().filter(this::isTableauComplete).count();
+        if (complete == tableaux.size())
+            return BlockState.COMPLETE;
+        return BlockState.PARTIAL;
     }
 
     // =========================================================================
@@ -631,7 +671,8 @@ public class TournamentDashboardCard extends VBox {
         if (safe.isEmpty())
             return OrganizerViewUtils.nvl(value);
         try {
-            return fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.enums.TournamentLevel.valueOf(safe).label();
+            return fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.enums.TournamentLevel.valueOf(safe)
+                    .label();
         } catch (Exception e) {
             return safe;
         }
@@ -640,7 +681,7 @@ public class TournamentDashboardCard extends VBox {
     private String prettyPhase(String value) {
         return switch (OrganizerViewUtils.safe(value)) {
             case "PHASE_1" -> "Phase 1 (oct. → déc.)";
-            case "PHASE_2" -> "Phase 2 (janv. → juillet)";
+            case "PHASE_2" -> "Phase 2 (janv. → juin)";
             default -> OrganizerViewUtils.nvl(value);
         };
     }

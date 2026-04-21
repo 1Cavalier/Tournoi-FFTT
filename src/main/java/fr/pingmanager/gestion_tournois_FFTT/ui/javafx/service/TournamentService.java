@@ -8,13 +8,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.enums.TournamentStatus;
+import fr.pingmanager.gestion_tournois_FFTT.infra.repo.TableauRepository;
+import fr.pingmanager.gestion_tournois_FFTT.infra.repo.TournamentRegulationRepository;
+import fr.pingmanager.gestion_tournois_FFTT.infra.repo.TournamentRepository;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.TableauDto;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.TournamentOfficialAssignmentDto;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.TournamentRegulationDto;
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.infra.repo.TableauRepository;
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.infra.repo.TournamentRegulationRepository;
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.infra.repo.TournamentRepository;
 
 public class TournamentService {
 

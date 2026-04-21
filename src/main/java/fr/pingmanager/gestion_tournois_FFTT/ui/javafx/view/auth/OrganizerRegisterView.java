@@ -20,9 +20,9 @@ import javafx.scene.layout.VBox;
 import java.util.List;
 import java.util.Objects;
 
+import fr.pingmanager.gestion_tournois_FFTT.infra.security.PasswordPolicy;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.ClubDto;
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.infra.security.PasswordPolicy;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 
 public class OrganizerRegisterView extends BorderPane {

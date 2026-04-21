@@ -7,13 +7,13 @@ import javafx.stage.Stage;
 
 import java.util.Objects;
 
+import fr.pingmanager.gestion_tournois_FFTT.infra.repo.ClubAccessRepository;
+import fr.pingmanager.gestion_tournois_FFTT.infra.repo.ClubRepository;
+import fr.pingmanager.gestion_tournois_FFTT.infra.repo.PlayerRepository;
+import fr.pingmanager.gestion_tournois_FFTT.infra.repo.TournamentRepository;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.TournamentRegulationDto;
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubAccessRepository;
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubRepository;
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.infra.repo.PlayerRepository;
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.infra.repo.TournamentRepository;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.service.OrganizerAuthService;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.service.TournamentService;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;

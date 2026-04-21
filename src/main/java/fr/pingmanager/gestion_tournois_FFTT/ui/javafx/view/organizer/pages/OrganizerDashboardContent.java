@@ -16,6 +16,7 @@ import java.util.Objects;
 
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.app.AppRouter;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
+import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.TableauDto;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.TournamentRegulationDto;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
@@ -81,8 +82,13 @@ public class OrganizerDashboardContent extends VBox {
     }
 
     private VBox buildClubTournamentsSection() {
-        List<TournamentDto> draft = loadDraftTournaments();
-        List<TournamentDto> active = loadActiveTournaments();
+        String clubId = nav.clubRepo()
+                .findByOrganizerId(organizer.getId())
+                .orElseThrow(() -> new IllegalStateException("Club introuvable pour cet organisateur"))
+                .id();
+
+        List<TournamentDto> draft = loadDraftTournaments(clubId);
+        List<TournamentDto> active = loadActiveTournaments(clubId);
 
         List<TournamentDto> allTournaments = new ArrayList<>();
         allTournaments.addAll(draft);
@@ -107,8 +113,12 @@ public class OrganizerDashboardContent extends VBox {
         } else {
             VBox listBox = new VBox(12);
             for (TournamentDto tournament : allTournaments) {
-                TournamentRegulationDto regulation = nav.tournamentService().getRegulation(tournament.id());
-                listBox.getChildren().add(new TournamentDashboardCard(nav, tournament, regulation));
+                TournamentRegulationDto regulation = nav.tournamentService()
+                        .getRegulation(tournament.id());
+                List<TableauDto> tableaux = nav.tournamentService()
+                        .findTableauxByTournamentId(tournament.id());
+                listBox.getChildren().add(
+                        new TournamentDashboardCard(nav, tournament, regulation, tableaux));
             }
             content.getChildren().add(listBox);
         }
@@ -154,21 +164,11 @@ public class OrganizerDashboardContent extends VBox {
         return row;
     }
 
-    private List<TournamentDto> loadDraftTournaments() {
-        String clubId = nav.clubRepo()
-                .findByOrganizerId(organizer.getId())
-                .orElseThrow(() -> new IllegalStateException("Club introuvable pour cet organisateur"))
-                .id();
-
+    private List<TournamentDto> loadDraftTournaments(String clubId) {
         return nav.tournamentService().findDraftForClub(clubId);
     }
 
-    private List<TournamentDto> loadActiveTournaments() {
-        String clubId = nav.clubRepo()
-                .findByOrganizerId(organizer.getId())
-                .orElseThrow(() -> new IllegalStateException("Club introuvable pour cet organisateur"))
-                .id();
-
+    private List<TournamentDto> loadActiveTournaments(String clubId) {
         return nav.tournamentService().findActiveForClub(clubId);
     }
 

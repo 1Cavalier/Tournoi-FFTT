@@ -4,17 +4,17 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 
+import fr.pingmanager.gestion_tournois_FFTT.infra.mail.EmailTemplates;
+import fr.pingmanager.gestion_tournois_FFTT.infra.mail.EmailVerificationService;
+import fr.pingmanager.gestion_tournois_FFTT.infra.mail.VerificationCodeGenerator;
+import fr.pingmanager.gestion_tournois_FFTT.infra.repo.ClubAccessRepository;
+import fr.pingmanager.gestion_tournois_FFTT.infra.repo.ClubRepository;
+import fr.pingmanager.gestion_tournois_FFTT.infra.repo.OrganizerRepository;
+import fr.pingmanager.gestion_tournois_FFTT.infra.security.HashUtils;
+import fr.pingmanager.gestion_tournois_FFTT.infra.security.PasswordPolicy;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.ClubAccessDto;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.ClubDto;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.infra.mail.EmailTemplates;
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.infra.mail.EmailVerificationService;
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.infra.mail.VerificationCodeGenerator;
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubAccessRepository;
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.infra.repo.ClubRepository;
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.infra.repo.OrganizerRepository;
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.infra.security.HashUtils;
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.infra.security.PasswordPolicy;
 
 public class OrganizerAuthService {
 
