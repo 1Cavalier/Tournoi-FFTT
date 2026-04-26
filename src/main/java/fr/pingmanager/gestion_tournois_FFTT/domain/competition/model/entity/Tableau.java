@@ -14,6 +14,9 @@ import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.value.Prize
 import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.value.RegistrationFee;
 import fr.pingmanager.gestion_tournois_FFTT.domain.refdata.AgeCategory;
 
+import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.classification.ClassificationMode;
+import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.draw.DrawAlgorithmType;
+
 public final class Tableau {
 
     // -------------------------------------------------------------------------
@@ -47,6 +50,18 @@ public final class Tableau {
 
     private final PrizeDistribution prizes;
 
+    /**
+     * Algorithme de tirage des poules.
+     * Par défaut : SNAKE (méthode du serpent FFTT).
+     */
+    private final DrawAlgorithmType drawAlgorithmType;
+
+    /**
+     * Mode de classement final.
+     * Par défaut : NONE (aucun match de classement).
+     */
+    private final ClassificationMode classificationMode;
+
     // -------------------------------------------------------------------------
     // CONSTRUCTOR
     // -------------------------------------------------------------------------
@@ -65,7 +80,9 @@ public final class Tableau {
             RegistrationFee fee,
             LocalTime checkInEnd,
             LocalTime startTime,
-            PrizeDistribution prizes) {
+            PrizeDistribution prizes,
+            DrawAlgorithmType drawAlgorithmType,
+            ClassificationMode classificationMode) {
 
         // ---- identifiants / description ----
         this.code = requireText(code, ErrorCode.TABLEAU_CODE_REQUIRED).toUpperCase(Locale.ROOT);
@@ -96,6 +113,10 @@ public final class Tableau {
         this.checkInEnd = requireNonNull(checkInEnd, ErrorCode.TABLEAU_CHECKIN_TIME_REQUIRED);
         this.startTime = requireNonNull(startTime, ErrorCode.TABLEAU_START_TIME_REQUIRED);
         this.prizes = requireNonNull(prizes, ErrorCode.TABLEAU_PRIZE_REQUIRED);
+
+        // ---- tirage et classement ----
+        this.drawAlgorithmType = drawAlgorithmType != null ? drawAlgorithmType : DrawAlgorithmType.SNAKE;
+        this.classificationMode = classificationMode != null ? classificationMode : ClassificationMode.NONE;
 
         // ---- validations cross-field ----
         validatePointsRule();
@@ -252,6 +273,14 @@ public final class Tableau {
 
     public PrizeDistribution prizes() {
         return prizes;
+    }
+
+    public DrawAlgorithmType drawAlgorithmType() {
+        return drawAlgorithmType;
+    }
+
+    public ClassificationMode classificationMode() {
+        return classificationMode;
     }
 
     // -------------------------------------------------------------------------

@@ -390,6 +390,23 @@ public final class ErrorMessages {
                 "Ce participant ne fait pas partie de ce match KO";
             case BRACKET_MATCH_SCORE_REQUIRED ->
                 "Le score est obligatoire pour clôturer ce match KO";
+
+            // ========================================================================
+            // CLASSIFICATION (matchs de classement)
+            // ========================================================================
+
+            case CLASSIFICATION_KO_NOT_COMPLETE ->
+                "Impossible de générer les matchs de classement : le tableau KO n'est pas terminé";
+            case CLASSIFICATION_MATCH_NOT_FOUND ->
+                "Le match de classement demandé est introuvable";
+            case CLASSIFICATION_MATCH_SAME_PARTICIPANT ->
+                "Un joueur ne peut pas s'affronter lui-même dans un match de classement";
+            case CLASSIFICATION_MATCH_ALREADY_FINISHED ->
+                "Ce match de classement est déjà terminé";
+            case CLASSIFICATION_MATCH_INVALID_TRANSITION ->
+                "Transition de statut invalide pour ce match de classement";
+            case CLASSIFICATION_MATCH_PARTICIPANT_NOT_IN_MATCH ->
+                "Ce participant ne fait pas partie de ce match de classement";
         };
     }
 }
