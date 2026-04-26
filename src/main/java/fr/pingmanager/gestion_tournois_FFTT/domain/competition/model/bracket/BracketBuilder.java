@@ -10,50 +10,17 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Service domaine responsable de la construction du tableau KO
- * à partir des résultats des poules.
+ * Construit le tableau KO à partir des résultats des poules.
  *
- * <h2>Règles de placement FFTT (article I.305.2 et I.305.4)</h2>
+ * Règles FFTT :
+ * - Les nbByes mieux classés passent directement en round 2 (BYE).
+ * - Les autres jouent le round 1.
+ * - Les 1ers et 2èmes de la même poule sont dans des demi-tableaux opposés.
  *
- * <p>
- * Avec 2 qualifiés par poule :
- * </p>
- * <ol>
- * <li>Les 1ers de poule sont placés dans le tableau dans l'ordre des poules
- * (poule 1 → position 1, poule 2 → position 3, poule 3 → position 5, etc.)
- * en alternant les demi-tableaux (haut / bas).</li>
- * <li>Les 2èmes de poule sont placés dans le <strong>demi-tableau
- * opposé</strong>
- * à leur 1er respectif, par tirage au sort entre eux.</li>
- * <li>Les BYE (exemptions) sont ajoutés si le nombre de qualifiés
- * n'est pas une puissance de 2. Les BYE sont attribués aux positions
- * correspondant aux mieux classés (rangs serpent les plus faibles).</li>
- * </ol>
- *
- * <h2>Exemple : 6 poules de 3 → 12 qualifiés → tableau de 16</h2>
- *
- * <pre>
- *   Taille du tableau : 16 (prochaine puissance de 2 ≥ 12)
- *   BYE : 4 (16 - 12)
- *
- *   Positions 1..8 = demi-tableau HAUT
- *   Positions 9..16 = demi-tableau BAS
- *
- *   1ers de poule (6) placés : pos 1, 5, 9, 13, 3, 7 (alternance H/B)
- *   2èmes de poule (6) placés dans le demi-tableau opposé de leur 1er.
- *   Les 4 BYE vont aux positions restantes, attribuées aux mieux classés.
- * </pre>
+ * Un match BYE = assignPlayers(joueur, null) → statut BYE automatique via XOR.
  */
 public final class BracketBuilder {
 
-    /**
-     * Construit le tableau KO à partir de la liste des poules finalisées.
-     *
-     * @param tableauCode code du tableau
-     * @param poules      liste des poules (toutes les parties doivent être
-     *                    terminées)
-     * @return le KoBracket prêt à être joué
-     */
     public KoBracket build(String tableauCode, List<Poule> poules) {
         Objects.requireNonNull(tableauCode, "tableauCode");
         Objects.requireNonNull(poules, "poules");
@@ -62,7 +29,7 @@ public final class BracketBuilder {
             throw new BusinessException(ErrorCode.BRACKET_NO_QUALIFIED_PLAYERS);
         }
 
-        // ---- 1. Récupérer les standings par poule ----
+        // 1. Récupérer les qualifiés triés par numéro de poule
         List<Poule> sortedPoules = poules.stream()
                 .sorted(Comparator.comparingInt(Poule::poolNumber))
                 .collect(Collectors.toList());
@@ -72,15 +39,11 @@ public final class BracketBuilder {
 
         for (Poule poule : sortedPoules) {
             List<PoolStanding> standings = poule.computeStandings();
-            int qCount = poule.qualifiedCount(); // toujours 2
-
-            // PoolStanding::isQualified prend un int → on ne peut pas utiliser
-            // une method reference, on passe par une lambda
+            int qCount = poule.qualifiedCount();
             List<Participant> qualified = standings.stream()
                     .filter(s -> s.isQualified(qCount))
                     .map(PoolStanding::participant)
                     .collect(Collectors.toList());
-
             if (qualified.size() >= 1)
                 firstPlaces.add(qualified.get(0));
             if (qualified.size() >= 2)
@@ -92,85 +55,121 @@ public final class BracketBuilder {
             throw new BusinessException(ErrorCode.BRACKET_NO_QUALIFIED_PLAYERS);
         }
 
-        // ---- 2. Taille du tableau (prochaine puissance de 2) ----
+        // 2. Taille du tableau et BYE
         int bracketSize = nextPowerOfTwo(totalQualified);
         int totalRounds = (int) (Math.log(bracketSize) / Math.log(2));
         int nbByes = bracketSize - totalQualified;
 
-        // ---- 3. Créer tous les matchs du tableau ----
+        // 3. Répartir BYE et round1Players
+        List<Participant> allRanked = new ArrayList<>();
+        allRanked.addAll(firstPlaces);
+        allRanked.addAll(secondPlaces);
+
+        List<Participant> byePlayers = new ArrayList<>(allRanked.subList(0, nbByes));
+        List<Participant> round1Players = new ArrayList<>(allRanked.subList(nbByes, totalQualified));
+
+        // 4. Créer tous les matchs KO
         List<KoMatch> allMatches = new ArrayList<>();
         for (int round = 1; round <= totalRounds; round++) {
-            int nbMatchesInRound = bracketSize / (int) Math.pow(2, round);
-            for (int pos = 1; pos <= nbMatchesInRound; pos++) {
+            int n = bracketSize / (int) Math.pow(2, round);
+            for (int pos = 1; pos <= n; pos++) {
                 allMatches.add(new KoMatch(round, pos));
             }
         }
+        Map<String, KoMatch> matchIdx = new LinkedHashMap<>();
+        for (KoMatch m : allMatches)
+            matchIdx.put(m.round() + "-" + m.position(), m);
 
-        // Indexer les matchs du premier tour par position
-        Map<Integer, KoMatch> round1Matches = new LinkedHashMap<>();
-        for (KoMatch m : allMatches) {
-            if (m.round() == 1)
-                round1Matches.put(m.position(), m);
-        }
+        // 5. Placer les joueurs de round 1 dans les matchs
+        int nbR1Matches = round1Players.size() / 2;
+        int halfR1 = Math.max(1, nbR1Matches / 2);
 
-        // ---- 4. Placer les joueurs au 1er tour ----
-        int halfSize = bracketSize / 2;
-        int quarterSize = bracketSize / 4;
+        List<Participant> r1Firsts = round1Players.stream()
+                .filter(firstPlaces::contains).collect(Collectors.toList());
+        List<Participant> r1Seconds = round1Players.stream()
+                .filter(secondPlaces::contains).collect(Collectors.toList());
 
-        Participant[] slots = new Participant[bracketSize + 1]; // 1-indexed
+        int slotSize = nbR1Matches * 2;
+        Participant[] slots = new Participant[slotSize + 1]; // 1-indexed
 
-        // Placer les 1ers de poule en alternant haut / bas
-        int highSlot = 1;
-        int lowSlot = halfSize + 1;
-
-        for (int i = 0; i < firstPlaces.size(); i++) {
-            if (i % 2 == 0) {
-                slots[highSlot] = firstPlaces.get(i);
-                highSlot += 2;
-            } else {
-                slots[lowSlot] = firstPlaces.get(i);
-                lowSlot += 2;
+        // 1ers en slots impairs, alternance haut/bas
+        int highOdd = 1;
+        int lowOdd = halfR1 * 2 + 1;
+        for (int i = 0; i < r1Firsts.size(); i++) {
+            if (i % 2 == 0 && highOdd <= halfR1 * 2) {
+                slots[highOdd] = r1Firsts.get(i);
+                highOdd += 2;
+            } else if (lowOdd <= slotSize) {
+                slots[lowOdd] = r1Firsts.get(i);
+                lowOdd += 2;
             }
         }
 
-        // Placer les 2èmes dans le demi-tableau opposé de leur 1er
-        List<Integer> freeSlotsHigh = findFreeSlots(slots, 1, halfSize);
-        List<Integer> freeSlotsLow = findFreeSlots(slots, halfSize + 1, bracketSize);
-
-        List<Participant> secondsForHigh = new ArrayList<>();
+        // 2èmes dans les slots pairs libres, demi opposé de leur 1er
         List<Participant> secondsForLow = new ArrayList<>();
-
-        for (int i = 0; i < secondPlaces.size(); i++) {
-            if (i % 2 == 0) {
-                secondsForLow.add(secondPlaces.get(i)); // 1er était en haut → 2ème en bas
-            } else {
-                secondsForHigh.add(secondPlaces.get(i)); // 1er était en bas → 2ème en haut
-            }
+        List<Participant> secondsForHigh = new ArrayList<>();
+        for (int i = 0; i < r1Seconds.size(); i++) {
+            if (i % 2 == 0)
+                secondsForLow.add(r1Seconds.get(i));
+            else
+                secondsForHigh.add(r1Seconds.get(i));
         }
-
-        // Tirage au sort des 2èmes (règle FFTT)
         Collections.shuffle(secondsForHigh);
         Collections.shuffle(secondsForLow);
 
-        assignToFreeSlots(slots, freeSlotsHigh, secondsForHigh);
-        assignToFreeSlots(slots, freeSlotsLow, secondsForLow);
+        List<Integer> fHigh = freePairSlots(slots, 1, halfR1 * 2);
+        List<Integer> fLow = freePairSlots(slots, halfR1 * 2 + 1, slotSize);
+        assignSlots(slots, fHigh, secondsForHigh);
+        assignSlots(slots, fLow, secondsForLow);
 
-        // ---- 5. Assigner les joueurs aux matchs du 1er tour ----
-        for (int pos = 1; pos <= halfSize; pos++) {
-            KoMatch match = round1Matches.get(pos);
+        // Remplir les slots impairs restants avec les 2èmes non encore placés
+        List<Participant> unplaced = round1Players.stream()
+                .filter(p -> {
+                    for (int i = 1; i <= slotSize; i++) {
+                        if (p.equals(slots[i]))
+                            return false;
+                    }
+                    return true;
+                })
+                .collect(Collectors.toList());
+        List<Integer> freeOdd = new ArrayList<>();
+        for (int i = 1; i <= slotSize; i++) {
+            if (i % 2 == 1 && slots[i] == null)
+                freeOdd.add(i);
+        }
+        assignSlots(slots, freeOdd, unplaced);
+
+        // 6. Assigner les joueurs aux matchs de round 1
+        for (int pos = 1; pos <= nbR1Matches; pos++) {
+            KoMatch match = matchIdx.get("1-" + pos);
             if (match == null)
                 continue;
-
-            int slotIndex1 = (pos - 1) * 2 + 1;
-            int slotIndex2 = (pos - 1) * 2 + 2;
-
-            Participant p1 = slotIndex1 <= bracketSize ? slots[slotIndex1] : null;
-            Participant p2 = slotIndex2 <= bracketSize ? slots[slotIndex2] : null;
-
+            Participant p1 = slots[2 * pos - 1];
+            Participant p2 = slots[2 * pos];
             match.assignPlayers(p1, p2);
+            // Si BYE (un slot null), propager immédiatement
             if (match.status() == KoMatch.Status.BYE) {
-                propagateBye(match, allMatches);
+                propagate(match, matchIdx, totalRounds);
             }
+        }
+
+        // 7. Placer les joueurs BYE en round 2
+        // assignPlayers(joueur, null) → statut BYE automatique via XOR dans KoMatch
+        Collections.shuffle(byePlayers);
+        int r2Total = bracketSize / 4;
+        int r2Half = Math.max(1, r2Total / 2);
+        int highBye = 1;
+        int lowBye = r2Half + 1;
+
+        for (int i = 0; i < byePlayers.size(); i++) {
+            int pos = (i % 2 == 0) ? highBye++ : lowBye++;
+            if (pos > r2Total)
+                pos = highBye++;
+            KoMatch match = matchIdx.get("2-" + pos);
+            if (match == null)
+                continue;
+            match.assignPlayers(byePlayers.get(i), null); // → BYE automatique
+            propagate(match, matchIdx, totalRounds);
         }
 
         return new KoBracket(tableauCode, bracketSize, allMatches);
@@ -180,47 +179,46 @@ public final class BracketBuilder {
     // HELPERS
     // -------------------------------------------------------------------------
 
-    private void propagateBye(KoMatch byeMatch, List<KoMatch> allMatches) {
-        Participant winner = byeMatch.winner();
-        int nextRound = byeMatch.round() + 1;
-        int nextPosition = (int) Math.ceil(byeMatch.position() / 2.0);
-        boolean isPlayer1 = (byeMatch.position() % 2 == 1);
-
-        allMatches.stream()
-                .filter(m -> m.round() == nextRound && m.position() == nextPosition)
-                .findFirst()
-                .ifPresent(nextMatch -> {
-                    if (isPlayer1)
-                        nextMatch.assignPlayers(winner, nextMatch.player2());
-                    else
-                        nextMatch.assignPlayers(nextMatch.player1(), winner);
-                });
+    private void propagate(KoMatch finished, Map<String, KoMatch> idx, int totalRounds) {
+        Participant winner = finished.winner();
+        if (winner == null)
+            return;
+        int nextRound = finished.round() + 1;
+        int nextPosition = (int) Math.ceil(finished.position() / 2.0);
+        if (nextRound > totalRounds)
+            return;
+        KoMatch next = idx.get(nextRound + "-" + nextPosition);
+        if (next == null)
+            return;
+        if (finished.position() % 2 == 1)
+            next.assignPlayers(winner, next.player2());
+        else
+            next.assignPlayers(next.player1(), winner);
     }
 
-    private List<Integer> findFreeSlots(Participant[] slots, int from, int to) {
+    private List<Integer> freePairSlots(Participant[] slots, int from, int to) {
         List<Integer> free = new ArrayList<>();
-        for (int i = from; i <= to; i++) {
-            if (slots[i] == null)
+        int limit = Math.min(to, slots.length - 1);
+        for (int i = from; i <= limit; i++) {
+            if (i % 2 == 0 && slots[i] == null)
                 free.add(i);
         }
         return free;
     }
 
-    private void assignToFreeSlots(Participant[] slots,
-            List<Integer> freeSlots,
-            List<Participant> participants) {
-        int limit = Math.min(freeSlots.size(), participants.size());
-        for (int i = 0; i < limit; i++) {
-            slots[freeSlots.get(i)] = participants.get(i);
-        }
+    private void assignSlots(Participant[] slots, List<Integer> freeSlots,
+            List<Participant> players) {
+        int limit = Math.min(freeSlots.size(), players.size());
+        for (int i = 0; i < limit; i++)
+            slots[freeSlots.get(i)] = players.get(i);
     }
 
     private static int nextPowerOfTwo(int n) {
         if (n <= 1)
             return 2;
-        int power = 1;
-        while (power < n)
-            power <<= 1;
-        return power;
+        int p = 1;
+        while (p < n)
+            p <<= 1;
+        return p;
     }
 }

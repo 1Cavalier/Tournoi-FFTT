@@ -11,17 +11,15 @@ import java.util.UUID;
 /**
  * Entity représentant un match dans le tableau à élimination directe (TED).
  *
- * Structure d'un match KO :
- * - round : le tour (1 = 1er tour, 2 = quart, 3 = demi, 4 = finale...)
- * - position : la position dans l'arbre du tableau (numérotation 1..N)
- *
- * Un match KO peut avoir un BYE (exemption) quand le tableau n'est pas
- * une puissance de 2 exacte. Dans ce cas, le joueur présent passe directement
- * au tour suivant.
- *
  * Cycle de vie :
  * PENDING → IN_PROGRESS → COMPLETED
  * → WALKOVER
+ * PENDING → BYE (un seul joueur, passe automatiquement)
+ *
+ * Un match passe en BYE si et seulement si assignPlayers() est appelé
+ * avec exactement un joueur null (XOR).
+ * Deux joueurs null = PENDING (match pas encore peuplé).
+ * Deux joueurs non-null = PENDING (match normal, attend le start/recordScore).
  */
 public final class KoMatch {
 
@@ -30,15 +28,10 @@ public final class KoMatch {
     // -------------------------------------------------------------------------
 
     public enum Status {
-        /** Match en attente (joueurs pas encore connus ou match pas commencé). */
         PENDING,
-        /** Match en cours. */
         IN_PROGRESS,
-        /** Match terminé avec un score. */
         COMPLETED,
-        /** Forfait : le joueur concerné marque 0, l'adversaire avance. */
         WALKOVER,
-        /** Exemption (BYE) : un seul joueur, passe automatiquement. */
         BYE
     }
 
@@ -47,36 +40,18 @@ public final class KoMatch {
     // -------------------------------------------------------------------------
 
     private final String id;
-
-    /** Tour du tableau (1 = premier tour, 2 = deuxième tour, etc.). */
     private final int round;
-
-    /**
-     * Position dans le tableau (1 = haut, 2 = bas du même quart, etc.).
-     * Permet de reconstruire l'arbre complet.
-     */
     private final int position;
 
-    /**
-     * Joueur en haut (slot "gauche" du match). Peut être null si pas encore
-     * qualifié.
-     */
     private Participant player1;
-
-    /**
-     * Joueur en bas (slot "droit" du match). Peut être null si BYE ou pas encore
-     * qualifié.
-     */
     private Participant player2;
 
     private Status status;
     private PoolMatchScore score;
-
-    /** Id du joueur forfait (uniquement si WALKOVER). */
     private String walkoverId;
 
     // -------------------------------------------------------------------------
-    // CONSTRUCTEUR
+    // CONSTRUCTEURS
     // -------------------------------------------------------------------------
 
     public KoMatch(int round, int position) {
@@ -86,7 +61,6 @@ public final class KoMatch {
         this.status = Status.PENDING;
     }
 
-    /** Constructeur de reconstruction depuis la base. */
     public KoMatch(String id, int round, int position,
             Participant player1, Participant player2,
             Status status, PoolMatchScore score, String walkoverId) {
@@ -105,14 +79,34 @@ public final class KoMatch {
     // -------------------------------------------------------------------------
 
     /**
-     * Assigne les joueurs (appelé par BracketBuilder lors du placement initial).
+     * Assigne les joueurs au match.
+     *
+     * Règles de statut :
+     * - Exactement un null (XOR) → BYE automatique
+     * - Les deux null → PENDING (match pas encore peuplé)
+     * - Les deux non-null → PENDING (match normal, attend recordScore)
+     *
+     * Cette méthode peut être appelée plusieurs fois lors de la propagation
+     * (d'abord player1, puis player2). On recalcule le statut à chaque appel.
      */
     public void assignPlayers(Participant p1, Participant p2) {
         this.player1 = p1;
         this.player2 = p2;
-        // Si l'un des deux est null → c'est un BYE
-        if (p1 == null || p2 == null) {
+
+        boolean p1Present = p1 != null;
+        boolean p2Present = p2 != null;
+
+        if (p1Present ^ p2Present) {
+            // XOR : exactement un joueur → BYE
             this.status = Status.BYE;
+        } else {
+            // Les deux présents ou les deux absents → PENDING
+            // (sauf si le match est déjà terminé via recordScore/walkover)
+            if (this.status == Status.BYE) {
+                // On était BYE mais maintenant les deux sont présents → PENDING
+                this.status = Status.PENDING;
+            }
+            // Si COMPLETED/WALKOVER/IN_PROGRESS : on ne change pas le statut
         }
     }
 
@@ -158,11 +152,6 @@ public final class KoMatch {
                 || status == Status.BYE;
     }
 
-    /**
-     * Retourne le vainqueur du match.
-     * Pour un BYE : retourne le joueur présent (player1 ou player2, l'autre étant
-     * null).
-     */
     public Participant winner() {
         return switch (status) {
             case COMPLETED -> score.player1Wins() ? player1 : player2;
@@ -172,15 +161,16 @@ public final class KoMatch {
         };
     }
 
-    /**
-     * Retourne le perdant (null pour un BYE).
-     */
     public Participant loser() {
         return switch (status) {
             case COMPLETED -> score.player1Wins() ? player2 : player1;
             case WALKOVER -> walkoverId.equals(player1Id()) ? player1 : player2;
             default -> null;
         };
+    }
+
+    public boolean isWalkoverFor(Participant p) {
+        return status == Status.WALKOVER && walkoverId.equals(p.participantId());
     }
 
     // -------------------------------------------------------------------------

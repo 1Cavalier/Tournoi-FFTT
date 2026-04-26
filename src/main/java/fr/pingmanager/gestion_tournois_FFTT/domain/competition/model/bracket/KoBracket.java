@@ -58,7 +58,7 @@ public final class KoBracket {
     // -------------------------------------------------------------------------
 
     /** Constructeur principal (nouvelle instance — id généré). */
-    KoBracket(String tableauCode, int bracketSize, List<KoMatch> matches) {
+    public KoBracket(String tableauCode, int bracketSize, List<KoMatch> matches) {
         this(UUID.randomUUID().toString(), tableauCode, bracketSize, matches);
     }
 
