@@ -5,6 +5,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
@@ -21,15 +22,36 @@ import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.OrganizerDto;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.TournamentDto;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.theme.AppTheme;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.view.organizer.components.OrganizerViewUtils;
+import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.view.organizer.pages.OrganizerDashboardView;
 
 public class OrganizerSidebar extends VBox {
 
     private final AppRouter nav;
     private final OrganizerDto organizer;
 
-    public OrganizerSidebar(AppRouter nav, OrganizerDto organizer) {
-        this.nav = Objects.requireNonNull(nav, "nav must not be null");
-        this.organizer = Objects.requireNonNull(organizer, "organizer must not be null");
+    /** Tournoi actuellement actif (peut être null = accueil). */
+    private final TournamentDto activeTournament;
+
+    /** Section actuellement active. */
+    private final TournamentSection activeSection;
+
+    /** Référence vers la vue parente pour déclencher la navigation inline. */
+    private final OrganizerDashboardView dashboard;
+
+    // -------------------------------------------------------------------------
+    // CONSTRUCTEUR
+    // -------------------------------------------------------------------------
+
+    public OrganizerSidebar(AppRouter nav,
+            OrganizerDto organizer,
+            TournamentDto activeTournament,
+            TournamentSection activeSection,
+            OrganizerDashboardView dashboard) {
+        this.nav = Objects.requireNonNull(nav);
+        this.organizer = Objects.requireNonNull(organizer);
+        this.activeTournament = activeTournament;
+        this.activeSection = activeSection != null ? activeSection : TournamentSection.HOME;
+        this.dashboard = Objects.requireNonNull(dashboard);
 
         setPrefWidth(AppTheme.SIDEBAR_WIDTH);
         setMinWidth(AppTheme.SIDEBAR_WIDTH);
@@ -38,26 +60,25 @@ public class OrganizerSidebar extends VBox {
         build();
     }
 
+    // -------------------------------------------------------------------------
+    // CONSTRUCTION
+    // -------------------------------------------------------------------------
+
     private void build() {
         Optional<ClubDto> clubOpt = nav.clubRepo().findByOrganizerId(organizer.getId());
 
         VBox content = new VBox(AppTheme.SPACE_LG);
         content.setPadding(new Insets(18, 16, 18, 16));
 
-        VBox profileSection = buildProfileSection(clubOpt);
-        Button homeButton = buildHomeButton();
-        VBox tournamentsSection = buildTournamentsSection();
-        VBox bottomSection = buildBottomSection();
-
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
 
         content.getChildren().addAll(
-                profileSection,
-                homeButton,
-                tournamentsSection,
+                buildProfileSection(clubOpt),
+                buildHomeButton(),
+                buildTournamentsSection(),
                 spacer,
-                bottomSection);
+                buildBottomSection());
 
         ScrollPane scrollPane = new ScrollPane(content);
         scrollPane.setFitToWidth(true);
@@ -69,9 +90,7 @@ public class OrganizerSidebar extends VBox {
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
     }
 
-    // -------------------------------------------------------------------------
-    // PROFILE SECTION
-    // -------------------------------------------------------------------------
+    // ---- Profil ----
 
     private VBox buildProfileSection(Optional<ClubDto> clubOpt) {
         VBox section = new VBox(AppTheme.SPACE_MD);
@@ -97,7 +116,8 @@ public class OrganizerSidebar extends VBox {
         AppTheme.styleSidebarSecondaryButton(editProfileButton);
         editProfileButton.setOnAction(e -> nav.showOrganizerProfileDialog());
 
-        VBox profileCard = new VBox(12, clubLogo, clubNameLabel, emailLabel, infosClubButton, editProfileButton);
+        VBox profileCard = new VBox(12, clubLogo, clubNameLabel, emailLabel,
+                infosClubButton, editProfileButton);
         profileCard.setAlignment(Pos.CENTER);
         profileCard.setPadding(new Insets(16));
         profileCard.setStyle(AppTheme.SIDEBAR_PANEL_STYLE);
@@ -106,20 +126,17 @@ public class OrganizerSidebar extends VBox {
         return section;
     }
 
-    // -------------------------------------------------------------------------
-    // HOME SECTION
-    // -------------------------------------------------------------------------
+    // ---- Bouton Accueil ----
 
     private Button buildHomeButton() {
+        boolean isHome = activeSection == TournamentSection.HOME;
         Button homeButton = new Button("Accueil");
-        AppTheme.styleSidebarSecondaryButton(homeButton);
-        homeButton.setOnAction(e -> nav.showOrganizerDashboard());
+        AppTheme.styleSidebarTournamentItem(homeButton, isHome);
+        homeButton.setOnAction(e -> dashboard.navigateTo(null, TournamentSection.HOME));
         return homeButton;
     }
 
-    // -------------------------------------------------------------------------
-    // TOURNAMENTS SECTION
-    // -------------------------------------------------------------------------
+    // ---- Section Tournois ----
 
     private VBox buildTournamentsSection() {
         VBox section = new VBox(10);
@@ -131,28 +148,23 @@ public class OrganizerSidebar extends VBox {
 
         String clubId = nav.clubRepo()
                 .findByOrganizerId(organizer.getId())
-                .orElseThrow(() -> new IllegalStateException("Club introuvable pour cet organisateur"))
+                .orElseThrow(() -> new IllegalStateException("Club introuvable"))
                 .id();
 
-        List<TournamentDto> draft = nav.tournamentService().findDraftForClub(clubId);
-        List<TournamentDto> active = nav.tournamentService().findActiveForClub(clubId);
-
         List<TournamentDto> visibleTournaments = new ArrayList<>();
-        visibleTournaments.addAll(draft);
-        visibleTournaments.addAll(active);
+        visibleTournaments.addAll(nav.tournamentService().findDraftForClub(clubId));
+        visibleTournaments.addAll(nav.tournamentService().findActiveForClub(clubId));
 
         if (visibleTournaments.isEmpty()) {
-            Label empty = new Label("Aucun tournoi n'est disponible.");
+            Label empty = new Label("Aucun tournoi disponible.");
             AppTheme.applySidebarMutedText(empty);
-
             VBox emptyBox = new VBox(empty);
             emptyBox.setPadding(new Insets(10, 12, 10, 12));
             emptyBox.setStyle(AppTheme.SIDEBAR_INFO_BOX_STYLE);
-
             tournamentsBox.getChildren().add(emptyBox);
         } else {
-            for (TournamentDto row : visibleTournaments) {
-                tournamentsBox.getChildren().add(buildTournamentBlock(row));
+            for (TournamentDto t : visibleTournaments) {
+                tournamentsBox.getChildren().add(buildTournamentBlock(t));
             }
         }
 
@@ -160,42 +172,86 @@ public class OrganizerSidebar extends VBox {
         return section;
     }
 
+    /**
+     * Bloc d'un tournoi dans la sidebar avec ses 6 sections.
+     * Le tournoi actif est mis en évidence. La section active est surlignée.
+     */
     private VBox buildTournamentBlock(TournamentDto tournament) {
+        boolean isActiveTournament = activeTournament != null
+                && tournament.id().equals(activeTournament.id());
+
         VBox block = new VBox(8);
-        block.setStyle(AppTheme.SIDEBAR_PANEL_STYLE);
+        // Bloc légèrement plus lumineux si c'est le tournoi actif
+        block.setStyle(isActiveTournament
+                ? AppTheme.SIDEBAR_PANEL_STYLE + "-fx-border-color: rgba(255,255,255,0.25); -fx-border-radius: 8;"
+                : AppTheme.SIDEBAR_PANEL_STYLE);
         block.setPadding(new Insets(10));
 
         Label tournamentName = new Label(OrganizerViewUtils.safe(tournament.name()));
-        tournamentName.setStyle(AppTheme.SIDEBAR_PRIMARY_TEXT_STYLE);
+        tournamentName.setStyle(AppTheme.SIDEBAR_PRIMARY_TEXT_STYLE + "-fx-font-weight: 700;");
         tournamentName.setWrapText(true);
         tournamentName.setMaxWidth(Double.MAX_VALUE);
 
-        VBox submenu = new VBox(6);
+        VBox submenu = new VBox(4);
         submenu.getChildren().addAll(
-                buildTournamentMenuItem("Général", tournament),
-                buildTournamentMenuItem("Règlement", tournament),
-                buildTournamentMenuItem("Tableaux", tournament),
-                buildTournamentMenuItem("Inscriptions", tournament));
+                buildSectionItem(tournament, TournamentSection.GENERAL),
+                buildSectionItem(tournament, TournamentSection.REGLEMENT),
+                buildSectionItem(tournament, TournamentSection.TABLEAUX),
+                buildSectionItem(tournament, TournamentSection.DOCUMENTS),
+                buildSectionItemDisabled(TournamentSection.INSCRIPTIONS),
+                buildSectionItemDisabled(TournamentSection.DIRECT));
 
         block.getChildren().addAll(tournamentName, submenu);
         return block;
     }
 
-    private Button buildTournamentMenuItem(String label, TournamentDto tournament) {
-        Button button = new Button(label);
-        AppTheme.styleSidebarTournamentItem(button, false);
+    /**
+     * Bouton de section disponible et cliquable.
+     * Mis en surbrillance si c'est la section active du tournoi actif.
+     */
+    private Button buildSectionItem(TournamentDto tournament, TournamentSection section) {
+        boolean isActive = activeTournament != null
+                && tournament.id().equals(activeTournament.id())
+                && activeSection == section;
 
-        button.setOnAction(e -> nav.showInfo(
-                label,
-                "La section \"" + label + "\" du tournoi \"" + OrganizerViewUtils.safe(tournament.name())
-                        + "\" sera reliée dans une prochaine étape."));
+        String icon = switch (section) {
+            case GENERAL -> "⚙  ";
+            case REGLEMENT -> "📜  ";
+            case TABLEAUX -> "🏓  ";
+            case DOCUMENTS -> "📄  ";
+            default -> "   ";
+        };
 
-        return button;
+        Button btn = new Button(icon + section.label());
+        AppTheme.styleSidebarTournamentItem(btn, isActive);
+        btn.setOnAction(e -> dashboard.navigateTo(tournament, section));
+        return btn;
     }
 
-    // -------------------------------------------------------------------------
-    // BOTTOM SECTION
-    // -------------------------------------------------------------------------
+    /**
+     * Bouton de section non encore disponible — grisé, non cliquable.
+     */
+    private Button buildSectionItemDisabled(TournamentSection section) {
+        String icon = switch (section) {
+            case INSCRIPTIONS -> "👥  ";
+            case DIRECT -> "📡  ";
+            default -> "   ";
+        };
+
+        Button btn = new Button(icon + section.label() + " (à venir)");
+        btn.setDisable(true);
+        btn.setMaxWidth(Double.MAX_VALUE);
+        btn.setStyle(
+                "-fx-background-color: transparent;"
+                        + "-fx-text-fill: rgba(255,255,255,0.35);"
+                        + "-fx-font-size: 12px;"
+                        + "-fx-padding: 5 10 5 10;"
+                        + "-fx-cursor: default;");
+        Tooltip.install(btn, new Tooltip("Cette section sera disponible dans une prochaine version."));
+        return btn;
+    }
+
+    // ---- Section bas de page ----
 
     private VBox buildBottomSection() {
         VBox box = new VBox(10);
@@ -203,8 +259,7 @@ public class OrganizerSidebar extends VBox {
         Button networkButton = new Button("Connexion réseau");
         AppTheme.styleSidebarSecondaryButton(networkButton);
         networkButton.setOnAction(e -> nav.showInfo(
-                "Connexion réseau",
-                "La connexion réseau sera ajoutée dans une prochaine étape."));
+                "Connexion réseau", "Disponible dans une prochaine version."));
 
         Button logoutButton = new Button("Déconnexion");
         AppTheme.styleSidebarSecondaryButton(logoutButton);
@@ -219,14 +274,10 @@ public class OrganizerSidebar extends VBox {
     // -------------------------------------------------------------------------
 
     private String buildClubInfoText(Optional<ClubDto> clubOpt) {
-        if (clubOpt.isEmpty()) {
+        if (clubOpt.isEmpty())
             return "Club : introuvable";
-        }
-
         ClubDto c = clubOpt.get();
-
-        return ""
-                + "N° club : " + OrganizerViewUtils.nvl(c.clubNumber()) + "\n"
+        return "N° club : " + OrganizerViewUtils.nvl(c.clubNumber()) + "\n"
                 + "Nom club : " + OrganizerViewUtils.nvl(c.clubName()) + "\n"
                 + "Département : " + OrganizerViewUtils.nvl(c.departementCode()) + "\n"
                 + "Ville : " + OrganizerViewUtils.nvl(c.city()) + "\n"
@@ -237,15 +288,14 @@ public class OrganizerSidebar extends VBox {
 
     private StackPane buildLogo(String logoPath) {
         double size = 86;
-
         StackPane container = new StackPane();
         container.setPrefSize(size, size);
         container.setMaxSize(size, size);
         container.setStyle(
-                "-fx-background-color: rgba(255,255,255,0.12);" +
-                        "-fx-background-radius: 999;" +
-                        "-fx-border-color: rgba(255,255,255,0.10);" +
-                        "-fx-border-radius: 999;");
+                "-fx-background-color: rgba(255,255,255,0.12);"
+                        + "-fx-background-radius: 999;"
+                        + "-fx-border-color: rgba(255,255,255,0.10);"
+                        + "-fx-border-radius: 999;");
 
         if (logoPath != null && !logoPath.isBlank()) {
             try {

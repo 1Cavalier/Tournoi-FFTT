@@ -14,7 +14,10 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
+import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.PrizeTierDto;
+import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.PrizeRewardTypeDto;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.dto.TableauDto;
+import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.view.organizer.layout.TournamentSection;
 import java.time.LocalDate;
 import java.util.List;
 import java.time.format.DateTimeFormatter;
@@ -79,22 +82,16 @@ public class TournamentDashboardCard extends VBox {
 
         VBox general = buildGeneralSection();
         VBox regulationBox = buildRegulationSection();
-        VBox tableaux = buildTableauxSection();
+        VBox tableauxBox = buildTableauxSection();
+        VBox documentsBox = buildDocumentsSection();
 
-        configureSectionGrow(general);
-        configureSectionGrow(regulationBox);
-        configureSectionGrow(tableaux);
+        for (VBox section : List.of(general, regulationBox, tableauxBox, documentsBox)) {
+            configureSectionGrow(section);
+            section.setMaxHeight(Double.MAX_VALUE);
+            VBox.setVgrow(section, Priority.ALWAYS);
+        }
 
-        // Forcer une hauteur égale sur les 3 blocs :
-        // chaque bloc prend la hauteur du plus grand.
-        general.setMaxHeight(Double.MAX_VALUE);
-        regulationBox.setMaxHeight(Double.MAX_VALUE);
-        tableaux.setMaxHeight(Double.MAX_VALUE);
-        VBox.setVgrow(general, Priority.ALWAYS);
-        VBox.setVgrow(regulationBox, Priority.ALWAYS);
-        VBox.setVgrow(tableaux, Priority.ALWAYS);
-
-        row.getChildren().addAll(general, regulationBox, tableaux);
+        row.getChildren().addAll(general, regulationBox, tableauxBox, documentsBox);
         return row;
     }
 
@@ -119,8 +116,8 @@ public class TournamentDashboardCard extends VBox {
                 infoRow("Date", buildDatesValue(), computeDatesFieldState()),
                 infoRow("Homologation", buildHomologationValue(), computeHomologationFieldState()));
 
-        Button btn = fullWidthSecondaryButton("Modifier le tournoi",
-                e -> nav.showEditTournamentGeneralDialog(tournament));
+        Button btn = fullWidthSecondaryButton("En savoir plus",
+                e -> nav.showTournamentSection(tournament, TournamentSection.GENERAL));
 
         VBox content = new VBox(SECTION_SPACING, infoBox, btn);
         VBox.setVgrow(infoBox, Priority.ALWAYS); // pousse le bouton vers le bas
@@ -165,8 +162,8 @@ public class TournamentDashboardCard extends VBox {
                 // Arbitres : recommandation — toujours vert
                 infoRow("Arbitres", buildRefereeValue(), FieldState.valid("Recommandation.")));
 
-        Button btn = fullWidthSecondaryButton("Modifier le règlement",
-                e -> nav.showEditTournamentRegulationDialog(tournament));
+        Button btn = fullWidthSecondaryButton("En savoir plus",
+                e -> nav.showTournamentSection(tournament, TournamentSection.REGLEMENT));
 
         VBox content = new VBox(SECTION_SPACING, infoBox, btn);
         VBox.setVgrow(infoBox, Priority.ALWAYS);
@@ -177,6 +174,13 @@ public class TournamentDashboardCard extends VBox {
     // =========================================================================
     // BLOC TABLEAUX
     // =========================================================================
+
+    /** Colonne de tri du mini tableau. */
+    private enum SortCol {
+        POINTS, HORAIRE
+    }
+
+    private SortCol currentSort = SortCol.POINTS;
 
     private VBox buildTableauxSection() {
         Label title = new Label("Tableaux");
@@ -197,44 +201,225 @@ public class TournamentDashboardCard extends VBox {
         } else {
             etatValue = complete + " / " + total + " tableau" + (total > 1 ? "x" : "") + " complet"
                     + (complete > 1 ? "s" : "");
-            etatState = FieldState.partial(complete + " tableau(x) complet(s) sur " + total + ".");
+            etatState = FieldState.partial(complete + " / " + total + " complet(s).");
         }
+
+        // ---- Gain théorique : maxPlayers × prepaidFee ----
+        int gainTheorique = tableaux.stream()
+                .mapToInt(t -> {
+                    int mp = t.maxPlayers() != null ? t.maxPlayers() : 0;
+                    int fee = t.prepaidFee() != null ? t.prepaidFee() : 0;
+                    return mp * fee;
+                }).sum();
+
+        // ---- Gain total club : somme des dotations CASH ----
+        int gainClub = tableaux.stream()
+                .flatMap(t -> t.prizeTiers() != null
+                        ? t.prizeTiers().stream()
+                        : java.util.stream.Stream.empty())
+                .filter(pt -> pt.rewardType() == PrizeRewardTypeDto.CASH && pt.cashAmount() != null)
+                .mapToInt(PrizeTierDto::cashAmount)
+                .sum();
 
         VBox infoBox = new VBox(SECTION_SPACING);
         infoBox.getChildren().addAll(
                 buildSectionHeader(title, blockState),
                 infoRow("État", etatValue, etatState),
-                infoRow("Disponibilité", isDraft() ? "Brouillon" : "Disponible",
-                        FieldState.valid("Information complète.")));
+                infoRow("Gain inscription", gainTheorique + " €", FieldState.valid("maxPlayers × tarif prépayé.")),
+                infoRow("Dotation", gainClub + " €", FieldState.valid("Somme des dotations en espèces.")));
 
-        Button btn = fullWidthSecondaryButton("Voir les tableaux",
-                e -> nav.showTableauxManagementDialog(tournament));
+        if (!tableaux.isEmpty()) {
+            infoBox.getChildren().add(buildMiniTable());
+        }
+
+        Button btn = fullWidthSecondaryButton("En savoir plus",
+                e -> nav.showTournamentSection(tournament, TournamentSection.TABLEAUX));
 
         VBox content = new VBox(SECTION_SPACING, infoBox, btn);
         VBox.setVgrow(infoBox, Priority.ALWAYS);
-
         return buildSection(content);
     }
 
+    // ---- Mini tableau Points | Horaire+Date ----
+
+    private VBox buildMiniTable() {
+        Label hPoints = buildSortHeader("Points", SortCol.POINTS);
+        Label hHoraire = buildSortHeader("Horaire + Date", SortCol.HORAIRE);
+        hPoints.setPrefWidth(90);
+        HBox.setHgrow(hHoraire, Priority.ALWAYS);
+
+        HBox header = new HBox(hPoints, hHoraire);
+        header.setStyle("-fx-background-color: #F1F5F9; -fx-padding: 4 6; -fx-background-radius: 4;");
+
+        VBox rows = buildSortedRows();
+        VBox mini = new VBox(2, header, rows);
+        mini.setStyle("-fx-border-color: #E2E8F0; -fx-border-radius: 4; -fx-padding: 4;");
+        return mini;
+    }
+
+    private Label buildSortHeader(String text, SortCol col) {
+        boolean active = currentSort == col;
+        Label lbl = new Label(text + (active ? " ▲" : ""));
+        lbl.setStyle(
+                "-fx-font-size: 11px; -fx-cursor: hand;"
+                        + "-fx-font-weight: " + (active ? "800" : "600") + ";"
+                        + "-fx-text-fill: " + (active ? AppTheme.COLOR_PRIMARY : "#64748B") + ";");
+        lbl.setOnMouseClicked(e -> {
+            currentSort = col;
+            rebuildTableauxInCard();
+        });
+        return lbl;
+    }
+
+    private VBox buildSortedRows() {
+        List<TableauDto> sorted = new java.util.ArrayList<>(tableaux);
+        if (currentSort == SortCol.POINTS) {
+            sorted.sort(java.util.Comparator.comparingInt(this::pointsSortKey));
+        } else {
+            sorted.sort((a, b) -> horaireSortKey(a).compareTo(horaireSortKey(b)));
+        }
+        VBox rows = new VBox(2);
+        sorted.forEach(t -> rows.getChildren().add(buildMiniRow(t)));
+        return rows;
+    }
+
+    private HBox buildMiniRow(TableauDto t) {
+        Label pts = new Label(formatPoints(t));
+        pts.setPrefWidth(90);
+        pts.setStyle("-fx-font-size: 11px; -fx-font-weight: 600; -fx-text-fill: #1E293B;");
+        Label hor = new Label(formatHoraire(t));
+        hor.setStyle("-fx-font-size: 11px; -fx-text-fill: #475569;");
+        HBox.setHgrow(hor, Priority.ALWAYS);
+        HBox row = new HBox(pts, hor);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setStyle("-fx-padding: 2 4;");
+        return row;
+    }
+
     /**
-     * Un tableau est considéré complet s'il a au minimum un code, une désignation,
-     * une date, une politique de genre et une heure de début.
+     * Clé de tri Points :
+     * TS → Integer.MAX_VALUE (le plus fort, en dernier)
+     * MAX_ONLY 800 → 800
+     * RANGE 500-800 → 500 (valeur min, pour ordonner les tranches entre elles)
+     * RANGE 600-900 → 600 (vient après 500-800)
      */
+    private int pointsSortKey(TableauDto t) {
+        String rule = t.pointsRuleType();
+        if (rule == null || "TOUTES_SERIES".equalsIgnoreCase(rule))
+            return Integer.MAX_VALUE;
+        if ("MAX_ONLY".equalsIgnoreCase(rule))
+            return t.maxPoints() != null ? t.maxPoints() : Integer.MAX_VALUE - 1;
+        if ("RANGE_MIN_MAX".equalsIgnoreCase(rule))
+            return t.minPoints() != null ? t.minPoints()
+                    : (t.maxPoints() != null ? t.maxPoints() : Integer.MAX_VALUE - 1);
+        return Integer.MAX_VALUE;
+    }
+
+    /**
+     * Affichage Points :
+     * TS → "TS"
+     * MAX_ONLY 800 → "800"
+     * RANGE 500-800 → "500-800" (les deux bornes affichées)
+     */
+    private String formatPoints(TableauDto t) {
+        String rule = t.pointsRuleType();
+        if (rule == null || "TOUTES_SERIES".equalsIgnoreCase(rule))
+            return "TS";
+        if ("MAX_ONLY".equalsIgnoreCase(rule))
+            return t.maxPoints() != null ? String.valueOf(t.maxPoints()) : "—";
+        if ("RANGE_MIN_MAX".equalsIgnoreCase(rule)) {
+            String min = t.minPoints() != null ? String.valueOf(t.minPoints()) : "?";
+            String max = t.maxPoints() != null ? String.valueOf(t.maxPoints()) : "?";
+            return min + "-" + max;
+        }
+        return "—";
+    }
+
+    /** Clé tri Horaire : "YYYY-MM-DD HH:MM" — tri lexicographique correct. */
+    private String horaireSortKey(TableauDto t) {
+        String date = t.date() != null ? t.date().trim() : "9999-12-31";
+        String heure = t.startTime() != null ? t.startTime().trim() : "99:99";
+        return date + " " + heure;
+    }
+
+    private String formatHoraire(TableauDto t) {
+        String date = hasText(t.date()) ? formatDateShort(t.date()) : "—";
+        String checkIn = hasText(t.checkInEnd()) ? t.checkInEnd().trim() : "—";
+        String start = hasText(t.startTime()) ? t.startTime().trim() : "—";
+        if ("—".equals(date) && "—".equals(start))
+            return "—";
+        return checkIn + "→" + start + " — " + date;
+    }
+
+    private String formatDateShort(String iso) {
+        try {
+            return DATE_FORMAT.format(LocalDate.parse(iso.trim()));
+        } catch (Exception e) {
+            return iso.trim();
+        }
+    }
+
+    /** Reconstruit le bloc Tableaux en place après un changement de tri. */
+    private void rebuildTableauxInCard() {
+        try {
+            if (!(getChildren().get(0) instanceof VBox card))
+                return;
+            if (card.getChildren().isEmpty())
+                return;
+            if (!(card.getChildren().get(0) instanceof VBox content))
+                return;
+            if (content.getChildren().size() < 2)
+                return;
+            if (!(content.getChildren().get(1) instanceof HBox mainRow))
+                return;
+            if (mainRow.getChildren().size() < 3)
+                return;
+
+            VBox newTableaux = buildTableauxSection();
+            configureSectionGrow(newTableaux);
+            newTableaux.setMaxHeight(Double.MAX_VALUE);
+            VBox.setVgrow(newTableaux, Priority.ALWAYS);
+            mainRow.getChildren().set(2, newTableaux);
+        } catch (Exception ignored) {
+        }
+    }
+
     private boolean isTableauComplete(TableauDto t) {
-        return hasText(t.code())
-                && hasText(t.designation())
-                && hasText(t.date())
-                && hasText(t.genderPolicy())
-                && hasText(t.startTime());
+        return hasText(t.code()) && hasText(t.designation())
+                && hasText(t.date()) && hasText(t.genderPolicy()) && hasText(t.startTime());
     }
 
     private BlockState computeTableauxBlockState() {
         if (tableaux.isEmpty())
             return BlockState.PARTIAL;
         long complete = tableaux.stream().filter(this::isTableauComplete).count();
-        if (complete == tableaux.size())
-            return BlockState.COMPLETE;
-        return BlockState.PARTIAL;
+        return complete == tableaux.size() ? BlockState.COMPLETE : BlockState.PARTIAL;
+    }
+
+    // =========================================================================
+    // BLOC DOCUMENTS
+    // =========================================================================
+
+    private VBox buildDocumentsSection() {
+        Label title = new Label("Documents");
+        AppTheme.applyCardTitle(title);
+
+        VBox infoBox = new VBox(SECTION_SPACING);
+        infoBox.getChildren().addAll(
+                buildSectionHeader(title, BlockState.PARTIAL),
+                infoRow("Affiche", "Non générée",
+                        FieldState.partial("L'affiche sera disponible quand le tournoi sera complet.")),
+                infoRow("Règlement PDF", "Non généré",
+                        FieldState.partial("Le règlement PDF sera disponible après saisie complète.")),
+                infoRow("Convocations", "Non envoyées",
+                        FieldState.partial("Les convocations seront envoyées après publication.")));
+
+        Button btn = fullWidthSecondaryButton("En savoir plus",
+                e -> nav.showTournamentSection(tournament, TournamentSection.DOCUMENTS));
+
+        VBox content = new VBox(SECTION_SPACING, infoBox, btn);
+        VBox.setVgrow(infoBox, Priority.ALWAYS);
+        return buildSection(content);
     }
 
     // =========================================================================
@@ -249,17 +434,37 @@ public class TournamentDashboardCard extends VBox {
 
         Button delete = new Button("Supprimer le tournoi");
         delete.setStyle(
-                "-fx-background-color: #C62828;" +
-                        "-fx-text-fill: white;" +
-                        "-fx-font-weight: 800;" +
-                        "-fx-background-radius: " + AppTheme.RADIUS + ";" +
-                        "-fx-padding: 10 14;" +
-                        "-fx-cursor: hand;");
-        delete.setOnAction(e -> nav.showInfo("À venir", "Suppression du tournoi."));
+                "-fx-background-color: #C62828;"
+                        + "-fx-text-fill: white;"
+                        + "-fx-font-weight: 800;"
+                        + "-fx-background-radius: " + AppTheme.RADIUS + ";"
+                        + "-fx-padding: 10 14;"
+                        + "-fx-cursor: hand;");
+        delete.setOnAction(e -> onDeleteTournament());
 
         HBox row = new HBox(10, publish, delete);
         row.setAlignment(Pos.CENTER_RIGHT);
         return row;
+    }
+
+    private void onDeleteTournament() {
+        javafx.scene.control.Alert confirm = new javafx.scene.control.Alert(
+                javafx.scene.control.Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Supprimer le tournoi");
+        confirm.setHeaderText("Supprimer « " + OrganizerViewUtils.nvl(tournament.name()) + " » ?");
+        confirm.setContentText(
+                "Cette action est irréversible. Toutes les données liées au tournoi "
+                        + "(règlement, tableaux, inscriptions) seront définitivement supprimées.");
+        confirm.showAndWait().ifPresent(response -> {
+            if (response != javafx.scene.control.ButtonType.OK)
+                return;
+            try {
+                nav.tournamentService().delete(tournament.id());
+                nav.showOrganizerDashboard();
+            } catch (Exception ex) {
+                nav.showInfo("Erreur", "Impossible de supprimer : " + ex.getMessage());
+            }
+        });
     }
 
     // =========================================================================

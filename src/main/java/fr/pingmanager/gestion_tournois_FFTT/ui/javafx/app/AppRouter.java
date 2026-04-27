@@ -23,7 +23,7 @@ import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.view.home.HomeView;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs.CreateTournamentDialog;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs.EditTournamentRegulationDialog;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs.OrganizerProfileDialog;
-import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.view.organizer.dialogs.TableauxManagementDialog;
+import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.view.organizer.layout.TournamentSection;
 import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.view.organizer.pages.OrganizerDashboardView;
 
 /**
@@ -121,63 +121,74 @@ public final class AppRouter {
 
     public void showOrganizerDashboard() {
         requireOrganizer();
-
         setMainScene(
                 new OrganizerDashboardView(this),
                 "PingManager — Tableau de bord organisateur");
     }
 
+    /**
+     * Navigue directement vers une section d'un tournoi.
+     * Le contenu principal change sans popup.
+     */
+    public void showTournamentSection(TournamentDto tournament, TournamentSection section) {
+        requireOrganizer();
+        setMainScene(
+                new OrganizerDashboardView(this, tournament, section),
+                "PingManager — " + (section.label() != null ? section.label() : "Tableau de bord"));
+    }
+
     // -------------------------------------------------------------------------
-    // DIALOGS
+    // DIALOGS (conservés pour compatibilité — appellent la navigation inline)
     // -------------------------------------------------------------------------
 
     public void showOrganizerProfileDialog() {
         requireOrganizer();
-
         OrganizerProfileDialog dialog = new OrganizerProfileDialog(this);
         dialog.showAndWait();
-
         showOrganizerDashboard();
     }
 
     public void showCreateTournamentDialog() {
         requireOrganizer();
-
         CreateTournamentDialog dialog = new CreateTournamentDialog(this);
         dialog.showAndWait();
-
         showOrganizerDashboard();
     }
 
+    /**
+     * Ouvre le dialog de modification Général puis revient
+     * sur la section Général du tournoi (pas le dashboard global).
+     */
     public void showEditTournamentGeneralDialog(TournamentDto tournament) {
         requireOrganizer();
-
         CreateTournamentDialog dialog = new CreateTournamentDialog(this, tournament);
         dialog.showAndWait();
-
-        showOrganizerDashboard();
+        // Recharger le tournoi depuis la base pour avoir les données fraîches
+        TournamentDto fresh = tournamentService()
+                .findById(tournament.id())
+                .orElse(tournament);
+        showTournamentSection(fresh, TournamentSection.GENERAL);
     }
 
+    /**
+     * Ouvre le dialog de modification Règlement puis revient
+     * sur la section Règlement du tournoi.
+     */
     public void showEditTournamentRegulationDialog(TournamentDto tournament) {
         requireOrganizer();
-
         TournamentRegulationDto regulation = tournamentService().getRegulation(tournament.id());
-
         EditTournamentRegulationDialog dialog = new EditTournamentRegulationDialog(this, tournament, regulation);
         dialog.showAndWait();
-
-        showOrganizerDashboard();
+        showTournamentSection(tournament, TournamentSection.REGLEMENT);
     }
 
+    /**
+     * @deprecated Remplacé par showTournamentSection(tournament, TABLEAUX).
+     *             Conservé pour compatibilité avec TournamentDashboardCard.
+     */
+    @Deprecated
     public void showTableauxManagementDialog(TournamentDto tournament) {
-        requireOrganizer();
-
-        TournamentRegulationDto regulation = tournamentService().getRegulation(tournament.id());
-
-        TableauxManagementDialog dialog = new TableauxManagementDialog(this, tournament, regulation);
-        dialog.showAndWait();
-
-        showOrganizerDashboard();
+        showTournamentSection(tournament, TournamentSection.TABLEAUX);
     }
 
     // -------------------------------------------------------------------------
