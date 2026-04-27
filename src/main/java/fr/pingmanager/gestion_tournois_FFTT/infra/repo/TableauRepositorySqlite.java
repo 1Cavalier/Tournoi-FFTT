@@ -32,10 +32,10 @@ public class TableauRepositorySqlite implements TableauRepository {
                     max_players, waitlist_capacity,
                     check_in_end, start_time,
                     prepaid_fee, on_site_fee,
-                    draw_algorithm_type, classification_mode,
+                    pool_size, qualified_per_pool, classification_mode,
                     created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection c = db.openConnection();
@@ -60,10 +60,11 @@ public class TableauRepositorySqlite implements TableauRepository {
             ps.setString(17, t.startTime());
             setInteger(ps, 18, t.prepaidFee());
             setInteger(ps, 19, t.onSiteFee());
-            ps.setString(20, t.drawAlgorithmType() != null ? t.drawAlgorithmType() : "SNAKE");
-            ps.setString(21, t.classificationMode() != null ? t.classificationMode() : "NONE");
-            ps.setString(22, t.createdAt());
-            ps.setString(23, t.updatedAt());
+            setInteger(ps, 20, t.poolSize() != null ? t.poolSize() : 3);
+            setInteger(ps, 21, t.qualifiedPerPool() != null ? t.qualifiedPerPool() : 2);
+            ps.setString(22, t.classificationMode() != null ? t.classificationMode() : "NONE");
+            ps.setString(23, t.createdAt());
+            ps.setString(24, t.updatedAt());
 
             ps.executeUpdate();
 
@@ -146,7 +147,8 @@ public class TableauRepositorySqlite implements TableauRepository {
                     start_time = ?,
                     prepaid_fee = ?,
                     on_site_fee = ?,
-                    draw_algorithm_type = ?,
+                    pool_size = ?,
+                    qualified_per_pool = ?,
                     classification_mode = ?,
                     updated_at = ?
                 WHERE id = ?
@@ -172,10 +174,11 @@ public class TableauRepositorySqlite implements TableauRepository {
             ps.setString(15, t.startTime());
             setInteger(ps, 16, t.prepaidFee());
             setInteger(ps, 17, t.onSiteFee());
-            ps.setString(18, t.drawAlgorithmType() != null ? t.drawAlgorithmType() : "SNAKE");
-            ps.setString(19, t.classificationMode() != null ? t.classificationMode() : "NONE");
-            ps.setString(20, t.updatedAt());
-            ps.setString(21, t.id());
+            setInteger(ps, 18, t.poolSize() != null ? t.poolSize() : 3);
+            setInteger(ps, 19, t.qualifiedPerPool() != null ? t.qualifiedPerPool() : 2);
+            ps.setString(20, t.classificationMode() != null ? t.classificationMode() : "NONE");
+            ps.setString(21, t.updatedAt());
+            ps.setString(22, t.id());
 
             ps.executeUpdate();
 
@@ -225,9 +228,8 @@ public class TableauRepositorySqlite implements TableauRepository {
                 getInteger(rs, "prepaid_fee"),
                 getInteger(rs, "on_site_fee"),
                 findPrizeTiers(c, tableauId),
-                rs.getString("draw_algorithm_type") != null
-                        ? rs.getString("draw_algorithm_type")
-                        : "SNAKE",
+                getInteger(rs, "pool_size") != null ? getInteger(rs, "pool_size") : 3,
+                getInteger(rs, "qualified_per_pool") != null ? getInteger(rs, "qualified_per_pool") : 2,
                 rs.getString("classification_mode") != null
                         ? rs.getString("classification_mode")
                         : "NONE",

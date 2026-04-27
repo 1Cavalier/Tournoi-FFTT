@@ -7,6 +7,7 @@ import java.util.Objects;
 
 import fr.pingmanager.gestion_tournois_FFTT.common.exception.BusinessException;
 import fr.pingmanager.gestion_tournois_FFTT.common.exception.ErrorCode;
+import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.classification.ClassificationMode;
 import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.enums.GenderPolicy;
 import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.enums.TableauPointsRuleType;
 import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.value.AgeCategoryPolicy;
@@ -14,10 +15,19 @@ import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.value.Prize
 import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.value.RegistrationFee;
 import fr.pingmanager.gestion_tournois_FFTT.domain.refdata.AgeCategory;
 
-import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.classification.ClassificationMode;
-import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.draw.DrawAlgorithmType;
-
 public final class Tableau {
+
+    // -------------------------------------------------------------------------
+    // CONSTANTES
+    // -------------------------------------------------------------------------
+
+    /** Taille de poule autorisée : 3 (standard FFTT) ou 4. */
+    public static final int POOL_SIZE_STANDARD = 3;
+    public static final int POOL_SIZE_LARGE = 4;
+
+    /** Nombre de qualifiés par poule autorisé : 1 ou 2. */
+    public static final int QUALIFIED_MIN = 1;
+    public static final int QUALIFIED_MAX = 2;
 
     // -------------------------------------------------------------------------
     // FIELDS
@@ -51,14 +61,22 @@ public final class Tableau {
     private final PrizeDistribution prizes;
 
     /**
-     * Algorithme de tirage des poules.
-     * Par défaut : SNAKE (méthode du serpent FFTT).
+     * Taille des poules : 3 (standard FFTT) ou 4.
+     * Défaut : 3.
+     * Note : l'algorithme de tirage est défini au niveau du tournoi.
      */
-    private final DrawAlgorithmType drawAlgorithmType;
+    private final int poolSize;
+
+    /**
+     * Nombre de joueurs qualifiés par poule pour le tableau KO.
+     * 1 = seul le 1er qualifié, 2 = 1er et 2ème qualifiés.
+     * Défaut : 2.
+     */
+    private final int qualifiedPerPool;
 
     /**
      * Mode de classement final.
-     * Par défaut : NONE (aucun match de classement).
+     * Défaut : NONE (aucun match de classement).
      */
     private final ClassificationMode classificationMode;
 
@@ -81,7 +99,8 @@ public final class Tableau {
             LocalTime checkInEnd,
             LocalTime startTime,
             PrizeDistribution prizes,
-            DrawAlgorithmType drawAlgorithmType,
+            Integer poolSize,
+            Integer qualifiedPerPool,
             ClassificationMode classificationMode) {
 
         // ---- identifiants / description ----
@@ -94,18 +113,15 @@ public final class Tableau {
         this.pointsRuleType = requireNonNull(pointsRuleType, ErrorCode.TABLEAU_POINTS_RULE_TYPE_REQUIRED);
         this.minPoints = minPoints;
         this.maxPoints = maxPoints;
-
         this.ageCategoryPolicy = ageCategoryPolicy; // null => pas de restriction
 
         // ---- capacités ----
-        if (maxPlayers <= 0) {
+        if (maxPlayers <= 0)
             throw new BusinessException(ErrorCode.TABLEAU_MAX_PLAYERS_INVALID);
-        }
         this.maxPlayers = maxPlayers;
 
-        if (waitlistCapacity < 0) {
+        if (waitlistCapacity < 0)
             throw new BusinessException(ErrorCode.TABLEAU_WAITLIST_CAPACITY_INVALID);
-        }
         this.waitlistCapacity = waitlistCapacity;
 
         // ---- frais / horaires / dotations ----
@@ -114,13 +130,55 @@ public final class Tableau {
         this.startTime = requireNonNull(startTime, ErrorCode.TABLEAU_START_TIME_REQUIRED);
         this.prizes = requireNonNull(prizes, ErrorCode.TABLEAU_PRIZE_REQUIRED);
 
-        // ---- tirage et classement ----
-        this.drawAlgorithmType = drawAlgorithmType != null ? drawAlgorithmType : DrawAlgorithmType.SNAKE;
-        this.classificationMode = classificationMode != null ? classificationMode : ClassificationMode.NONE;
+        // ---- poules ----
+        int ps = (poolSize != null) ? poolSize : POOL_SIZE_STANDARD;
+        if (ps != POOL_SIZE_STANDARD && ps != POOL_SIZE_LARGE) {
+            throw new BusinessException(ErrorCode.TABLEAU_POOL_SIZE_INVALID);
+        }
+        this.poolSize = ps;
+
+        int qp = (qualifiedPerPool != null) ? qualifiedPerPool : QUALIFIED_MAX;
+        if (qp < QUALIFIED_MIN || qp > QUALIFIED_MAX) {
+            throw new BusinessException(ErrorCode.TABLEAU_QUALIFIED_PER_POOL_INVALID);
+        }
+        // Un seul qualifié n'est logique que pour une poule d'au moins 2
+        this.qualifiedPerPool = qp;
+
+        // ---- classement ----
+        this.classificationMode = (classificationMode != null) ? classificationMode : ClassificationMode.NONE;
 
         // ---- validations cross-field ----
         validatePointsRule();
         validateTimes();
+    }
+
+    // -------------------------------------------------------------------------
+    // HELPERS MÉTIER
+    // -------------------------------------------------------------------------
+
+    /**
+     * Calcule le nombre maximum suggéré de joueurs pour ce tableau
+     * selon le nombre de tables disponibles.
+     *
+     * Formule : nbTables × poolSize
+     * Exemple : 8 tables × 3 joueurs/poule = 24 joueurs max suggérés
+     *
+     * @param numberOfTables nombre de tables disponibles dans la salle
+     * @return nombre de joueurs suggéré, ou -1 si numberOfTables invalide
+     */
+    public int suggestedMaxPlayers(int numberOfTables) {
+        if (numberOfTables <= 0)
+            return -1;
+        return numberOfTables * poolSize;
+    }
+
+    /**
+     * Label lisible décrivant la formule de poule de ce tableau.
+     * Ex : "Poules de 3 — 2 qualifiés"
+     */
+    public String poolFormulaLabel() {
+        return "Poules de " + poolSize + " — "
+                + qualifiedPerPool + " qualifié" + (qualifiedPerPool > 1 ? "s" : "");
     }
 
     // -------------------------------------------------------------------------
@@ -130,84 +188,56 @@ public final class Tableau {
     private void validatePointsRule() {
         switch (pointsRuleType) {
             case TOUTES_SERIES -> {
-                if (minPoints != null || maxPoints != null) {
+                if (minPoints != null || maxPoints != null)
                     throw new BusinessException(ErrorCode.TABLEAU_POINTS_RULE_INCONSISTENT);
-                }
             }
             case MAX_ONLY -> {
-                if (maxPoints == null) {
+                if (maxPoints == null)
                     throw new BusinessException(ErrorCode.TABLEAU_MAX_POINTS_REQUIRED);
-                }
-                if (maxPoints < 0) {
+                if (maxPoints < 0)
                     throw new BusinessException(ErrorCode.TABLEAU_MAX_POINTS_NEGATIVE);
-                }
-                if (minPoints != null) {
+                if (minPoints != null)
                     throw new BusinessException(ErrorCode.TABLEAU_POINTS_RULE_INCONSISTENT);
-                }
             }
             case RANGE_MIN_MAX -> {
-                if (minPoints == null) {
+                if (minPoints == null)
                     throw new BusinessException(ErrorCode.TABLEAU_MIN_POINTS_REQUIRED);
-                }
-                if (maxPoints == null) {
+                if (maxPoints == null)
                     throw new BusinessException(ErrorCode.TABLEAU_MAX_POINTS_REQUIRED);
-                }
-                if (minPoints < 0) {
+                if (minPoints < 0)
                     throw new BusinessException(ErrorCode.TABLEAU_MIN_POINTS_NEGATIVE);
-                }
-                if (maxPoints < 0) {
+                if (maxPoints < 0)
                     throw new BusinessException(ErrorCode.TABLEAU_MAX_POINTS_NEGATIVE);
-                }
-                if (minPoints > maxPoints) {
+                if (minPoints > maxPoints)
                     throw new BusinessException(ErrorCode.TABLEAU_MIN_GREATER_THAN_MAX);
-                }
             }
         }
     }
 
     private void validateTimes() {
-        if (!checkInEnd.isBefore(startTime)) {
+        if (!checkInEnd.isBefore(startTime))
             throw new BusinessException(ErrorCode.TABLEAU_CHECKIN_AFTER_START);
-        }
     }
 
     // -------------------------------------------------------------------------
     // ELIGIBILITY
     // -------------------------------------------------------------------------
 
-    /**
-     * Vérifie si un participant est éligible au tableau
-     * (genre + points + âge).
-     *
-     * NB : la capacité max (et la file d'attente) est gérée par l'aggregate
-     * Tournament.
-     */
     public boolean accepts(int playerPoints, boolean isFemale) {
         return accepts(playerPoints, isFemale, null);
     }
 
     public boolean accepts(int playerPoints, boolean isFemale, AgeCategory ageCategory) {
-
-        if (playerPoints < 0) {
+        if (playerPoints < 0)
             return false;
-        }
-
-        // genre
-        if (genderPolicy == GenderPolicy.FEMININ && !isFemale) {
+        if (genderPolicy == GenderPolicy.FEMININ && !isFemale)
             return false;
-        }
-
-        // âge
         if (ageCategoryPolicy != null) {
-            if (ageCategory == null) {
+            if (ageCategory == null)
                 return false;
-            }
-            if (!ageCategoryPolicy.accepts(ageCategory)) {
+            if (!ageCategoryPolicy.accepts(ageCategory))
                 return false;
-            }
         }
-
-        // points
         return switch (pointsRuleType) {
             case TOUTES_SERIES -> true;
             case MAX_ONLY -> playerPoints <= maxPoints;
@@ -275,8 +305,12 @@ public final class Tableau {
         return prizes;
     }
 
-    public DrawAlgorithmType drawAlgorithmType() {
-        return drawAlgorithmType;
+    public int poolSize() {
+        return poolSize;
+    }
+
+    public int qualifiedPerPool() {
+        return qualifiedPerPool;
     }
 
     public ClassificationMode classificationMode() {
@@ -284,20 +318,18 @@ public final class Tableau {
     }
 
     // -------------------------------------------------------------------------
-    // HELPERS
+    // HELPERS PRIVÉS
     // -------------------------------------------------------------------------
 
     private static String requireText(String value, ErrorCode error) {
-        if (value == null || value.isBlank()) {
+        if (value == null || value.isBlank())
             throw new BusinessException(error);
-        }
         return value.trim();
     }
 
     private static <T> T requireNonNull(T value, ErrorCode error) {
-        if (Objects.isNull(value)) {
+        if (Objects.isNull(value))
             throw new BusinessException(error);
-        }
         return value;
     }
 }

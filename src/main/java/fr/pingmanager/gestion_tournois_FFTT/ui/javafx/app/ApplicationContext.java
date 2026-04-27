@@ -125,7 +125,45 @@ public final class ApplicationContext {
         applySql(competitionDb, "/db/competition/tableau.sql");
         applySql(competitionDb, "/db/competition/tableau_prize_tier.sql");
         applySql(competitionDb, "/db/competition/app_state.sql");
-        applySql(competitionDb, "/db/competition/pool_phase.sql"); // ← nouveau
+        applySql(competitionDb, "/db/competition/pool_phase.sql");
+        migrateColumns(competitionDb);
+    }
+
+    /**
+     * Migration des bases existantes : ajoute les nouvelles colonnes si absentes.
+     * SQLite ne supporte pas ALTER TABLE ... ADD COLUMN IF NOT EXISTS,
+     * donc on ignore l'erreur "duplicate column name" si la colonne existe déjà.
+     */
+    private void migrateColumns(SqliteDb db) {
+        try (Connection c = db.openConnection()) {
+            // tournament : algorithme de tirage (global au tournoi)
+            tryAlterColumn(c, "ALTER TABLE tournament ADD COLUMN draw_algorithm_type TEXT NOT NULL DEFAULT 'SNAKE'");
+
+            // tableau : remplace draw_algorithm_type par pool_size + qualified_per_pool
+            tryAlterColumn(c, "ALTER TABLE tableau ADD COLUMN pool_size INTEGER NOT NULL DEFAULT 3");
+            tryAlterColumn(c, "ALTER TABLE tableau ADD COLUMN qualified_per_pool INTEGER NOT NULL DEFAULT 2");
+            tryAlterColumn(c, "ALTER TABLE tableau ADD COLUMN classification_mode TEXT NOT NULL DEFAULT 'NONE'");
+
+            // Supprimer draw_algorithm_type de tableau si elle existe encore
+            // (SQLite ne supporte pas DROP COLUMN avant 3.35 — on laisse la colonne
+            // orpheline,
+            // elle est simplement ignorée par le mapping Java)
+
+        } catch (Exception e) {
+            throw new RuntimeException("Migration columns failed", e);
+        }
+    }
+
+    private void tryAlterColumn(Connection c, String sql) {
+        try (java.sql.Statement st = c.createStatement()) {
+            st.execute(sql);
+        } catch (Exception e) {
+            // Ignore : la colonne existe déjà (duplicate column name)
+            String msg = e.getMessage();
+            if (msg == null || !msg.contains("duplicate column name")) {
+                throw new RuntimeException("ALTER TABLE failed: " + sql, e);
+            }
+        }
     }
 
     private void applySql(SqliteDb db, String resourceSqlPath) {

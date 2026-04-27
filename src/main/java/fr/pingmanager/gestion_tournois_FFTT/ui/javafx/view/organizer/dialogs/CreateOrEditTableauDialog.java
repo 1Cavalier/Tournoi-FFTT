@@ -84,6 +84,13 @@ public class CreateOrEditTableauDialog extends Stage {
     private final TextField onSiteFeeField = new TextField();
     private final Label maxPlayersHintLabel = new Label();
 
+    // Formule de poule
+    private final ComboBox<Integer> poolSizeBox = new ComboBox<>();
+    private final ComboBox<Integer> qualifiedPerPoolBox = new ComboBox<>();
+
+    // Classement final
+    private final ComboBox<ClassificationModeItem> classificationModeBox = new ComboBox<>();
+
     private final VBox prizeTiersContainer = new VBox(AppTheme.SPACE_SM);
 
     private final Label messageLabel = new Label();
@@ -92,6 +99,14 @@ public class CreateOrEditTableauDialog extends Stage {
     private final EnumMap<AgeCategory, CheckBox> ageCategoryChecks = new EnumMap<>(AgeCategory.class);
 
     private TableauDto result;
+
+    /** Wrapper d'affichage pour ClassificationMode dans la ComboBox. */
+    private record ClassificationModeItem(String value, String label) {
+        @Override
+        public String toString() {
+            return label;
+        }
+    }
 
     public CreateOrEditTableauDialog(
             AppRouter nav,
@@ -195,6 +210,11 @@ public class CreateOrEditTableauDialog extends Stage {
 
         addField(grid, row++, "Règle de points", pointsRuleTypeBox);
         addField(grid, row++, "", pointsDynamicBox);
+
+        // ---- Formule de poule ----
+        addField(grid, row++, "Taille des poules", poolSizeBox);
+        addField(grid, row++, "Qualifiés par poule", qualifiedPerPoolBox);
+
         addField(grid, row++, "Nombre max de joueurs", maxPlayersSpinner);
 
         AppTheme.applyBody(maxPlayersHintLabel);
@@ -205,6 +225,9 @@ public class CreateOrEditTableauDialog extends Stage {
         addField(grid, row++, "Capacité liste d'attente", waitlistCapacitySpinner);
         addField(grid, row++, "Tarif préinscription / en ligne (€)", prepaidFeeField);
         addField(grid, row++, "Tarif sur place (€)", onSiteFeeField);
+
+        // ---- Classement final ----
+        addField(grid, row++, "Matchs de classement", classificationModeBox);
 
         return new VBox(AppTheme.SPACE_MD, sectionTitle, grid);
     }
@@ -353,6 +376,55 @@ public class CreateOrEditTableauDialog extends Stage {
         maxPlayersSpinner.setEditable(true);
         waitlistCapacitySpinner.setEditable(true);
 
+        // ---- Taille des poules ----
+        poolSizeBox.setItems(FXCollections.observableArrayList(3, 4));
+        poolSizeBox.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(Integer item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : "Poules de " + item);
+            }
+        });
+        poolSizeBox.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(Integer item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : "Poules de " + item);
+            }
+        });
+        poolSizeBox.setValue(3);
+        poolSizeBox.valueProperty().addListener((obs, o, n) -> applySuggestedMaxPlayers());
+
+        // ---- Qualifiés par poule ----
+        qualifiedPerPoolBox.setItems(FXCollections.observableArrayList(1, 2));
+        qualifiedPerPoolBox.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(Integer item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null
+                        : item == 1 ? "1 qualifié par poule (1er uniquement)"
+                                : "2 qualifiés par poule (1er et 2ème)");
+            }
+        });
+        qualifiedPerPoolBox.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(Integer item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null
+                        : item == 1 ? "1 qualifié par poule (1er uniquement)"
+                                : "2 qualifiés par poule (1er et 2ème)");
+            }
+        });
+        qualifiedPerPoolBox.setValue(2);
+
+        // ---- Mode de classement ----
+        classificationModeBox.setItems(FXCollections.observableArrayList(
+                new ClassificationModeItem("NONE", "Aucun match de classement"),
+                new ClassificationModeItem("THIRD_PLACE", "Finale + Petite finale (3ème / 4ème)"),
+                new ClassificationModeItem("TOP_8", "Classement 1 à 8"),
+                new ClassificationModeItem("FULL", "Tous les matchs de classement")));
+        classificationModeBox.setValue(classificationModeBox.getItems().get(0));
+
         applySuggestedMaxPlayers();
 
         if (isEditMode()) {
@@ -454,6 +526,25 @@ public class CreateOrEditTableauDialog extends Stage {
                 .setText(existingTableau.prepaidFee() == null ? "" : String.valueOf(existingTableau.prepaidFee()));
         onSiteFeeField.setText(existingTableau.onSiteFee() == null ? "" : String.valueOf(existingTableau.onSiteFee()));
 
+        // Taille des poules
+        if (existingTableau.poolSize() != null) {
+            poolSizeBox.setValue(existingTableau.poolSize());
+        }
+
+        // Qualifiés par poule
+        if (existingTableau.qualifiedPerPool() != null) {
+            qualifiedPerPoolBox.setValue(existingTableau.qualifiedPerPool());
+        }
+
+        // Mode de classement
+        String mode = existingTableau.classificationMode() != null
+                ? existingTableau.classificationMode()
+                : "NONE";
+        classificationModeBox.getItems().stream()
+                .filter(item -> item.value().equals(mode))
+                .findFirst()
+                .ifPresent(classificationModeBox::setValue);
+
         prizeTiersContainer.getChildren().clear();
         if (existingTableau.prizeTiers() != null && !existingTableau.prizeTiers().isEmpty()) {
             for (PrizeTierDto tier : existingTableau.prizeTiers()) {
@@ -496,6 +587,7 @@ public class CreateOrEditTableauDialog extends Stage {
 
     private void applySuggestedMaxPlayers() {
         Integer numberOfTables = regulation.numberOfTables();
+        Integer ps = poolSizeBox.getValue() != null ? poolSizeBox.getValue() : 3;
 
         if (numberOfTables == null || numberOfTables <= 0) {
             maxPlayersHintLabel.setText(
@@ -503,10 +595,10 @@ public class CreateOrEditTableauDialog extends Stage {
             return;
         }
 
-        int suggested = numberOfTables * 3;
+        int suggested = numberOfTables * ps;
         maxPlayersHintLabel.setText(
-                "Vous avez renseigné " + numberOfTables + " table(s) dans le règlement. "
-                        + "Une capacité conseillée de " + suggested + " joueurs est proposée pour ce tableau.");
+                "Avec " + numberOfTables + " table(s) et des poules de " + ps
+                        + ", une capacité conseillée de " + suggested + " joueurs est proposée.");
 
         if (!isEditMode() || existingTableau.maxPlayers() == null) {
             maxPlayersSpinner.getValueFactory().setValue(suggested);
@@ -623,11 +715,10 @@ public class CreateOrEditTableauDialog extends Stage {
                 prepaidFee,
                 onSiteFee,
                 prizeTiers,
-                isEditMode() && existingTableau.drawAlgorithmType() != null
-                        ? existingTableau.drawAlgorithmType()
-                        : "SNAKE",
-                isEditMode() && existingTableau.classificationMode() != null
-                        ? existingTableau.classificationMode()
+                poolSizeBox.getValue() != null ? poolSizeBox.getValue() : 3,
+                qualifiedPerPoolBox.getValue() != null ? qualifiedPerPoolBox.getValue() : 2,
+                classificationModeBox.getValue() != null
+                        ? classificationModeBox.getValue().value()
                         : "NONE",
                 isEditMode() ? existingTableau.createdAt() : null,
                 isEditMode() ? existingTableau.updatedAt() : null);

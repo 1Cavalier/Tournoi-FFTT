@@ -147,6 +147,10 @@ public final class ErrorMessages {
                 "L'heure de fin de pointage est obligatoire";
             case TABLEAU_START_TIME_REQUIRED ->
                 "L'heure de début du tableau est obligatoire";
+            case TABLEAU_POOL_SIZE_INVALID ->
+                "La taille des poules doit être 3 ou 4";
+            case TABLEAU_QUALIFIED_PER_POOL_INVALID ->
+                "Le nombre de qualifiés par poule doit être 1 ou 2";
             case TABLEAU_CHECKIN_AFTER_START ->
                 "La fin du pointage doit être antérieure au début du tableau";
 

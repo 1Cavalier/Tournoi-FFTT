@@ -71,6 +71,7 @@ public class TournamentService {
                 cmd.endDate().toString(),
                 null,
                 TournamentStatus.DRAFT.name(),
+                "SNAKE",
                 now,
                 now);
 
@@ -142,6 +143,7 @@ public class TournamentService {
                 endDate.toString(),
                 optional(existing.homologationNumber()),
                 required(existing.status()),
+                existing.drawAlgorithmType() != null ? existing.drawAlgorithmType() : "SNAKE",
                 required(existing.createdAt()),
                 LocalDateTime.now().toString());
 
@@ -224,7 +226,8 @@ public class TournamentService {
                 tableau.prepaidFee(),
                 tableau.onSiteFee(),
                 safePrizeTiers(tableau.prizeTiers()),
-                tableau.drawAlgorithmType() != null ? tableau.drawAlgorithmType() : "SNAKE",
+                tableau.poolSize() != null ? tableau.poolSize() : 3,
+                tableau.qualifiedPerPool() != null ? tableau.qualifiedPerPool() : 2,
                 tableau.classificationMode() != null ? tableau.classificationMode() : "NONE",
                 now,
                 now);
@@ -260,7 +263,8 @@ public class TournamentService {
                 tableau.prepaidFee(),
                 tableau.onSiteFee(),
                 safePrizeTiers(tableau.prizeTiers()),
-                tableau.drawAlgorithmType() != null ? tableau.drawAlgorithmType() : "SNAKE",
+                tableau.poolSize() != null ? tableau.poolSize() : 3,
+                tableau.qualifiedPerPool() != null ? tableau.qualifiedPerPool() : 2,
                 tableau.classificationMode() != null ? tableau.classificationMode() : "NONE",
                 required(existing.createdAt()),
                 LocalDateTime.now().toString());

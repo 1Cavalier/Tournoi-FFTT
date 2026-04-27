@@ -482,6 +482,9 @@ public class CreateTournamentDialog extends Stage {
                     endDate.toString(),
                     existingTournament.homologationNumber(),
                     existingTournament.status(),
+                    existingTournament.drawAlgorithmType() != null
+                            ? existingTournament.drawAlgorithmType()
+                            : "SNAKE",
                     existingTournament.createdAt(),
                     existingTournament.updatedAt());
 

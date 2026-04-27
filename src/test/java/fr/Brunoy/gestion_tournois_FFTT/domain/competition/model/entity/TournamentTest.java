@@ -80,7 +80,7 @@ class TournamentTest {
                                 LocalTime.of(8, 30),
                                 LocalTime.of(9, 0),
                                 new PrizeDistribution(List.of(new PrizeTier(1, 1, 0))),
-                                null, null);
+                                null, null, null);
         }
 
         private static Tableau tableauFemaleOnly(String code, LocalDate date, int maxPlayers, int waitCap) {
@@ -99,7 +99,7 @@ class TournamentTest {
                                 LocalTime.of(8, 30),
                                 LocalTime.of(9, 0),
                                 new PrizeDistribution(List.of(new PrizeTier(1, 1, 0))),
-                                null, null);
+                                null, null, null);
         }
 
         private static TournamentRegistrationPolicy policy(

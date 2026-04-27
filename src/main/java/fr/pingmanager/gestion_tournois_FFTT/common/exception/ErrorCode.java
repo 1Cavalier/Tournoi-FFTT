@@ -242,6 +242,9 @@ public enum ErrorCode {
     BRACKET_MATCH_ALREADY_FINISHED,
     BRACKET_MATCH_INVALID_TRANSITION,
     BRACKET_MATCH_PARTICIPANT_NOT_IN_MATCH,
+    TABLEAU_POOL_SIZE_INVALID,
+    TABLEAU_QUALIFIED_PER_POOL_INVALID,
+
     BRACKET_MATCH_SCORE_REQUIRED,
 
     // ========================================================================

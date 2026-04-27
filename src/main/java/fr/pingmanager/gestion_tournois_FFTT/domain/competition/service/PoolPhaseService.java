@@ -8,7 +8,9 @@ import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.bracket.KoM
 import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.classification.ClassificationBracket;
 import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.classification.ClassificationMode;
 import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.draw.DrawAlgorithm;
+import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.draw.DrawAlgorithmType;
 import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.entity.Tableau;
+import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.pool.PoolMatch;
 import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.pool.PoolMatchScore;
 import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.pool.PoolSlot;
 import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.pool.Poule;
@@ -77,12 +79,15 @@ public final class PoolPhaseService {
     /**
      * Effectue le tirage des poules pour un tableau donné.
      *
-     * @param tableau      le tableau (contient l'algo de tirage et les paramètres)
-     * @param participants liste des inscrits confirmés (CONFIRMED)
-     * @param phase        phase de classement (détermine quels points utiliser)
+     * @param tableau           le tableau (taille des poules, qualifiés par poule)
+     * @param drawAlgorithmType algorithme de tirage défini au niveau du tournoi
+     * @param participants      liste des inscrits confirmés
+     * @param phase             phase de classement (détermine quels points
+     *                          utiliser)
      * @return le résultat contenant les poules constituées
      */
     public PoolPhaseResult drawPools(Tableau tableau,
+            DrawAlgorithmType drawAlgorithmType,
             List<Participant> participants,
             RankingPhase phase) {
         Objects.requireNonNull(tableau, "tableau");
@@ -98,39 +103,39 @@ public final class PoolPhaseService {
         ranked.sort(Comparator.comparingInt(
                 (Participant p) -> p.pointsFor(phase)).reversed());
 
-        // 2. Déterminer la taille des poules
-        // Si nbJoueurs % 3 == 0 → uniquement des poules de 3
-        // Si nbJoueurs % 3 == 1 → 2 poules de 2 (les deux derniers)
-        // Si nbJoueurs % 3 == 2 → 1 poule de 2 (les deux derniers)
+        // 2. Déterminer la taille des poules depuis le tableau
+        int poolSz = tableau.poolSize(); // 3 ou 4
+        int qualifPP = tableau.qualifiedPerPool(); // 1 ou 2
         int n = ranked.size();
-        int nbPool2 = (n % STANDARD_POOL_SIZE == 1) ? 2 : (n % STANDARD_POOL_SIZE == 2 ? 1 : 0);
-        int nbPool3 = (n - nbPool2 * 2) / STANDARD_POOL_SIZE;
+        int nbPool2 = (n % poolSz == 1) ? 2 : (n % poolSz == 2 ? 1 : 0);
+        int nbPool3 = (n - nbPool2 * 2) / poolSz;
 
-        // 3. Appliquer l'algorithme de tirage
-        DrawAlgorithm algo = tableau.drawAlgorithmType().toAlgorithm();
+        // 3. Appliquer l'algorithme de tirage du tournoi
+        DrawAlgorithm algo = (drawAlgorithmType != null ? drawAlgorithmType : DrawAlgorithmType.SNAKE)
+                .toAlgorithm();
 
-        // Le tirage opère sur tous les joueurs d'un bloc :
-        // D'abord les pool3 (les mieux classés), puis les pool2 (les moins bons)
-        List<Participant> forPool3 = ranked.subList(0, nbPool3 * STANDARD_POOL_SIZE);
-        List<Participant> forPool2 = ranked.subList(nbPool3 * STANDARD_POOL_SIZE, n);
+        List<Participant> forPoolStd = ranked.subList(0, nbPool3 * poolSz);
+        List<Participant> forPool2 = ranked.subList(nbPool3 * poolSz, n);
 
-        List<List<PoolSlot>> pool3Slots = nbPool3 > 0
-                ? algo.draw(forPool3, STANDARD_POOL_SIZE)
+        List<List<PoolSlot>> poolStdSlots = nbPool3 > 0
+                ? algo.draw(forPoolStd, poolSz)
                 : List.of();
 
         List<List<PoolSlot>> pool2Slots = !forPool2.isEmpty()
                 ? algo.draw(forPool2, 2)
                 : List.of();
 
-        // 4. Construire les Poule à partir des slots
+        // 4. Construire les Poule avec le qualifiedPerPool du tableau
         List<Poule> poules = new ArrayList<>();
         int poolNumber = 1;
 
-        for (List<PoolSlot> slots : pool3Slots) {
-            poules.add(new Poule(tableau.code(), poolNumber++, slots));
+        for (List<PoolSlot> slots : poolStdSlots) {
+            poules.add(new Poule(tableau.code(), poolNumber++, slots, qualifPP));
         }
         for (List<PoolSlot> slots : pool2Slots) {
-            poules.add(new Poule(tableau.code(), poolNumber++, slots));
+            // Pour les poules de 2, on ne peut qualifier que 1 ou 2 selon la config
+            // mais une poule de 2 ne peut pas avoir plus de 2 qualifiés
+            poules.add(new Poule(tableau.code(), poolNumber++, slots, Math.min(qualifPP, 2)));
         }
 
         return new PoolPhaseResult(tableau.code(), poules);

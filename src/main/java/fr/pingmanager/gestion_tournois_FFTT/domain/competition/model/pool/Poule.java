@@ -64,14 +64,25 @@ public final class Poule {
     /** Les matchs générés selon la taille de la poule. */
     private final List<PoolMatch> matches;
 
+    /**
+     * Nombre de joueurs qualifiés pour le KO depuis cette poule.
+     * Défini par le tableau (1 ou 2). Défaut : 2.
+     */
+    private final int qualifiedPerPool;
+
     // -------------------------------------------------------------------------
     // CONSTRUCTEUR (nouvelle poule)
     // -------------------------------------------------------------------------
 
     public Poule(String tableauCode, int poolNumber, List<PoolSlot> slots) {
+        this(tableauCode, poolNumber, slots, 2);
+    }
+
+    public Poule(String tableauCode, int poolNumber, List<PoolSlot> slots, int qualifiedPerPool) {
         this.id = UUID.randomUUID().toString();
         this.tableauCode = requireText(tableauCode);
         this.poolNumber = requirePositive(poolNumber, "poolNumber");
+        this.qualifiedPerPool = validateQualifiedPerPool(qualifiedPerPool, slots.size());
 
         validateSlots(slots);
         this.slots = Collections.unmodifiableList(new ArrayList<>(slots));
@@ -83,10 +94,16 @@ public final class Poule {
      */
     public Poule(String id, String tableauCode, int poolNumber,
             List<PoolSlot> slots, List<PoolMatch> matches) {
+        this(id, tableauCode, poolNumber, slots, matches, 2);
+    }
+
+    public Poule(String id, String tableauCode, int poolNumber,
+            List<PoolSlot> slots, List<PoolMatch> matches, int qualifiedPerPool) {
 
         this.id = Objects.requireNonNull(id, "id");
         this.tableauCode = requireText(tableauCode);
         this.poolNumber = requirePositive(poolNumber, "poolNumber");
+        this.qualifiedPerPool = validateQualifiedPerPool(qualifiedPerPool, slots.size());
 
         validateSlots(slots);
         this.slots = Collections.unmodifiableList(new ArrayList<>(slots));
@@ -231,12 +248,11 @@ public final class Poule {
 
     /**
      * Nombre de joueurs qualifiés pour le tableau KO depuis cette poule.
-     * Toujours 2, quelle que soit la taille de la poule (2 ou 3 joueurs).
-     * Poule de 3 → 1er et 2ème qualifiés
-     * Poule de 2 → les deux joueurs sont qualifiés (vainqueur 1er, perdant 2ème)
+     * Défini par le tableau (1 ou 2).
+     * Pour une poule de 2, au maximum 2 qualifiés (les deux joueurs).
      */
     public int qualifiedCount() {
-        return 2;
+        return qualifiedPerPool;
     }
 
     /**
@@ -517,6 +533,17 @@ public final class Poule {
         return v;
     }
 
+    private static int validateQualifiedPerPool(int qp, int poolSize) {
+        if (qp < 1 || qp > 2)
+            throw new IllegalArgumentException("qualifiedPerPool must be 1 or 2, got: " + qp);
+        // Pour une poule de 2, on peut qualifier au max 2 (les deux joueurs)
+        // Pour une poule de 3+, 1 ou 2 qualifiés sont valides
+        if (qp > poolSize)
+            throw new IllegalArgumentException(
+                    "qualifiedPerPool (" + qp + ") cannot exceed pool size (" + poolSize + ")");
+        return qp;
+    }
+
     // -------------------------------------------------------------------------
     // GETTERS
     // -------------------------------------------------------------------------
@@ -535,6 +562,10 @@ public final class Poule {
 
     public int poolSize() {
         return slots.size();
+    }
+
+    public int qualifiedPerPool() {
+        return qualifiedPerPool;
     }
 
     /** Lettre de la poule pour l'affichage ("A", "B"...). */

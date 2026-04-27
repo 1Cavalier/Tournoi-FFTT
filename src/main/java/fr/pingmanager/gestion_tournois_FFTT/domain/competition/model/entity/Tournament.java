@@ -30,6 +30,8 @@ import fr.pingmanager.gestion_tournois_FFTT.domain.refdata.RankingPhase;
  * - Promotion FIFO de la file d'attente quand une place se libère
  * - Validation règlement "officielle" via TournamentRegulationInfo
  */
+import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.draw.DrawAlgorithmType;
+
 public final class Tournament {
 
     // -------------------------------------------------------------------------
@@ -44,6 +46,12 @@ public final class Tournament {
     private final Set<LocalDate> days;
 
     private final TournamentRegistrationPolicy registrationPolicy;
+
+    /**
+     * Algorithme de tirage des poules pour tous les tableaux du tournoi.
+     * SNAKE (serpent FFTT) par défaut. Même algo pour tout le tournoi.
+     */
+    private DrawAlgorithmType drawAlgorithmType;
 
     /**
      * Bloc règlement FFTT (obligatoire en version pro).
@@ -71,7 +79,8 @@ public final class Tournament {
     private final Map<String, List<Registration>> registrationsByTableauCode = new HashMap<>();
 
     /**
-     * BONUS FEMININ "ONCE" : mémorise les participantes ayant déjà consommé le bonus.
+     * BONUS FEMININ "ONCE" : mémorise les participantes ayant déjà consommé le
+     * bonus.
      * Choix pro : le bonus reste consommé même si la joueuse annule ensuite.
      */
     private final Set<String> femaleExtraOnceUsedParticipantIds = new HashSet<>();
@@ -121,6 +130,9 @@ public final class Tournament {
 
         // IMPORTANT : pas de validation "complète" ici -> tournoi peut être en DRAFT.
         this.regulationInfo = regulationInfo;
+
+        // Algorithme de tirage par défaut
+        this.drawAlgorithmType = DrawAlgorithmType.SNAKE;
     }
 
     // -------------------------------------------------------------------------
@@ -187,7 +199,8 @@ public final class Tournament {
         // Policy "who is allowed to play" (guest/foreign/etc.)
         registrationPolicy.participantEligibilityPolicy().assertEligible(participant);
 
-        // Pro : purge inactifs (CANCELLED + RESERVED expirées) pour éviter que les listes gonflent.
+        // Pro : purge inactifs (CANCELLED + RESERVED expirées) pour éviter que les
+        // listes gonflent.
         purgeInactive(regs, at);
 
         // 0) Éligibilité tableau (points + genre + âge)
@@ -327,7 +340,8 @@ public final class Tournament {
     // -------------------------------------------------------------------------
 
     /**
-     * @return true si l'inscription consomme le bonus féminin "ONCE" (si règle ONCE active).
+     * @return true si l'inscription consomme le bonus féminin "ONCE" (si règle ONCE
+     *         active).
      */
     private boolean enforceRegistrationPolicy(Participant participant, Tableau targetTableau, Instant at) {
 
@@ -357,7 +371,8 @@ public final class Tournament {
         int selectedThatDayCount = 0;
 
         for (Registration r : activeRegs) {
-            // Important : on normalise quand même (safe) : tu ne veux pas dépendre d’un invariant "ailleurs".
+            // Important : on normalise quand même (safe) : tu ne veux pas dépendre d’un
+            // invariant "ailleurs".
             String tKey = normalizeForLookup(r.tableauCode());
             Tableau t = tableauxByCode.get(tKey);
             if (t != null && day.equals(t.date())) {
@@ -376,7 +391,8 @@ public final class Tournament {
         }
 
         // E) Consommation du bonus "ONCE" :
-        // On le marque "utilisé" uniquement si cette inscription dépasse une limite de base,
+        // On le marque "utilisé" uniquement si cette inscription dépasse une limite de
+        // base,
         // et si le tableau cible peut déclencher la règle.
         if (!registrationPolicy.isFemaleExtraOnceRule()) {
             return false;
@@ -630,6 +646,17 @@ public final class Tournament {
 
     public TournamentRegistrationPolicy registrationPolicy() {
         return registrationPolicy;
+    }
+
+    public DrawAlgorithmType drawAlgorithmType() {
+        return drawAlgorithmType;
+    }
+
+    /** Modifie l'algorithme de tirage pour l'ensemble des tableaux du tournoi. */
+    public void setDrawAlgorithmType(DrawAlgorithmType drawAlgorithmType) {
+        this.drawAlgorithmType = (drawAlgorithmType != null)
+                ? drawAlgorithmType
+                : DrawAlgorithmType.SNAKE;
     }
 
     public TournamentRegulationInfo regulationInfo() {

@@ -28,9 +28,10 @@ public class TournamentRepositorySqlite implements TournamentRepository {
                     start_date, end_date,
                     homologation_number,
                     status,
+                    draw_algorithm_type,
                     created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection c = db.openConnection();
@@ -50,8 +51,9 @@ public class TournamentRepositorySqlite implements TournamentRepository {
             ps.setString(12, t.endDate());
             ps.setString(13, t.homologationNumber());
             ps.setString(14, t.status());
-            ps.setString(15, t.createdAt());
-            ps.setString(16, t.updatedAt());
+            ps.setString(15, t.drawAlgorithmType() != null ? t.drawAlgorithmType() : "SNAKE");
+            ps.setString(16, t.createdAt());
+            ps.setString(17, t.updatedAt());
 
             ps.executeUpdate();
             return t;
@@ -165,6 +167,7 @@ public class TournamentRepositorySqlite implements TournamentRepository {
                     end_date = ?,
                     homologation_number = ?,
                     status = ?,
+                    draw_algorithm_type = ?,
                     updated_at = ?
                 WHERE id = ?
                 """;
@@ -183,8 +186,9 @@ public class TournamentRepositorySqlite implements TournamentRepository {
             ps.setString(9, t.endDate());
             ps.setString(10, t.homologationNumber());
             ps.setString(11, t.status());
-            ps.setString(12, t.updatedAt());
-            ps.setString(13, t.id());
+            ps.setString(12, t.drawAlgorithmType() != null ? t.drawAlgorithmType() : "SNAKE");
+            ps.setString(13, t.updatedAt());
+            ps.setString(14, t.id());
 
             ps.executeUpdate();
 
@@ -209,6 +213,7 @@ public class TournamentRepositorySqlite implements TournamentRepository {
     }
 
     private TournamentDto map(ResultSet rs) throws Exception {
+        String raw = rs.getString("draw_algorithm_type");
         return new TournamentDto(
                 rs.getString("id"),
                 rs.getString("club_id"),
@@ -224,6 +229,7 @@ public class TournamentRepositorySqlite implements TournamentRepository {
                 rs.getString("end_date"),
                 rs.getString("homologation_number"),
                 rs.getString("status"),
+                raw != null ? raw : "SNAKE",
                 rs.getString("created_at"),
                 rs.getString("updated_at"));
     }
