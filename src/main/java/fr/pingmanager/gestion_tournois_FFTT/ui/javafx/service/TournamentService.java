@@ -224,6 +224,8 @@ public class TournamentService {
                 tableau.prepaidFee(),
                 tableau.onSiteFee(),
                 safePrizeTiers(tableau.prizeTiers()),
+                tableau.drawAlgorithmType() != null ? tableau.drawAlgorithmType() : "SNAKE",
+                tableau.classificationMode() != null ? tableau.classificationMode() : "NONE",
                 now,
                 now);
 
@@ -258,6 +260,8 @@ public class TournamentService {
                 tableau.prepaidFee(),
                 tableau.onSiteFee(),
                 safePrizeTiers(tableau.prizeTiers()),
+                tableau.drawAlgorithmType() != null ? tableau.drawAlgorithmType() : "SNAKE",
+                tableau.classificationMode() != null ? tableau.classificationMode() : "NONE",
                 required(existing.createdAt()),
                 LocalDateTime.now().toString());
 

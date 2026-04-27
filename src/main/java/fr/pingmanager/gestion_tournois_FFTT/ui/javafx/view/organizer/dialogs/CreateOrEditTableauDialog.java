@@ -623,6 +623,12 @@ public class CreateOrEditTableauDialog extends Stage {
                 prepaidFee,
                 onSiteFee,
                 prizeTiers,
+                isEditMode() && existingTableau.drawAlgorithmType() != null
+                        ? existingTableau.drawAlgorithmType()
+                        : "SNAKE",
+                isEditMode() && existingTableau.classificationMode() != null
+                        ? existingTableau.classificationMode()
+                        : "NONE",
                 isEditMode() ? existingTableau.createdAt() : null,
                 isEditMode() ? existingTableau.updatedAt() : null);
     }

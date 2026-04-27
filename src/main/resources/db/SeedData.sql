@@ -1,3 +1,12 @@
+-- =============================================================================
+-- BASE : club.db
+-- Fichier : SeedData.sql
+-- Description : Données initiales — club organisateur par défaut (Brunoy CTT).
+--
+-- Exécuté une seule fois à l'initialisation de club.db.
+-- ON CONFLICT DO NOTHING garantit l'idempotence si le script est rejoué.
+-- =============================================================================
+
 INSERT INTO club (
   id,
   club_number,
@@ -22,13 +31,13 @@ VALUES (
   '91',
   'Brunoy',
   'Salle municipale',
-  NULL,
-  NULL,
-  NULL,
+  NULL,   -- pas de ligne d'adresse 2
+  NULL,   -- latitude non renseignée
+  NULL,   -- longitude non renseignée
   'Serge',
   'BOULIER',
   'serge.boulier@gmail.com',
-  NULL,
+  NULL,   -- logo non renseigné
   CURRENT_TIMESTAMP,
   CURRENT_TIMESTAMP
 )

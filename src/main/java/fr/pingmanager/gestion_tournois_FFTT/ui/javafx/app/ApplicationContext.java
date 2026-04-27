@@ -3,19 +3,28 @@ package fr.pingmanager.gestion_tournois_FFTT.ui.javafx.app;
 import java.nio.file.Path;
 import java.sql.Connection;
 
+import fr.pingmanager.gestion_tournois_FFTT.domain.competition.model.bracket.BracketBuilder;
+import fr.pingmanager.gestion_tournois_FFTT.domain.competition.service.PoolPhaseService;
 import fr.pingmanager.gestion_tournois_FFTT.infra.db.DbMigrations;
 import fr.pingmanager.gestion_tournois_FFTT.infra.db.SqliteDb;
 import fr.pingmanager.gestion_tournois_FFTT.infra.mail.ConsoleEmailSender;
 import fr.pingmanager.gestion_tournois_FFTT.infra.mail.EmailSender;
 import fr.pingmanager.gestion_tournois_FFTT.infra.mail.EmailVerificationService;
+import fr.pingmanager.gestion_tournois_FFTT.infra.repo.ClassificationBracketRepository;
+import fr.pingmanager.gestion_tournois_FFTT.infra.repo.ClassificationBracketRepositorySqlite;
 import fr.pingmanager.gestion_tournois_FFTT.infra.repo.ClubAccessRepository;
 import fr.pingmanager.gestion_tournois_FFTT.infra.repo.ClubAccessRepositorySqlite;
 import fr.pingmanager.gestion_tournois_FFTT.infra.repo.ClubRepository;
 import fr.pingmanager.gestion_tournois_FFTT.infra.repo.ClubRepositorySqlite;
+import fr.pingmanager.gestion_tournois_FFTT.infra.repo.KoBracketRepository;
+import fr.pingmanager.gestion_tournois_FFTT.infra.repo.KoBracketRepositorySqlite;
 import fr.pingmanager.gestion_tournois_FFTT.infra.repo.OrganizerRepository;
 import fr.pingmanager.gestion_tournois_FFTT.infra.repo.OrganizerRepositorySqlite;
+import fr.pingmanager.gestion_tournois_FFTT.infra.repo.ParticipantResolver;
 import fr.pingmanager.gestion_tournois_FFTT.infra.repo.PlayerRepository;
 import fr.pingmanager.gestion_tournois_FFTT.infra.repo.PlayerRepositorySqlite;
+import fr.pingmanager.gestion_tournois_FFTT.infra.repo.PouleRepository;
+import fr.pingmanager.gestion_tournois_FFTT.infra.repo.PouleRepositorySqlite;
 import fr.pingmanager.gestion_tournois_FFTT.infra.repo.TableauRepository;
 import fr.pingmanager.gestion_tournois_FFTT.infra.repo.TableauRepositorySqlite;
 import fr.pingmanager.gestion_tournois_FFTT.infra.repo.TournamentRegulationRepository;
@@ -30,20 +39,28 @@ public final class ApplicationContext {
     private final SqliteDb clubDb;
     private final SqliteDb competitionDb;
 
+    // Repos club
     private final ClubRepository clubRepository;
     private final ClubAccessRepository clubAccessRepository;
     private final OrganizerRepository organizerRepository;
     private final PlayerRepository playerRepository;
 
+    // Repos compétition — existants
     private final TournamentRepository tournamentRepository;
     private final TournamentRegulationRepository tournamentRegulationRepository;
     private final TableauRepository tableauRepository;
 
+    // Repos compétition — nouveaux (phase de poules)
+    private final PouleRepository pouleRepository;
+    private final KoBracketRepository koBracketRepository;
+    private final ClassificationBracketRepository classificationBracketRepository;
+
+    // Services
     private final EmailSender emailSender;
     private final EmailVerificationService emailVerificationService;
-
     private final OrganizerAuthService organizerAuthService;
     private final TournamentService tournamentService;
+    private final PoolPhaseService poolPhaseService;
 
     public ApplicationContext() {
         Path clubDbFile = Path.of("data", "club.db");
@@ -55,30 +72,39 @@ public final class ApplicationContext {
         initClubDatabase();
         initCompetitionDatabase();
 
+        // ---- Repos club ----
         this.clubRepository = new ClubRepositorySqlite(clubDb);
         this.clubAccessRepository = new ClubAccessRepositorySqlite(clubDb);
         this.organizerRepository = new OrganizerRepositorySqlite(clubDb);
         this.playerRepository = new PlayerRepositorySqlite(clubDb);
 
+        // ---- Repos compétition existants ----
         this.tournamentRepository = new TournamentRepositorySqlite(competitionDb);
         this.tournamentRegulationRepository = new TournamentRegulationRepositorySqlite(competitionDb);
         this.tableauRepository = new TableauRepositorySqlite(competitionDb);
 
+        // ---- ParticipantResolver — résout un ID en Participant ----
+        // Cherche d'abord dans club.db (FFTT), puis invités stockés en compétition.db
+        ParticipantResolver resolver = new PlayerParticipantResolver(clubDb, competitionDb);
+
+        // ---- Repos phase de poules ----
+        this.pouleRepository = new PouleRepositorySqlite(competitionDb, resolver);
+        this.koBracketRepository = new KoBracketRepositorySqlite(competitionDb, resolver);
+        this.classificationBracketRepository = new ClassificationBracketRepositorySqlite(competitionDb, resolver);
+
+        // ---- Services ----
         this.emailSender = new ConsoleEmailSender();
         this.emailVerificationService = new EmailVerificationService(
-                organizerRepository,
-                emailSender);
+                organizerRepository, emailSender);
 
         this.organizerAuthService = new OrganizerAuthService(
-                organizerRepository,
-                clubRepository,
-                clubAccessRepository,
-                emailVerificationService);
+                organizerRepository, clubRepository,
+                clubAccessRepository, emailVerificationService);
 
         this.tournamentService = new TournamentService(
-                tournamentRepository,
-                tournamentRegulationRepository,
-                tableauRepository);
+                tournamentRepository, tournamentRegulationRepository, tableauRepository);
+
+        this.poolPhaseService = new PoolPhaseService(new BracketBuilder());
     }
 
     // -------------------------------------------------------------------------
@@ -99,6 +125,7 @@ public final class ApplicationContext {
         applySql(competitionDb, "/db/competition/tableau.sql");
         applySql(competitionDb, "/db/competition/tableau_prize_tier.sql");
         applySql(competitionDb, "/db/competition/app_state.sql");
+        applySql(competitionDb, "/db/competition/pool_phase.sql"); // ← nouveau
     }
 
     private void applySql(SqliteDb db, String resourceSqlPath) {
@@ -119,6 +146,10 @@ public final class ApplicationContext {
 
     public TournamentService tournamentService() {
         return tournamentService;
+    }
+
+    public PoolPhaseService poolPhaseService() {
+        return poolPhaseService;
     }
 
     public EmailVerificationService emailVerificationService() {
@@ -151,6 +182,18 @@ public final class ApplicationContext {
 
     public TableauRepository tableauRepository() {
         return tableauRepository;
+    }
+
+    public PouleRepository pouleRepository() {
+        return pouleRepository;
+    }
+
+    public KoBracketRepository koBracketRepository() {
+        return koBracketRepository;
+    }
+
+    public ClassificationBracketRepository classificationBracketRepository() {
+        return classificationBracketRepository;
     }
 
     public EmailSender emailSender() {
