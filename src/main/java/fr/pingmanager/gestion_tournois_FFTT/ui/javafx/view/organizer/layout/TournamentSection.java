@@ -19,8 +19,8 @@ public enum TournamentSection {
     /** Gestion des tableaux et de l'algorithme de tirage. */
     TABLEAUX("Tableaux", true),
 
-    /** Documents générés (affiches, règlement PDF…). */
-    DOCUMENTS("Documents", true),
+    /** Autres informations : règlement PDF, affiches, convocations, paiement en ligne. */
+    DOCUMENTS("Autres infos", true),
 
     /** Inscriptions des joueurs — à venir. */
     INSCRIPTIONS("Inscriptions", false),

@@ -1,5 +1,7 @@
 package fr.pingmanager.gestion_tournois_FFTT.ui.javafx.app;
 
+import fr.pingmanager.gestion_tournois_FFTT.ui.javafx.service.PopplerManager;
+
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
@@ -37,6 +39,12 @@ public class PingManagerApp extends Application {
             stage.setMinHeight(AppTheme.MAIN_WINDOW_MIN_HEIGHT);
 
             router.showHome();
+
+            // Pré-initialiser Poppler en arrière-plan dès le démarrage
+            // afin qu'il soit prêt quand l'utilisateur ouvre le dialog règlement.
+            Thread popplerInit = new Thread(() -> PopplerManager.resolve(), "poppler-init");
+            popplerInit.setDaemon(true);
+            popplerInit.start();
 
         } catch (Exception ex) {
             ex.printStackTrace();

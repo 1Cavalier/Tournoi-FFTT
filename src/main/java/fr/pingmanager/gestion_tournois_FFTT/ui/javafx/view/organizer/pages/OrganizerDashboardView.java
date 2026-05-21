@@ -64,7 +64,7 @@ public class OrganizerDashboardView extends BorderPane {
             case GENERAL -> new TournamentGeneralView(nav, tournament);
             case REGLEMENT -> new TournamentRegulationView(nav, tournament, regulation);
             case TABLEAUX -> new TournamentTableauxView(nav, tournament, regulation);
-            case DOCUMENTS -> new TournamentDocumentsView(nav, tournament);
+            case DOCUMENTS -> new TournamentDocumentsView(nav, tournament, regulation);
             default -> new OrganizerDashboardContent(nav, organizer);
         };
     }

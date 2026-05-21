@@ -208,6 +208,15 @@ public final class AppRouter {
         alert.showAndWait();
     }
 
+    public void showError(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.initOwner(stage);
+        alert.setTitle(title);
+        alert.setHeaderText(title);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
     private void setMainScene(Parent root, String title) {
         Objects.requireNonNull(root, "root");
         Objects.requireNonNull(title, "title");
